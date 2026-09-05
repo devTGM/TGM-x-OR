@@ -1,0 +1,208 @@
+/*
+ * OnRepeat rotating product tag (snippets/onrepeat-rotating-tag.liquid).
+ *
+ * A top-left pill cycling through the product's Badges metafield entries plus
+ * an auto "SAVE NN%" while on sale. Pure CSS: every item runs the same
+ * keyframes, staggered by animation-delay; the container is an inline-grid so
+ * all items share one cell and the box auto-sizes to the widest pill (no
+ * layout shift, nothing to clip — opacity reaches 0 before ±70% travel).
+ *
+ * Keyframe percentages cannot use var(), so counts 2–6 each get a precomputed
+ * block. The Liquid snippet caps entries at 6 — keep that cap in sync here.
+ * Slide occupies 15% of an entry's slot: with slot share S = 100/N the stops
+ * are 0 → 0.15·S (in) → S (hold) → 1.15·S (out) → 100 (hidden).
+ *
+ * Brand tokens match the GSM chip (assets/onrepeat-gsm-badge.css) and save badge.
+ */
+
+.onrepeat-rtag {
+  display: inline-grid;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.onrepeat-rtag__item {
+  grid-area: 1 / 1;
+  justify-self: start;
+  align-self: center;
+}
+
+.onrepeat-rtag__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 20px;
+  width: max-content;
+  max-width: 100%;
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, #8a1c3e 0%, #5c1011 100%);
+  color: #fff;
+  font-family: var(--font-heading-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(92, 16, 17, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.onrepeat-rtag__pill--save {
+  background: linear-gradient(180deg, #5c1011 0%, #7b1e3a 100%);
+}
+
+/* Fabric-weight chip typography — mirrors .onrepeat-gsm__num/__unit */
+.onrepeat-rtag__pill--gsm {
+  align-items: baseline;
+}
+
+.onrepeat-rtag__num {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.onrepeat-rtag__unit {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  opacity: 0.82;
+}
+
+/* PDP: larger scale, mirroring .onrepeat-gsm--pdp */
+.onrepeat-rtag--pdp .onrepeat-rtag__pill {
+  min-height: 24px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.onrepeat-rtag--pdp .onrepeat-rtag__num {
+  font-size: 13.5px;
+}
+
+.onrepeat-rtag--pdp .onrepeat-rtag__unit {
+  font-size: 9px;
+}
+
+@media screen and (min-width: 768px) {
+  .onrepeat-rtag--pdp .onrepeat-rtag__pill {
+    font-size: 11.5px;
+  }
+  .onrepeat-rtag--pdp .onrepeat-rtag__num {
+    font-size: 15px;
+  }
+  .onrepeat-rtag--pdp .onrepeat-rtag__unit {
+    font-size: 9.5px;
+  }
+}
+
+/* PDP top-left column: rotator on top, SOLD OUT stacked below */
+.onrepeat-rtag-column {
+  position: absolute;
+  inset-block-start: var(--sp-3, 0.75rem);
+  inset-inline-start: var(--sp-3, 0.75rem);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2, 0.5rem);
+  pointer-events: none;
+}
+
+@media screen and (min-width: 768px) {
+  .onrepeat-rtag-column {
+    inset-block-start: var(--sp-4, 1rem);
+    inset-inline-start: var(--sp-4, 1rem);
+  }
+}
+
+/* Rotation — only when 2+ entries (data-count present) */
+.onrepeat-rtag[data-count] .onrepeat-rtag__item {
+  opacity: 0;
+  transform: translateY(70%);
+  animation-delay: calc(var(--rt-i) * var(--rt-interval, 2.5s));
+  animation-iteration-count: infinite;
+  animation-fill-mode: backwards;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.onrepeat-rtag[data-count='2'] .onrepeat-rtag__item {
+  animation-name: onrepeat-rtag-2;
+  animation-duration: calc(var(--rt-interval, 2.5s) * 2);
+}
+
+.onrepeat-rtag[data-count='3'] .onrepeat-rtag__item {
+  animation-name: onrepeat-rtag-3;
+  animation-duration: calc(var(--rt-interval, 2.5s) * 3);
+}
+
+.onrepeat-rtag[data-count='4'] .onrepeat-rtag__item {
+  animation-name: onrepeat-rtag-4;
+  animation-duration: calc(var(--rt-interval, 2.5s) * 4);
+}
+
+.onrepeat-rtag[data-count='5'] .onrepeat-rtag__item {
+  animation-name: onrepeat-rtag-5;
+  animation-duration: calc(var(--rt-interval, 2.5s) * 5);
+}
+
+.onrepeat-rtag[data-count='6'] .onrepeat-rtag__item {
+  animation-name: onrepeat-rtag-6;
+  animation-duration: calc(var(--rt-interval, 2.5s) * 6);
+}
+
+@keyframes onrepeat-rtag-2 {
+  0% { transform: translateY(70%); opacity: 0; }
+  7.5% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(0); opacity: 1; }
+  57.5% { transform: translateY(-70%); opacity: 0; }
+  100% { transform: translateY(-70%); opacity: 0; }
+}
+
+@keyframes onrepeat-rtag-3 {
+  0% { transform: translateY(70%); opacity: 0; }
+  5% { transform: translateY(0); opacity: 1; }
+  33.333% { transform: translateY(0); opacity: 1; }
+  38.333% { transform: translateY(-70%); opacity: 0; }
+  100% { transform: translateY(-70%); opacity: 0; }
+}
+
+@keyframes onrepeat-rtag-4 {
+  0% { transform: translateY(70%); opacity: 0; }
+  3.75% { transform: translateY(0); opacity: 1; }
+  25% { transform: translateY(0); opacity: 1; }
+  28.75% { transform: translateY(-70%); opacity: 0; }
+  100% { transform: translateY(-70%); opacity: 0; }
+}
+
+@keyframes onrepeat-rtag-5 {
+  0% { transform: translateY(70%); opacity: 0; }
+  3% { transform: translateY(0); opacity: 1; }
+  20% { transform: translateY(0); opacity: 1; }
+  23% { transform: translateY(-70%); opacity: 0; }
+  100% { transform: translateY(-70%); opacity: 0; }
+}
+
+@keyframes onrepeat-rtag-6 {
+  0% { transform: translateY(70%); opacity: 0; }
+  2.5% { transform: translateY(0); opacity: 1; }
+  16.667% { transform: translateY(0); opacity: 1; }
+  19.167% { transform: translateY(-70%); opacity: 0; }
+  100% { transform: translateY(-70%); opacity: 0; }
+}
+
+/* Reduced motion: first entry shown statically, the rest removed so the
+   inline-grid collapses to the first pill's size. */
+@media (prefers-reduced-motion: reduce) {
+  .onrepeat-rtag[data-count] .onrepeat-rtag__item {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .onrepeat-rtag[data-count] .onrepeat-rtag__item:not(:first-child) {
+    display: none;
+  }
+}

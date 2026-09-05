@@ -1,0 +1,35 @@
+{% comment %}
+  ============================================================
+  Google Customer Reviews — Opt-in Integration
+  ============================================================
+  PURPOSE: Shows a Google survey opt-in on the order confirmation page
+           so customers can opt-in to receive a Google review survey.
+
+  HOW TO USE:
+    1. Go to Shopify Admin → Settings → Checkout → Order status page
+    2. Paste the content below into the "Additional scripts" textarea
+    3. Save
+
+  NOTE: This snippet uses Shopify's checkout Liquid objects which are
+        only available on the order status / thank-you page.
+  ============================================================
+{% endcomment %}
+
+{% if first_time_accessed %}
+<!-- Google Customer Reviews — Opt-in Survey -->
+<script src="https://apis.google.com/js/platform.js?onload=renderOptIn" async defer></script>
+<script>
+  window.renderOptIn = function() {
+    window.gapi.load('surveyoptin', function() {
+      window.gapi.surveyoptin.render({
+        // REQUIRED FIELDS
+        "merchant_id": 5513650673,
+        "order_id": "{{ order.name }}",
+        "email": "{{ order.email }}",
+        "delivery_country": "{{ order.shipping_address.country_code }}",
+        "estimated_delivery_date": "{{ order.created_at | date: '%s' | plus: 604800 | date: '%Y-%m-%d' }}" {% comment %} 4-5 working days ≈ 7 calendar days {% endcomment %}
+      });
+    });
+  }
+</script>
+{% endif %}

@@ -1,0 +1,22 @@
+{%- comment -%}
+  Renders an animated "Sold Out" label when a product is out of stock in every variant (all sizes).
+
+  `product.available` is false only when ALL variants are unavailable for sale, so it is the
+  correct, safe signal for a fully sold-out product.
+
+  Accepts:
+  - product: {Object} Product Liquid object (required)
+  - variant: {String} Visual variant — "card" (default) for product cards, "page" for the
+    product page / media gallery overlay (optional)
+
+  Usage:
+  {%- render 'sold-out-badge', product: product -%}
+  {%- render 'sold-out-badge', product: product, variant: 'page' -%}
+{%- endcomment -%}
+
+{%- if product != blank and product.available == false -%}
+  {%- assign variant = variant | default: 'card' -%}
+  <span class="sold-out-badge sold-out-badge--{{ variant }}" role="status" aria-label="{{ 'products.product.sold_out' | t | escape }}">
+    <span class="sold-out-badge__text">{{ 'products.product.sold_out' | t }}</span>
+  </span>
+{%- endif -%}

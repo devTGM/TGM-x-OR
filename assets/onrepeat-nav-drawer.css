@@ -1,0 +1,441 @@
+/* ============================================================================
+   THE ONREPEAT — mobile menu drawer.
+
+   The drawer used to be seven 24px rows that resolved to two destinations,
+   followed by roughly 700px of empty white. This restyles it into two tiers:
+   shopping links first at a size you can scan, a crimson hairline, then the
+   support links smaller beneath. Content comes from two menus so either tier
+   can be reordered in the admin — see snippets/header-drawer.liquid.
+
+   Additive and scoped to #MenuDrawer. theme.css is never edited; every rule
+   here either overrides a theme utility class on the drawer or styles markup
+   this theme did not previously have (counts, the tier rule, the family
+   thumbnails, the wordmark).
+
+   Loaded by snippets/header-drawer.liquid, the way onrepeat-product-card,
+   onrepeat-collection and half a dozen other snippets in this theme load theirs.
+   ========================================================================== */
+
+/* ── Ink ────────────────────────────────────────────────────────────────────
+   The header section paints its text crimson, and the drawer inherits it, so
+   every row in the menu was the same colour as the brand accent. Setting the
+   foreground to near-black for the sheet only puts the crimson back to work
+   as an accent: the tier rule, the Login outline, the panel CTA and the
+   watermark are the only crimson left, and each of those sets it literally
+   rather than reading this token.
+
+   Every rule below writes colour as rgb(var(--color-foreground) / a), so this
+   one declaration carries the whole sheet.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .drawer__inner {
+  --color-foreground: 26 21 18;
+}
+
+/* ── Wordmark ───────────────────────────────────────────────────────────────
+   The theme renders .drawer__title empty on the menu drawer. The sheet covers
+   the header when it opens, so without this the brand simply vanishes. The
+   `heading` utility on that span brings a font-family and an uppercase
+   transform with it; both are reset here so the Devanagari renders correctly.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .onrepeat-navmark {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  text-transform: none;
+}
+
+#MenuDrawer .onrepeat-navmark b {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  color: rgb(var(--color-foreground));
+}
+
+#MenuDrawer .onrepeat-navmark i {
+  font-style: normal;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+  color: rgb(var(--color-foreground) / 0.45);
+}
+
+/* ── Search ─────────────────────────────────────────────────────────────────
+   A field-shaped target rather than a row, because it is the one thing here
+   that is not navigation and should not read as another menu item.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .onrepeat-nav__searchli {
+  list-style: none;
+  margin-block: var(--sp-1) var(--sp-2);
+  margin-inline-end: var(--sp-5);
+}
+
+#MenuDrawer .onrepeat-nav__search {
+  gap: var(--sp-2d5);
+  height: 2.5rem;
+  padding-inline: var(--sp-3);
+  border: 1px solid rgb(var(--color-foreground) / 0.14);
+  border-radius: 2px;
+  background: rgb(var(--color-foreground) / 0.025);
+  font-family: var(--font-body-family);
+  font-size: 0.8125rem;
+  color: rgb(var(--color-foreground) / 0.45);
+  text-transform: none;
+}
+
+#MenuDrawer .onrepeat-nav__search .icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  opacity: 0.55;
+}
+
+/* ── Tier label ─────────────────────────────────────────────────────────────
+   Names the tier below, which is what lets the crimson rule further down read
+   as a boundary rather than a stray divider.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .onrepeat-nav__eyebrow {
+  list-style: none;
+  margin-block-end: 2px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--color-foreground) / 0.35);
+  line-height: 1.75rem;
+}
+
+/* ── Shop tier ──────────────────────────────────────────────────────────────
+   24px for a seven-item list read as a sitemap rather than a shop. 17px with
+   a hairline under each row carries the hierarchy instead — the same job the
+   old size was doing, done by structure.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .drawer__menu > li > .drawer__menu-item:not(.onrepeat-nav__util),
+#MenuDrawer .drawer__menu > li > details > .drawer__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 3.375rem;
+  padding-block: 0;
+  padding-inline-end: var(--sp-5);
+  border-block-end: 1px solid rgb(var(--color-foreground) / 0.09);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  line-height: 1.25;
+}
+
+#MenuDrawer .onrepeat-nav__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Depth, stated. Tabular figures so a column of counts lines up. */
+#MenuDrawer .onrepeat-nav__count {
+  flex: 0 0 auto;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--color-foreground) / 0.35);
+}
+
+/* The theme's chevron sits at --sp-7 from the edge, which was clear of a row
+   with nothing else in it. A count now occupies that space, so the chevron
+   moves outboard and the count is padded off it. */
+#MenuDrawer .drawer__menu summary::after,
+#MenuDrawer .drawer__submenu summary::after {
+  inset-inline-end: var(--sp-5);
+  opacity: 0.34;
+  width: 8px;
+  height: 8px;
+}
+
+#MenuDrawer .drawer__menu > li > details > .drawer__menu-item .onrepeat-nav__count,
+#MenuDrawer .drawer__submenu > li > details > .drawer__menu-item .onrepeat-nav__count {
+  margin-inline-end: var(--sp-4);
+}
+
+/* ── The boundary ───────────────────────────────────────────────────────────
+   One crimson hairline does all the sorting between shopping and support. No
+   tab row, no second construct: a rule and a size change carry the whole
+   split, which is also the only version of this that costs no extra tap.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .onrepeat-nav__rule {
+  height: 1px;
+  margin-block: var(--sp-4) var(--sp-1d5);
+  margin-inline-end: var(--sp-5);
+  padding: 0;
+  background: rgb(92 16 17 / 0.22);
+  list-style: none;
+}
+
+/* ── Utility tier ───────────────────────────────────────────────────────────
+   Support content at 13px and 62% ink. Present, findable, and no longer
+   competing with the catalogue for the top of the menu.
+
+   Selector matches the shop-tier one structurally on purpose. These rows are
+   also direct .drawer__menu-item children of a .drawer__menu li, so the
+   shop-tier rule matches them too and, being the more specific of the two,
+   was winning outright — the tier rendered at 17px/500 with a 54px row and
+   the whole size distinction silently did nothing. The shop rule now excludes
+   this class, and this one carries the same weight so neither can shadow the
+   other by accident again.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .drawer__menu > li > .drawer__menu-item.onrepeat-nav__util {
+  display: flex;
+  align-items: center;
+  min-height: 2.4375rem;
+  padding-block: 0;
+  padding-inline-end: var(--sp-5);
+  font-family: var(--font-body-family);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgb(var(--color-foreground) / 0.62);
+}
+
+@media (hover: hover) {
+  #MenuDrawer .drawer__menu > li > .drawer__menu-item.onrepeat-nav__util:hover {
+    color: rgb(var(--color-foreground));
+  }
+}
+
+/* ── Inside a panel ─────────────────────────────────────────────────────────
+   "View All" is the rung that did not exist: the panel header is a close
+   button, not a link, so there was no route from a panel to the collection it
+   describes.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .onrepeat-nav__viewall {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 3.375rem;
+  padding-block: 0;
+  padding-inline-end: var(--sp-5);
+  border-block-end: 1px solid rgb(var(--color-foreground) / 0.09);
+  font-family: var(--font-body-family);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-transform: none;
+}
+
+/* Knit families. The thumbnail is the point — CANE, CORD, HIVE and VANE mean
+   nothing as words, and a 44px macro of the actual knit turns eight abstract
+   labels into eight visible choices. */
+#MenuDrawer .onrepeat-nav__family {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 3.75rem;
+  padding-block: 0;
+  padding-inline-end: var(--sp-5);
+  border-block-end: 1px solid rgb(var(--color-foreground) / 0.09);
+  font-family: var(--font-body-family);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+#MenuDrawer .onrepeat-nav__thumb {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--sp-0d5);
+  overflow: hidden;
+  background: rgb(var(--color-foreground) / 0.05);
+}
+
+#MenuDrawer .onrepeat-nav__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Panel header ───────────────────────────────────────────────────────────
+   The theme shipped this as a bare title with no affordance. The chevron is
+   what makes it read as the way back.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .onrepeat-nav__back {
+  gap: var(--sp-2d5);
+  min-height: 3rem;
+  padding-inline-end: var(--sp-5);
+  border-block-end: 0;
+  font-family: var(--font-body-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--color-foreground) / 0.45);
+}
+
+/* The theme already draws a chevron here as an 8px ::before. It is too faint
+   to serve as the back affordance but it is definitely visible, so with the
+   real one in the markup the header rendered two of them side by side. */
+#MenuDrawer .onrepeat-nav__back::before {
+  display: none;
+}
+
+#MenuDrawer .onrepeat-nav__back .icon {
+  width: 9px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+#MenuDrawer .onrepeat-nav__back em {
+  font-style: normal;
+  color: rgb(var(--color-foreground));
+}
+
+#MenuDrawer .onrepeat-nav__deva {
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgb(var(--color-foreground) / 0.35);
+}
+
+/* The promo cards come from the theme's mega menu block and carry its sale
+   badge, which is a saturated pink pill — the loudest thing in the drawer,
+   sitting on top of the photography it is meant to annotate. White on the
+   image with crimson text says the same words and lets the picture lead. */
+#MenuDrawer .drawer__promotions .badge--onsale {
+  padding: 4px 7px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.94);
+  color: #5c1011;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+/* The call to action the panel never had. */
+#MenuDrawer .onrepeat-nav__cta {
+  height: 2.875rem;
+  margin-block-start: var(--sp-3d5);
+  margin-inline-end: var(--sp-5);
+  border-radius: 2px;
+  background: #5c1011;
+  color: #fff;
+  font-family: var(--font-body-family);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────
+   A saturated maroon pill on the lowest-intent action in the drawer was
+   pulling the eye away from the catalogue. Outlined keeps it available and
+   quiet, which is what an account link should be — full width so it still
+   reads as the one action down here.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .onrepeat-nav__foot {
+  gap: var(--sp-2d5);
+}
+
+#MenuDrawer .drawer__footer-bottom .button--primary {
+  width: 100%;
+  min-height: 2.75rem;
+  background: transparent;
+  border: 1px solid #5c1011;
+  border-radius: 2px;
+  color: #5c1011;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#MenuDrawer .drawer__footer-bottom .button--primary .btn-fill {
+  display: none;
+}
+
+/* The theme paints a button's outline with ::after rather than a border, so
+   the square corners have to be set there too or the pill shape survives. */
+#MenuDrawer .drawer__footer-bottom .button--primary::after {
+  border-radius: 2px;
+  border: 0;
+}
+
+#MenuDrawer .onrepeat-nav__meta {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: rgb(var(--color-foreground) / 0.35);
+}
+
+#MenuDrawer .onrepeat-nav__meta a {
+  color: inherit;
+}
+
+@media (hover: hover) {
+  #MenuDrawer .onrepeat-nav__meta a:hover {
+    color: rgb(var(--color-foreground));
+  }
+}
+
+#MenuDrawer .onrepeat-nav__ships {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* ── Watermark ──────────────────────────────────────────────────────────────
+   The drawer is a tall sheet with a short list in it. Rather than stretch the
+   rows to fill the space, the empty part carries the brand at 4.5% — visible
+   as texture, never as content, and behind everything.
+   -------------------------------------------------------------------------- */
+#MenuDrawer .drawer__inner::after {
+  content: 'शून्य';
+  position: absolute;
+  inset-inline-end: -1.5rem;
+  inset-block-end: 4.5rem;
+  z-index: 0;
+  font-size: 11.875rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #5c1011;
+  opacity: 0.045;
+  pointer-events: none;
+  user-select: none;
+}
+
+#MenuDrawer .drawer__content,
+#MenuDrawer .drawer__header,
+#MenuDrawer .drawer__footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Motion ─────────────────────────────────────────────────────────────────
+   A short stagger on the shopping rows only. The tail lands inside half a
+   second, and the utility tier is deliberately excluded — staggering eleven
+   rows makes the menu feel slower, not richer.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* Children 1 and 2 are the search field and the tier label; the five
+     shopping rows start at 3. Offsets, not a class, because nth-child counts
+     every sibling regardless of what it is. */
+  #MenuDrawer[open] .drawer__menu > li:nth-child(-n + 7) {
+    animation: onrepeat-nav-in 0.2s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  }
+  #MenuDrawer[open] .drawer__menu > li:nth-child(1) { animation-delay: 0.056s; }
+  #MenuDrawer[open] .drawer__menu > li:nth-child(2) { animation-delay: 0.068s; }
+  #MenuDrawer[open] .drawer__menu > li:nth-child(3) { animation-delay: 0.08s; }
+  #MenuDrawer[open] .drawer__menu > li:nth-child(4) { animation-delay: 0.104s; }
+  #MenuDrawer[open] .drawer__menu > li:nth-child(5) { animation-delay: 0.128s; }
+  #MenuDrawer[open] .drawer__menu > li:nth-child(6) { animation-delay: 0.152s; }
+  #MenuDrawer[open] .drawer__menu > li:nth-child(7) { animation-delay: 0.176s; }
+}
+
+@keyframes onrepeat-nav-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}

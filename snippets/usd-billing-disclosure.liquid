@@ -1,0 +1,16 @@
+{%- liquid
+  comment
+    The one place a US visitor is told the real charge: USD prices are a
+    display convenience, the card is billed the INR figure (their US-market
+    price) via Razorpay. Rendered above the checkout button in the drawer and
+    on the cart page. The ₹ amount is deliberately NOT routed through
+    money-display — it IS the billed amount — and cart.js keeps the
+    .js-usd-billed span live between section re-renders.
+  endcomment
+  assign ubd_rate = settings.usd_inr_rate | default: 0 | round
+-%}
+{%- if settings.usd_display_enabled and ubd_rate > 0 and localization.country.iso_code == 'US' and cart.item_count > 0 -%}
+  <div class="usd-disclosure" role="note">
+    Prices in USD are for convenience · billed as <strong><span class="js-usd-billed">{{ cart.total_price | money }}</span> (INR)</strong> · international cards accepted
+  </div>
+{%- endif -%}

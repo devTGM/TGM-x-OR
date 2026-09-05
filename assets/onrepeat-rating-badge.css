@@ -1,0 +1,132 @@
+/*
+ * OnRepeat rating badge (snippets/onrepeat-rating-badge.liquid).
+ *
+ * A compact, TAPPABLE rating pill on the PDP gallery's BOTTOM-RIGHT corner,
+ * e.g. "★ 4.7 · 10 reviews". Shares the frosted dark-crimson glass language of
+ * the model-fit caption pill (bottom-left), with a single warm-gold star accent.
+ * Tapping scrolls to the reviews section (handled by <onrepeat-review-link>).
+ */
+
+/* The link wrapper carries no box of its own — the pill positions to the frame. */
+.onrepeat-rating-link {
+  display: contents;
+}
+
+.onrepeat-rating-pill {
+  position: absolute;
+  inset-block-end: var(--sp-3, 0.75rem);
+  inset-inline-end: var(--sp-3, 0.75rem);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 100px;
+  background: rgba(28, 8, 10, 0.55);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  backdrop-filter: blur(8px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f5f2ee;
+  font-family: var(--font-heading-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.5);
+  /* The overlay layer is pointer-events:none; the pill opts back in so it's the
+     only clickable thing over the slider (taps elsewhere still swipe). */
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.onrepeat-rating-pill:hover {
+  background: rgba(28, 8, 10, 0.7);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+.onrepeat-rating-pill:active {
+  transform: scale(0.96);
+}
+.onrepeat-rating-pill:focus-visible {
+  outline: 2px solid #f5b301;
+  outline-offset: 2px;
+}
+
+.onrepeat-rating-pill__star {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: #f5b301; /* warm-gold star, the only accent */
+}
+
+.onrepeat-rating-pill__val {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.onrepeat-rating-pill__sep {
+  flex: none;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f5f2ee;
+  opacity: 0.5;
+}
+
+.onrepeat-rating-pill__count {
+  font-weight: 500;
+  opacity: 0.86;
+}
+
+/* Mobile: drop the word "reviews" so the line stays compact (just the count). */
+.onrepeat-rating-pill__count-word {
+  display: none;
+}
+
+@media screen and (min-width: 768px) {
+  .onrepeat-rating-pill {
+    inset-block-end: var(--sp-4, 1rem);
+    inset-inline-end: var(--sp-4, 1rem);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .onrepeat-rating-pill__star {
+    width: 14px;
+    height: 14px;
+  }
+  .onrepeat-rating-pill__val {
+    font-size: 14px;
+  }
+  .onrepeat-rating-pill__count-word {
+    display: inline;
+  }
+}
+
+/* Contrast insurance where backdrop-blur is unsupported. */
+@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .onrepeat-rating-pill {
+    background: rgba(28, 8, 10, 0.74);
+  }
+}
+
+/* A single, non-looping fade + slide-up on first render. */
+@media (prefers-reduced-motion: no-preference) {
+  .onrepeat-rating-pill {
+    animation: onrepeat-rating-in 420ms ease-out both;
+  }
+  @keyframes onrepeat-rating-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

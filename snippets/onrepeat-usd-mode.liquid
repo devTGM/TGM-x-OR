@@ -1,0 +1,44 @@
+{%- comment -%}
+  OnRepeat — display-currency mode. Emits exactly `true` or `false`.
+
+  This is the single fact that decides TWO things which must never disagree:
+
+    1. whether the shopper is shown USD prices, and
+    2. which checkout they get.
+
+  The rule, set by the merchant: Shopify's native checkout runs only while USD
+  pricing is on screen. Any shopper seeing INR — which is every shopper in
+  India, and every US shopper who has not switched market — goes to Razorpay
+  Magic Checkout, so COD, UPI and the Indian address flow stay intact.
+
+  Coupling them to one value is the safety property. If the checkout gate were
+  written out a second time by hand it could drift from the price condition,
+  and a drift in either direction is a live bug:
+
+    prices INR + native checkout  → an Indian shopper silently loses COD/UPI
+    prices USD + Magic Checkout   → a US shopper meets an OTP wall on a +91
+                                    field and an India-shaped address form
+
+  The condition mirrors snippets/money-display.liquid:32, which is the price
+  authority for everything a shopper sees before checkout. That snippet is not
+  refactored to call this one: it runs hundreds of times per page and a render
+  per call would cost more than the duplication saves. If you ever change the
+  condition there, change it here in the same commit — checkout routing rides
+  on it.
+
+  Usage (the theme's own idiom, see the first line of layout/theme.liquid):
+    {%- capture usd_mode_raw -%}{%- render 'onrepeat-usd-mode' -%}{%- endcapture -%}
+    {%- assign usd_mode = usd_mode_raw | strip -%}
+    {%- if usd_mode == 'true' -%}…{%- endif -%}
+
+  `strip` is not optional — a stray newline in this file would otherwise make
+  every comparison false, which would silently route USD shoppers to Magic.
+{%- endcomment -%}
+{%- liquid
+  assign um_rate = settings.usd_inr_rate | default: 0 | round
+  if settings.usd_display_enabled and um_rate > 0 and localization.country.iso_code == 'US'
+    echo 'true'
+  else
+    echo 'false'
+  endif
+-%}

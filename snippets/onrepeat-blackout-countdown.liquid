@@ -1,0 +1,127 @@
+{%- comment -%}
+  OnRepeat live sold / views counter — a compact activity strip that replaces the
+  Money Back Promise card in the `liquid_84KaBD` custom-liquid block on the
+  product templates.
+
+  - One slim row: a pulsing dot + a stat that flips between "N views in last
+    hour" and "N sold last hour" with a smooth slide transition.
+  - The views stat is the all-time view count (custom.views_total) — it only
+    ever grows, never resets. Sold (custom.sold_count) joins the rotation once
+    it clears its own floor. Both metafields are refreshed hourly from
+    order/session analytics. (Display text only — the "last hour" wording does
+    not change what's actually measured.)
+  - Floors are minimums, not switches: 0 means "show from the first sale/view".
+    A stat stays hidden only while its count is genuinely zero.
+  - Toggle off in Theme settings → "Live sold / views counter", or when a
+    product has no stat to show, this slot falls back to the Money Back
+    Promise card.
+{%- endcomment -%}
+
+{%- if settings.blackout_sale_enabled -%}
+  {%- liquid
+    assign sbo_floor = settings.blackout_sold_floor | default: 0
+    assign sbo_views_floor = settings.blackout_views_floor | default: 0
+
+    assign sbo_sold = product.metafields.custom.sold_count.value | plus: 0
+    assign sbo_show_sold = false
+    if sbo_sold >= 1 and sbo_sold >= sbo_floor
+      assign sbo_show_sold = true
+    endif
+
+    if sbo_sold >= 1000
+      assign sbo_sold_th = sbo_sold | divided_by: 1000
+      assign sbo_sold_rem = sbo_sold | modulo: 1000 | prepend: '000' | slice: -3, 3
+      assign sbo_sold_label = sbo_sold_th | append: ',' | append: sbo_sold_rem
+    else
+      assign sbo_sold_label = sbo_sold
+    endif
+
+    assign sbo_views_total = product.metafields.custom.views_total.value | plus: 0
+    assign sbo_show_views = false
+    assign sbo_views_num = 0
+    assign sbo_views_text = ''
+    if sbo_views_total >= 1 and sbo_views_total >= sbo_views_floor
+      assign sbo_show_views = true
+      assign sbo_views_num = sbo_views_total
+      assign sbo_views_text = 'views in last hour'
+    endif
+
+    if sbo_views_num >= 1000
+      assign sbo_views_th = sbo_views_num | divided_by: 1000
+      assign sbo_views_rem = sbo_views_num | modulo: 1000 | prepend: '000' | slice: -3, 3
+      assign sbo_views_label = sbo_views_th | append: ',' | append: sbo_views_rem
+    else
+      assign sbo_views_label = sbo_views_num
+    endif
+
+    assign sbo_flip = false
+    if sbo_show_views and sbo_show_sold
+      assign sbo_flip = true
+    endif
+  -%}
+
+  {%- if sbo_show_views or sbo_show_sold -%}
+    <style>
+      .sbo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        margin: 10px 0;
+        box-sizing: border-box;
+        padding: 9px 14px;
+        border-radius: 12px;
+        background:
+          radial-gradient(80% 140% at 8% 100%, rgba(138, 28, 62, .20) 0%, transparent 60%),
+          linear-gradient(150deg, #101219 0%, #0a0c12 60%, #12141d 100%) !important;
+        border: 1px solid rgba(255, 255, 255, .09);
+        color: #fff !important;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .sbo__stats { display: grid; align-items: center; min-width: 0; overflow: hidden; }
+      .sbo__stat { grid-area: 1 / 1; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, .9) !important; white-space: nowrap; }
+      .sbo__stat b { font-variant-numeric: tabular-nums; font-weight: 800; }
+      .sbo__stats--flip .sbo__stat { animation: sboStatFlip 7s ease-in-out infinite; }
+      .sbo__stats--flip .sbo__stat:nth-child(2) { animation-delay: -3.5s; }
+      @keyframes sboStatFlip {
+        0%, 40% { opacity: 1; transform: translateY(0); }
+        46%, 94% { opacity: 0; transform: translateY(-8px); }
+        95% { opacity: 0; transform: translateY(8px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      .sbo__dot { width: 6px; height: 6px; border-radius: 50%; background: #ff5a3c; box-shadow: 0 0 8px rgba(255, 90, 60, .8); animation: sboPulse 1.6s ease-in-out infinite; flex: none; }
+      @keyframes sboPulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: .55; transform: scale(.8); }
+      }
+      .sbo__live { flex: none; font-size: 9px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: rgba(255, 255, 255, .42) !important; }
+      @media (prefers-reduced-motion: reduce) {
+        .sbo__dot { animation: none; }
+        .sbo__stats--flip .sbo__stat { animation: none; }
+        .sbo__stats--flip .sbo__stat:nth-child(2) { display: none; }
+      }
+    </style>
+
+    {%- capture sbo_stats_aria -%}
+      {%- if sbo_show_views %}{{ sbo_views_label }} {{ sbo_views_text }}{% endif -%}
+      {%- if sbo_show_views and sbo_show_sold %}, {% endif -%}
+      {%- if sbo_show_sold %}{{ sbo_sold_label }} sold last hour{% endif -%}
+    {%- endcapture -%}
+    <div class="sbo" role="text" aria-label="{{ sbo_stats_aria | strip | escape }}">
+      <span class="sbo__stats{% if sbo_flip %} sbo__stats--flip{% endif %}">
+        {%- if sbo_show_views -%}
+          <span class="sbo__stat" aria-hidden="true"><span class="sbo__dot"></span><b>{{ sbo_views_label }}</b>&nbsp;{{ sbo_views_text }}</span>
+        {%- endif -%}
+        {%- if sbo_show_sold -%}
+          <span class="sbo__stat" aria-hidden="true"><span class="sbo__dot"></span><b>{{ sbo_sold_label }}</b>&nbsp;sold last hour</span>
+        {%- endif -%}
+      </span>
+      <span class="sbo__live" aria-hidden="true">Live</span>
+    </div>
+  {%- else -%}
+    {%- render 'onrepeat-money-back' -%}
+  {%- endif -%}
+{%- else -%}
+  {%- render 'onrepeat-money-back' -%}
+{%- endif -%}

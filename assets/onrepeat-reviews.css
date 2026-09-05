@@ -1,0 +1,104 @@
+/* ============================================================================
+   THE ONREPEAT — compact, on-brand restyle for the AG/Air Reviews widget.
+
+   PRIMARY HOME: paste this into the app →
+   AG Product Reviews → Display reviews → Advanced settings → Custom CSS
+   (replace the old commented-out block there).
+   This file is a mirror/fallback loaded by the theme on the product page.
+
+   Scoped to #AirReviews-BlockWrapper, all !important, additive — inert if a
+   selector doesn't match, so it can never break the widget.
+   Brand: maroon #5c1011 / #7B1E3A · ink #1a1213
+   ========================================================================== */
+
+#AirReviews-BlockWrapper { --m: #5c1011; --m2: #7B1E3A; --ink: #1a1213; }
+#AirReviews-BlockWrapper * { box-sizing: border-box !important; }
+
+/* ── Keep the whole widget within the page width (was overflowing right) ──── */
+#AirReviews-BlockWrapper,
+#AirReviews-BlockWrapper .AirReviews-Widget__V2,
+#AirReviews-BlockWrapper .AirReviews-Blocks,
+#AirReviews-BlockWrapper .AirReviews-Blocks__Summary,
+#AirReviews-BlockWrapper .AirReviews-Blocks__SummaryInner,
+#AirReviews-BlockWrapper .AirReviews-Carousel,
+#AirReviews-BlockWrapper .AirReviews-Carousel__Container,
+#AirReviews-BlockWrapper .AirReviews-Carousel__InnerContainer,
+#AirReviews-BlockWrapper .swiper { max-width: 100% !important; }
+
+/* ── Heading ─────────────────────────────────────────────────────────────── */
+#AirReviews-BlockWrapper .AirReviews-Blocks--Title {
+  font-size: 19px !important; font-weight: 800 !important;
+  color: var(--m) !important; margin: 0 0 10px !important; letter-spacing: -0.01em !important;
+}
+
+/* ── SUMMARY: two boxes share the row & shrink to fit (no off-screen counts) ─ */
+#AirReviews-BlockWrapper .AirReviews-Blocks__SummaryInner { padding: 0 !important; height: auto !important; min-height: 0 !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks__SummaryWrapper { width: 100% !important; gap: 10px !important; flex-wrap: nowrap !important; align-items: stretch !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks--Rate,
+#AirReviews-BlockWrapper .AirReviews-Blocks--List { flex: 1 1 0 !important; min-width: 0 !important; height: auto !important; min-height: 0 !important; }
+
+/* score box */
+#AirReviews-BlockWrapper .AirReviews-Blocks--Rate { padding: 16px 14px !important; gap: 4px !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks--RateCount { font-size: 34px !important; line-height: 1 !important; color: var(--m) !important; font-weight: 900 !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks--ReviewCount__Text { font-size: 12px !important; color: #8a7a7c !important; font-weight: 600 !important; }
+
+/* distribution: tight rows, real maroon bars, count never clipped */
+#AirReviews-BlockWrapper .AirReviews-Blocks--List { padding: 14px 12px !important; gap: 12px !important; justify-content: flex-start !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks--ListItem { display: flex !important; align-items: center !important; gap: 8px !important; min-width: 0 !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; flex: none !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks-Star { flex: none !important; display: flex !important; align-items: center !important; gap: 2px !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks-Process { flex: 1 1 0 !important; min-width: 20px !important; height: 6px !important; border-radius: 999px !important; background: rgba(92, 16, 17, 0.10) !important; overflow: hidden !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks-ProcessBar { height: 100% !important; border-radius: 999px !important; background: linear-gradient(90deg, var(--m), var(--m2)) !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks-Count { flex: none !important; min-width: 12px !important; text-align: right !important; color: var(--ink) !important; font-weight: 700 !important; }
+
+/* "Tap to review" */
+#AirReviews-BlockWrapper .AirReviews-Blocks--Actions { padding: 13px 14px !important; gap: 8px !important; height: auto !important; min-height: 0 !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks--Actions__Text { font-size: 13px !important; font-weight: 700 !important; color: var(--ink) !important; }
+#AirReviews-BlockWrapper .AirReviews-StarRadio__Label svg { width: 28px !important; height: 28px !important; }
+#AirReviews-BlockWrapper .AirReviews-StarRadio__Label svg path { stroke: var(--m) !important; }
+
+/* ── Stars: maroon (filled) / light (empty), overrides inline fills ──────── */
+#AirReviews-BlockWrapper .AirReviews-Star__Classic path { fill: var(--m) !important; }
+#AirReviews-BlockWrapper .Avada_Star-Icon--empty .AirReviews-Star__Classic path,
+#AirReviews-BlockWrapper .AirReviews-StarRate__Icon--Negative .AirReviews-Star__Classic path { fill: rgba(92, 16, 17, 0.16) !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks-Star svg path { fill: var(--m) !important; }
+
+/* ── REVIEW CARDS: compact, content-height, nothing clipped ───────────────── */
+#AirReviews-BlockWrapper .swiper-wrapper { align-items: flex-start !important; height: auto !important; }
+#AirReviews-BlockWrapper .swiper-slide { height: auto !important; align-self: flex-start !important; overflow: visible !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks__ReviewDetails,
+#AirReviews-BlockWrapper .AirReviews-Carousel__Information { height: auto !important; min-height: 0 !important; justify-content: flex-start !important; overflow: visible !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks__AuthorName { color: var(--m) !important; font-weight: 800 !important; }
+#AirReviews-BlockWrapper .AirReview-BadgeIcon__Text { font-size: 11px !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks__Date { color: #9a8a8c !important; font-weight: 600 !important; font-size: 11px !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks__Content { margin-top: 8px !important; }
+#AirReviews-BlockWrapper .Avada-ReviewContent__LimitLength { font-size: 12.5px !important; line-height: 1.45 !important; color: #3a2e30 !important; }
+#AirReviews-BlockWrapper [class*="AirReviews-Reaction"] { margin-top: 8px !important; overflow: visible !important; }
+
+/* photos: the app pins this image (absolute/overlay) which made it collide with
+   the card. Fully reset its positioning so it sits as a normal in-flow
+   thumbnail at the bottom of the card, then cap its size. */
+#AirReviews-BlockWrapper .AirReviews-CarouselImage,
+#AirReviews-BlockWrapper .AirReviews-Blocks_CarouselImage {
+  position: static !important;
+  inset: auto !important;
+  top: auto !important; right: auto !important; bottom: auto !important; left: auto !important;
+  transform: none !important;
+  float: none !important; clear: both !important;
+  z-index: auto !important;
+  width: auto !important; max-width: 100% !important;
+  height: auto !important; min-height: 0 !important; max-height: none !important;
+  aspect-ratio: auto !important;
+  overflow: visible !important;
+  margin: 10px 0 0 !important;
+  padding: 0 !important;
+}
+/* drop the repeated product-image fallback; keep only real customer photos */
+#AirReviews-BlockWrapper .AirReviews-CarouselImage img[src*="/cdn/shop/"] { display: none !important; }
+#AirReviews-BlockWrapper .AirReviews-CarouselImage:has(img[src*="/cdn/shop/"]) { display: none !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks_CarouselImage { display: inline-block !important; line-height: 0 !important; }
+#AirReviews-BlockWrapper .AirReviews-Blocks_CarouselImage img {
+  width: 88px !important; height: 88px !important; min-width: 0 !important; min-height: 0 !important;
+  max-width: 88px !important; max-height: 88px !important;
+  object-fit: cover !important; border-radius: 10px !important; display: block !important;
+  position: static !important; inset: auto !important;
+}

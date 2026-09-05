@@ -1,0 +1,204 @@
+<script>
+  document.documentElement.classList.replace('no-js', 'js');
+
+  window.theme = window.theme || {};
+  theme.routes = {
+    shop_url: '{{ request.origin }}',
+    root_url: '{{ routes.root_url }}',
+    cart_url: '{{ routes.cart_url }}',
+    cart_add_url: '{{ routes.cart_add_url }}',
+    cart_change_url: '{{ routes.cart_change_url }}',
+    cart_update_url: '{{ routes.cart_update_url }}',
+    search_url: '{{ routes.search_url }}',
+    predictive_search_url: '{{ routes.predictive_search_url }}'
+  };
+
+  theme.variantStrings = {
+    preOrder: {{ 'products.product.pre_order' | t | json }},
+    addToCart: {{ 'products.product.add_to_cart' | t | json }},
+    soldOut: {{ 'products.product.sold_out' | t | json }},
+    unavailable: {{ 'products.product.unavailable' | t | json }},
+    addToBundle: {{ 'products.product.add_to_bundle' | t | json }},
+    backInStock: {{ 'products.back_in_stock.label' | t | json }}
+  };
+
+  theme.shippingCalculatorStrings = {
+    error: {{ 'general.cart.shipping_calculator.error' | t | json }},
+    notFound: {{ 'general.cart.shipping_calculator.not_found' | t | json }},
+    oneResult: {{ 'general.cart.shipping_calculator.one_result' | t | json }},
+    multipleResults: {{ 'general.cart.shipping_calculator.multiple_results' | t | json }}
+  };
+
+  theme.recipientFormStrings = {
+    expanded: {{ 'recipient.form.expanded' | t | json }},
+    collapsed: {{ 'recipient.form.collapsed' | t | json }}
+  };
+
+  theme.quickOrderListStrings = {
+    itemsAdded: {{ 'sections.quick_order_list.items_added.other' | t: quantity: '[quantity]' | json }},
+    itemAdded: {{ 'sections.quick_order_list.items_added.one' | t: quantity: '[quantity]' | json }},
+    itemsRemoved: {{ 'sections.quick_order_list.items_removed.other' | t: quantity: '[quantity]' | json }},
+    itemRemoved: {{ 'sections.quick_order_list.items_removed.one' | t: quantity: '[quantity]' | json }},
+    viewCart: {{ 'sections.quick_order_list.view_cart' | t | json }},
+    each: {{ 'sections.quick_order_list.each' | t: money: '[money]' | json }},
+    minError: {{ 'sections.quick_order_list.min_error' | t: min: '[min]' | json }},
+    maxError: {{ 'sections.quick_order_list.max_error' | t: max: '[max]' | json }},
+    stepError: {{ 'sections.quick_order_list.step_error' | t: step: '[step]' | json }}
+  };
+
+  theme.cartStrings = {
+    error: `{{ 'cart.general.cart_error' | t }}`,
+    quantityError: `{{ 'cart.general.cart_quantity_error_html' | t: quantity: '[quantity]' }}`,
+  };
+
+  theme.dateStrings = {
+    d: {{ 'general.date.d' | t | json }},
+    day: {{ 'general.date.day' | t | json }},
+    days: {{ 'general.date.days' | t | json }},
+    h: {{ 'general.date.h' | t | json }},
+    hour: {{ 'general.date.hour' | t | json }},
+    hours: {{ 'general.date.hours' | t | json }},
+    m: {{ 'general.date.m' | t | json }},
+    minute: {{ 'general.date.minute' | t | json }},
+    minutes: {{ 'general.date.minutes' | t | json }},
+    s: {{ 'general.date.s' | t | json }},
+    second: {{ 'general.date.second' | t | json }},
+    seconds: {{ 'general.date.seconds' | t | json }}
+  };
+
+  {%- if settings.enable_tab_attention -%}
+    theme.tabAttentionStrings = {
+      firstMessage: {{ settings.tab_attention_message_1 | json }},
+      nextMessage: {{ settings.tab_attention_message_2 | json }},
+      messageDelay: {{ settings.tab_attention_message_delay | json }}
+    };
+  {%- endif -%}
+
+  theme.strings = {
+    recentlyViewedEmpty: {{ 'general.cart.recently_viewed.empty' | t | json }},
+    close: {{ 'general.accessibility.close' | t | json }},
+    next: {{ 'general.pagination.next' | t | json }},
+    previous: {{ 'general.pagination.previous' | t | json }},
+    qrImageAlt: {{ 'gift_cards.issued.qr_image_alt' | t | json }}
+  };
+
+  {%- comment -%}
+    Rendered from Liquid so JS can answer "can this cart possibly have duplicate
+    lines?" without a network round-trip — CartDedupe used to probe /cart.js on
+    every page of the site to find out. A full-page-cached render can carry a
+    stale count, which at worst skips the heal on load; the first cart mutation
+    publishes cartUpdate and the same check runs against live data.
+  {%- endcomment -%}
+  theme.cartItemCount = {{ cart.items.size | json }};
+
+  {%- comment -%}
+    The reward ladder and free-shipping threshold, in paise, from theme settings.
+    These numbers used to be hardcoded independently in six places (both cart
+    section schemas, both section config JSONs, the PDP reward snippet in Liquid
+    AND again in its JS, and the PDP sticky bar), so changing one left the others
+    quietly contradicting it. Everything reads from here now.
+  {%- endcomment -%}
+  {%- liquid
+    # US context derives the labels from the numeric settings ("5% + $3.57"),
+    # matching how free-shipping-bar and onrepeat-gwp derive theirs — a consumer
+    # of theme.rewards must never print INR label text beside USD prices.
+    assign rw_l1 = settings.reward_tier1_label | default: '5% Off'
+    assign rw_l2 = settings.reward_tier2_label | default: '5% + ₹300'
+    assign rw_l3 = settings.reward_tier3_label | default: '5% + ₹700'
+    assign usd_rate = settings.usd_inr_rate | default: 0 | round
+    if settings.usd_display_enabled and usd_rate > 0 and localization.country.iso_code == 'US'
+      assign rw_pct = settings.reward_percent | default: 5
+      assign rw_f2_paise = settings.reward_tier2_flat | default: 300 | times: 100
+      assign rw_f3_paise = settings.reward_tier3_flat | default: 700 | times: 100
+      assign rw_l1 = rw_pct | append: '% Off'
+      capture rw_f2_usd
+        render 'money-display', amount: rw_f2_paise, style: 'compact'
+      endcapture
+      capture rw_f3_usd
+        render 'money-display', amount: rw_f3_paise, style: 'compact'
+      endcapture
+      assign rw_l2 = rw_pct | append: '% + ' | append: rw_f2_usd
+      assign rw_l3 = rw_pct | append: '% + ' | append: rw_f3_usd
+    endif
+  -%}
+  theme.rewards = {
+    tiers: [
+      { amount: {{ settings.reward_tier1_amount | default: 1499 | times: 100 | json }}, label: {{ rw_l1 | json }} },
+      { amount: {{ settings.reward_tier2_amount | default: 3000 | times: 100 | json }}, label: {{ rw_l2 | json }} },
+      { amount: {{ settings.reward_tier3_amount | default: 5000 | times: 100 | json }}, label: {{ rw_l3 | json }} }
+    ],
+    freeShippingMinimum: {{ settings.free_shipping_minimum | default: 500 | times: 100 | json }}
+  };
+
+  {%- comment -%}
+    Display-currency authority for all JS money formatting. The cart AJAX API
+    always reports the shop currency (INR), so scripts must not trust
+    cart.currency for display — they ask theme.money.format instead, which
+    mirrors snippets/money-display.liquid exactly (round-half-up to the cent,
+    'ceil' rounds thresholds UP to the next whole dollar).
+  {%- endcomment -%}
+  {%- assign usd_rate = settings.usd_inr_rate | default: 0 | round -%}
+  {%- comment -%}
+    Read from snippets/onrepeat-usd-mode.liquid rather than repeating the
+    condition, because layout/theme.liquid uses that same snippet to decide
+    which checkout to load. Sharing one value is what guarantees the prices a
+    shopper sees and the checkout they get can never disagree.
+  {%- endcomment -%}
+  {%- capture jsv_usd_mode_raw -%}{%- render 'onrepeat-usd-mode' -%}{%- endcapture -%}
+  {%- assign jsv_usd_mode = jsv_usd_mode_raw | strip -%}
+  theme.currencyDisplay = {
+    usd: {% if jsv_usd_mode == 'true' %}true{% else %}false{% endif %},
+    country: {{ localization.country.iso_code | json }},
+    rate: {{ usd_rate | json }},
+    available: {{ settings.usd_display_enabled | json }}
+  };
+  theme.money = {
+    format: (paise, style) => {
+      const cd = theme.currencyDisplay;
+      if (cd.usd && cd.rate > 0) {
+        const sign = paise < 0 ? '-' : '';
+        const cents = Math.round(Math.abs(paise) / cd.rate);
+        if (style === 'ceil') return sign + '$' + Math.ceil(cents / 100).toLocaleString('en-US');
+        const whole = (style === 'compact' || style === 'no_zeros') && cents % 100 === 0;
+        return sign + '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 });
+      }
+      const fmt = style === 'with_currency' ? theme.settings.moneyWithCurrencyFormat : theme.settings.moneyFormat;
+      if (theme.Currency && theme.Currency.formatMoney) return theme.Currency.formatMoney(paise, fmt);
+      return '₹' + (paise / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+  };
+
+  theme.settings = {
+    moneyFormat: {{ shop.money_format | json }},
+    moneyWithCurrencyFormat: {{ shop.money_with_currency_format | json }},
+    currencyCodeEnabled: {{ settings.currency_code_enabled | json }},
+    externalLinksNewTab: {{ settings.external_links_new_tab | json }},
+    cartType: {{ settings.cart_type | json }},
+    isCartTemplate: {% if request.page_type == 'cart' %}true{% else %}false{% endif %},
+    pswpModule: {{ 'photoswipe.min.js' | asset_url | json }},
+    themeName: 'OnRepeat',
+    themeVersion: '3.1.0',
+    agencyId: ''
+  };
+
+  {%- if request.page_type == 'product' -%}
+    // We save the product ID in local storage to be eventually used for recently viewed section
+    try {
+      const recentlyViewedProducts = new Set(JSON.parse(window.localStorage.getItem(`${theme.settings.themeName}:recently-viewed`) || '[]'));
+
+      recentlyViewedProducts.delete({{ product.id }}); // Delete first to re-move the product
+      recentlyViewedProducts.add({{ product.id }});
+
+      window.localStorage.setItem(`${theme.settings.themeName}:recently-viewed`, JSON.stringify(Array.from(recentlyViewedProducts.values()).reverse()));
+    } catch (e) {
+      // Safari in private mode does not allow setting item, we silently fail
+    }
+  {%- endif -%}
+
+  {%- if request.page_type == 'policy' -%}
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelector('.shopify-policy__title').classList.add('h2');
+      document.querySelector('.shopify-policy__body .rte').classList.add('text-base');
+    });
+  {%- endif -%}
+</script>

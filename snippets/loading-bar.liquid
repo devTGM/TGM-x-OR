@@ -1,0 +1,116 @@
+{%- comment -%}
+  Premium page-transition loader — center-screen logo with breathing pulse
+  Replaces the default bottom-right spinner with the OnRepeat brand mark
+{%- endcomment -%}
+
+<loading-bar class="loading-bar block fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none" aria-hidden="true">
+  <div class="onrepeat-loader">
+    {%- comment -%} Brand mark: Rendered via PNG/WebP for reliable browser rendering {%- endcomment -%}
+    <div class="onrepeat-loader__mark">
+      <img src="{{ 'loader.png' | asset_url }}" alt="OnRepeat Logo" class="onrepeat-loader__logo" width="60" height="60" fetchpriority="high">
+    </div>
+    <div class="onrepeat-loader__line">
+      <div class="onrepeat-loader__line-fill"></div>
+    </div>
+  </div>
+</loading-bar>
+
+<style>
+  /* ── Premium page-transition loader ─────────────────────── */
+  .loading-bar {
+    background-color: rgb(var(--color-foreground));
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .no-js .loading-bar {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loading-bar {
+      display: none;
+    }
+  }
+
+  /* ── Center container ─────────────────────────────────── */
+  .onrepeat-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  /* ── Logo mark with breathing pulse ─────────────────── */
+  .onrepeat-loader__mark {
+    animation: onrepeatBreathe 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .onrepeat-loader__logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 24px rgba(92, 16, 17, 0.25));
+  }
+
+  /* ── Minimal progress line ─────────────────────────── */
+  .onrepeat-loader__line {
+    width: 48px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .onrepeat-loader__line-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #5c1011, #780e09);
+    border-radius: 1px;
+    animation: onrepeatLine 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    transform-origin: left center;
+  }
+
+  /* ── Keyframes ─────────────────────────────────────── */
+  @keyframes onrepeatBreathe {
+    0%, 100% {
+      opacity: 0.6;
+      transform: scale(0.96);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes onrepeatLine {
+    0% {
+      transform: translateX(-100%);
+    }
+    50% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* ── Exit animation (triggered by .loaded on body) ── */
+  .loaded .loading-bar {
+    opacity: 0;
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+
+  /* ── Unloading state (navigating away) ─────────────── */
+  .unloading .loading-bar {
+    opacity: 1 !important;
+    display: flex !important;
+  }
+
+  .unloading .onrepeat-loader__mark {
+    animation: onrepeatBreathe 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+</style>

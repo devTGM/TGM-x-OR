@@ -1,0 +1,33 @@
+{%- comment -%}
+  Answers one question: will onrepeat-buy-module actually render for this product?
+
+  Outputs "1" when it will and nothing at all when it will not, so a caller can
+  capture the render and test the captured string against blank.
+
+  WHY IT IS ITS OWN SNIPPET
+  Two places need the answer and they must never disagree:
+
+    1. onrepeat-buy-module.liquid, deciding whether to render itself.
+    2. main-product.liquid, deciding whether to draw the shipping/trust strip
+       above the variant picker — the module carries its own copy of that strip
+       under the buttons, and two identical gold hairline strips 150px apart is
+       worse than either one alone.
+
+  If the condition were written twice, a product could lose both strips (the
+  section suppresses, the module declines) or gain two. Keeping it here means
+  that cannot happen.
+
+  Accepts:
+  - product {Object} required
+{%- endcomment -%}
+{%- liquid
+  assign bma_size_index = nil
+  for opt in product.options_with_values
+    assign opt_down = opt.name | downcase
+    if opt_down contains 'size'
+      assign bma_size_index = forloop.index0
+      break
+    endif
+  endfor
+-%}
+{%- if bma_size_index != nil and product.options_with_values.size == 1 and product.variants.size > 0 -%}1{%- endif -%}

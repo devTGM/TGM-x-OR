@@ -1,0 +1,200 @@
+{%- comment -%}
+  Renders the cart totals breakdown.
+  Accepts:
+  - context: {String} 'drawer' | 'main'
+      'drawer' — one summary card: a collapsed total handle over the ledger
+      'main'   — fully expanded: items subtotal, savings, divider, Total
+  - section: {Object} the calling section. Drawer context only, and only
+      `prepaid_banner_enabled` / `prepaid_banner_text` are read. Omit it and the
+      prepaid row simply does not render.
+
+  Usage:
+  {% render 'cart-totals', context: 'main' %}
+  {% render 'cart-totals', context: 'drawer', section: section %}
+{%- endcomment -%}
+
+{%- liquid
+  assign context = context | default: 'main'
+  comment
+    Derive this from money actually saved, not from the presence of a discount
+    application. An application can allocate ₹0 (an app discount that matched
+    nothing, a tier that rounds away), and keying off `.size > 0` then rendered an
+    empty <ul> — in the drawer, a Total row that expands to a breakdown containing
+    nothing but "Items subtotal".
+  endcomment
+  assign cart_total_saved = cart.original_total_price | minus: cart.total_price
+  assign has_savings = false
+  if cart_total_saved > 0
+    assign has_savings = true
+  endif
+
+  comment
+    Delivery is not an unknown by the time someone is looking at the cart: it is
+    free above a threshold the theme already knows, tested against the
+    POST-discount total, exactly as the shipping rate is configured. So it gets a
+    row in the ledger with a real value, and the drawer no longer needs a separate
+    celebration band saying the same thing 500px away from the total.
+  endcomment
+  assign ct_free_min = settings.free_shipping_minimum | default: 500 | times: 100
+  assign ct_free_delivery = false
+  if ct_free_min > 0 and cart.total_price >= ct_free_min
+    assign ct_free_delivery = true
+  endif
+
+  comment
+    The prepaid discount is applied by Razorpay at checkout, not by Shopify in the
+    cart, so its amount genuinely is not known here. It gets a row that says so
+    rather than a number, and it is NEVER subtracted from the total — a cart that
+    quotes a figure the customer is not charged is worse than one that quotes
+    nothing.
+  endcomment
+  assign ct_prepaid = false
+  if context == 'drawer' and section.settings.prepaid_banner_enabled and section.settings.prepaid_banner_text != blank
+    assign ct_prepaid = true
+  endif
+
+  assign ct_items_label = 'item'
+  if cart.item_count != 1
+    assign ct_items_label = 'items'
+  endif
+-%}
+
+<div class="cart-totals cart-totals--{{ context }}">
+  {%- if context == 'drawer' -%}
+    {%- comment -%}
+      One money surface. Everything the drawer has to say about price lives in
+      this card and nowhere else — no discount pills on the cart lines, no
+      separate free-delivery band, no reward totals. The breakdown is CLOSED by
+      default: most shoppers never open it, and the ones who do get the whole
+      ledger, down to the row that admits what is still unknown.
+
+      The whole bar is the control, and the chevron sits with the label rather
+      than beside the amount, so the affordance and the number do not compete.
+    {%- endcomment -%}
+    {%- comment -%}
+      <cart-summary> only smooths the CLOSE. Opening already animates, because
+      the browser sets `open` and then paints; closing does not, because it
+      unsets `open` and the content stops being rendered in the same frame, so
+      the height transition has nothing to run on. The element defers that unset
+      until the transition finishes. With no JS it is still a working
+      <details> — it just snaps shut, exactly as it does today.
+    {%- endcomment -%}
+    <cart-summary class="cart-summary" data-cart-summary>
+      <details class="cart-summary__d">
+        <summary class="cart-summary__bar">
+          <span class="cart-summary__k">
+            <span class="cart-summary__lbl">
+              Total to pay
+              <span class="cart-summary__count">· {{ cart.item_count }} {{ ct_items_label }}</span>
+              <span class="cart-summary__chevron" aria-hidden="true">{% render 'icon', icon: 'chevron-down' %}</span>
+              {%- comment -%}
+                An aria-label here would REPLACE the accessible name, so the row
+                would announce the toggle and never the total it carries. The
+                hint goes inside the name instead.
+              {%- endcomment -%}
+              <span class="sr-only">— show price breakdown</span>
+            </span>
+            {%- if has_savings or ct_free_delivery -%}
+              <span class="cart-summary__save">
+                {%- if has_savings -%}
+                  You save {% render 'money-display', amount: cart_total_saved %}
+                {%- endif -%}
+                {%- if has_savings and ct_free_delivery -%}
+                  <span class="cart-summary__dot" aria-hidden="true"></span>
+                {%- endif -%}
+                {%- if ct_free_delivery -%}Free delivery{%- endif -%}
+              </span>
+            {%- endif -%}
+          </span>
+          <span class="cart-summary__amt">{% render 'money-display', amount: cart.total_price, style: 'with_currency' %}</span>
+        </summary>
+        <div class="cart-summary__wrap">
+          <div class="cart-summary__inner">
+            <ul class="cart-summary__list list-unstyled" role="list">
+              <li class="cart-summary__row">
+                <span class="cart-summary__rk">{{ cart.item_count }} {{ ct_items_label }}</span>
+                <span class="cart-summary__rv">{% render 'money-display', amount: cart.original_total_price %}</span>
+              </li>
+              {%- if has_savings -%}
+                {%- render 'cart-savings-rows', style: 'ledger' -%}
+              {%- endif -%}
+              <li class="cart-summary__row">
+                <span class="cart-summary__rk">Delivery</span>
+                <span class="cart-summary__rv">
+                  {%- if ct_free_delivery -%}Free{%- else -%}Calculated at checkout{%- endif -%}
+                </span>
+              </li>
+              {%- if ct_prepaid -%}
+                <li class="cart-summary__row cart-summary__row--soon">
+                  <span class="cart-summary__rk">Prepaid discount</span>
+                  <span class="cart-summary__rv">Applied at checkout</span>
+                </li>
+              {%- endif -%}
+              <li class="cart-summary__row cart-summary__row--pay">
+                <span class="cart-summary__rk">Total to pay</span>
+                <span class="cart-summary__rv">{% render 'money-display', amount: cart.total_price, style: 'with_currency' %}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </details>
+      {%- if ct_prepaid -%}
+        {%- comment -%}
+          Outside the <details> on purpose: moving people off COD is worth a line
+          of its own, so the nudge stays readable while the ledger is folded away.
+          It sits inside the card, so it is still part of the one money surface.
+        {%- endcomment -%}
+        <p class="cart-summary__prep">
+          <span class="cart-summary__prep-icon" aria-hidden="true">{% render 'icon', icon: 'discount', size: 'sm' %}</span>
+          {{ section.settings.prepaid_banner_text }}
+        </p>
+      {%- endif -%}
+    </cart-summary>
+  {%- else -%}
+    <div class="cart-totals__row">
+      <span class="cart-totals__label">Items subtotal</span>
+      <span class="cart-totals__value">{% render 'money-display', amount: cart.original_total_price %}</span>
+    </div>
+    {%- if has_savings -%}
+      <ul class="cart-totals__savings list-unstyled" role="list" aria-label="{{ 'customer.order.discount' | t | escape }}">
+        {%- render 'cart-savings-rows' -%}
+      </ul>
+    {%- endif -%}
+    <hr class="cart-totals__divider" aria-hidden="true">
+    <div class="cart-totals__row cart-totals__grand-total">
+      <span class="cart-totals__label">Total</span>
+      <span class="cart-totals__value">{% render 'money-display', amount: cart.total_price, style: 'with_currency' %}</span>
+    </div>
+  {%- endif -%}
+
+  {%- liquid
+    comment
+      When delivery is free there is no tax note AT ALL any more — not
+      "calculated at checkout" (wrongly implied one more number was coming on
+      MRP-priced garments), and as of now not "Including all Taxes" either:
+      the ledger and the button already agree on one final figure, and a
+      caveat line under a checkout button is one more thing to read between
+      the shopper and the tap. The non-free-delivery branches keep their
+      stock wording, where shipping genuinely is still open.
+    endcomment
+    assign ct_hide_note = false
+    if ct_free_delivery
+      assign ct_hide_note = true
+    endif
+  -%}
+  {%- unless ct_hide_note -%}
+    <div class="cart-totals__note tax-note text-opacity text-2sm rte">
+      {%- liquid
+        if cart.taxes_included and shop.shipping_policy.body != blank
+          echo 'cart.general.taxes_included_and_shipping_policy_html' | t: link: shop.shipping_policy.url
+        elsif cart.taxes_included
+          echo 'cart.general.taxes_included_but_shipping_at_checkout' | t
+        elsif shop.shipping_policy.body != blank
+          echo 'cart.general.taxes_and_shipping_policy_at_checkout_html' | t: link: shop.shipping_policy.url
+        else
+          echo 'cart.general.taxes_and_shipping_at_checkout' | t
+        endif
+      -%}
+    </div>
+  {%- endunless -%}
+</div>

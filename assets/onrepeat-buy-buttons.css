@@ -1,0 +1,387 @@
+/* =============================================================
+   ONREPEAT — Buy Buttons Enhancement Layer
+   Premium styling for quantity selector, Add to Cart, and
+   Buy It Now on the product page. Scoped under .onrepeat-buy-area
+   to avoid leaking into cart-drawer or quick-add modals.
+
+   Brand tokens:
+     Primary   #5c1011  (deep maroon)
+     Accent    #7B1E3A  (warm maroon)
+     Dark      #3a0a0b  (deepest)
+     Text      #ffffff
+   ============================================================= */
+
+/* ── Divider above buy area ────────────────────────────────── */
+.onrepeat-buy-area::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin-bottom: 6px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(92, 16, 17, 0.12) 20%,
+    rgba(123, 30, 58, 0.18) 50%,
+    rgba(92, 16, 17, 0.12) 80%,
+    transparent 100%
+  );
+}
+
+/* ── Container spacing tweaks ──────────────────────────────── */
+.onrepeat-buy-area .buy-buttons {
+  gap: 10px !important;
+}
+
+@media screen and (min-width: 640px) {
+  .onrepeat-buy-area .buy-buttons.grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   1. QUANTITY SELECTOR — Pill shape with brand accents
+   ───────────────────────────────────────────────────────────── */
+.onrepeat-buy-area .quantity {
+  border: 1.5px solid #e8dede;
+  border-radius: 999px;
+  background: #fdfbfb;
+  box-shadow: inset 0 1px 3px rgba(92, 16, 17, 0.04);
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+  overflow: hidden;
+}
+
+.onrepeat-buy-area .quantity:hover,
+.onrepeat-buy-area .quantity:focus-within {
+  border-color: rgba(92, 16, 17, 0.25);
+  box-shadow: inset 0 1px 3px rgba(92, 16, 17, 0.04),
+              0 0 0 3px rgba(92, 16, 17, 0.06);
+}
+
+.onrepeat-buy-area .quantity .quantity__button {
+  color: #5c1011;
+  transition: background 0.18s ease, transform 0.1s ease;
+  border-radius: 999px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onrepeat-buy-area .quantity .quantity__button:hover {
+  background: rgba(92, 16, 17, 0.07);
+}
+
+.onrepeat-buy-area .quantity .quantity__button:active {
+  transform: scale(0.88);
+  background: rgba(92, 16, 17, 0.12);
+}
+
+.onrepeat-buy-area .quantity .quantity__input {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #2a0506;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. ADD TO CART — Premium gradient with shimmer & icon
+   ───────────────────────────────────────────────────────────── */
+.onrepeat-buy-area .product-form__submit {
+  background: linear-gradient(135deg, #7B1E3A 0%, #5c1011 45%, #3a0a0b 100%) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(92, 16, 17, 0.28),
+              0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 54px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff !important;
+  transition: box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.12s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.onrepeat-buy-area .product-form__submit::after {
+  border-radius: 14px !important;
+  border: none !important;
+}
+
+@media screen and (min-width: 640px) {
+  .onrepeat-buy-area .product-form__submit {
+    min-height: 58px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Hover lift */
+.onrepeat-buy-area .product-form__submit:hover:not([disabled]) {
+  box-shadow: 0 6px 22px rgba(92, 16, 17, 0.36),
+              0 2px 6px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Press */
+.onrepeat-buy-area .product-form__submit:active:not([disabled]) {
+  transform: scale(0.98) translateY(0);
+  box-shadow: 0 2px 8px rgba(92, 16, 17, 0.22);
+}
+
+/* Disabled / Sold out */
+.onrepeat-buy-area .product-form__submit[disabled] {
+  background: linear-gradient(135deg, #8c7070 0%, #6b5555 100%) !important;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Shopping bag icon via CSS ::before */
+.onrepeat-buy-area .product-form__submit .btn-text::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z'/%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cpath d='M16 10a4 4 0 01-8 0'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+  opacity: 0.9;
+  transition: transform 0.3s ease;
+}
+
+/* Cart icon shake on hover */
+.onrepeat-buy-area .product-form__submit:hover:not([disabled]) .btn-text::before {
+  animation: onrepeatCartShake 0.4s ease;
+}
+
+@keyframes onrepeatCartShake {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(-8deg); }
+  50%  { transform: rotate(6deg); }
+  75%  { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* ── Shimmer overlay ──────────────────────────────────────── */
+.onrepeat-btn-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 14px;
+  z-index: 1;
+}
+
+.onrepeat-btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.12) 40%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.12) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: onrepeatBtnShimmer 3s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes onrepeatBtnShimmer {
+  0%   { left: -60%; }
+  100% { left: 160%; }
+}
+
+/* Hide shimmer on disabled buttons */
+.onrepeat-buy-area .product-form__submit[disabled] .onrepeat-btn-shimmer {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. BUY IT NOW — Elevated ghost / outlined secondary
+   ───────────────────────────────────────────────────────────── */
+.onrepeat-buy-area .shopify-payment-button {
+  margin-top: 0 !important;
+}
+
+/* Unbranded fallback button */
+.onrepeat-buy-area button.shopify-payment-button__button--unbranded {
+  background: transparent !important;
+  color: #5c1011 !important;
+  border: 1.5px solid #5c1011 !important;
+  border-radius: 14px !important;
+  min-height: 54px;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  transition: background 0.25s ease,
+              color 0.25s ease,
+              box-shadow 0.25s ease,
+              transform 0.12s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+@media screen and (min-width: 640px) {
+  .onrepeat-buy-area button.shopify-payment-button__button--unbranded {
+    min-height: 58px;
+    font-size: 0.88rem;
+  }
+}
+
+.onrepeat-buy-area button.shopify-payment-button__button--unbranded::after {
+  content: none !important;
+}
+
+/* Hover fill */
+.onrepeat-buy-area button.shopify-payment-button__button--unbranded:hover:not([disabled]) {
+  background: rgba(92, 16, 17, 0.06) !important;
+  box-shadow: 0 2px 10px rgba(92, 16, 17, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Press */
+.onrepeat-buy-area button.shopify-payment-button__button--unbranded:active:not([disabled]) {
+  transform: scale(0.98);
+  background: rgba(92, 16, 17, 0.1) !important;
+}
+
+/* Processing state — Shopify sets [aria-busy] when the customer clicks and
+   Razorpay Magic Checkout begins opening its overlay. We hide all text and
+   show a centered spinner so the injected "Processing" node can't overlap
+   the original "Buy it now" span, and we kill the 0.25s color transition
+   so the swap is instant (no 250ms colour fade competing with the overlay). */
+.onrepeat-buy-area button.shopify-payment-button__button--unbranded[aria-busy="true"] {
+  background: linear-gradient(135deg, #7B1E3A 0%, #5c1011 45%, #3a0a0b 100%) !important;
+  color: transparent !important;
+  border-color: transparent !important;
+  pointer-events: none;
+  transition: none !important;
+  position: relative;
+}
+
+.onrepeat-buy-area button.shopify-payment-button__button--unbranded[aria-busy="true"]::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: onrepeatBuyNowSpin 0.7s linear infinite;
+}
+
+@keyframes onrepeatBuyNowSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Branded dynamic checkout buttons (PayPal, GPay etc) — just radius + sizing */
+.onrepeat-buy-area .shopify-payment-button__button--branded {
+  border-radius: 14px !important;
+  min-height: 54px !important;
+  overflow: hidden !important;
+}
+
+@media screen and (min-width: 640px) {
+  .onrepeat-buy-area .shopify-payment-button__button--branded {
+    min-height: 58px !important;
+  }
+}
+
+/* "More payment options" link */
+.onrepeat-buy-area .shopify-payment-button__more-options {
+  color: #5c1011 !important;
+  font-weight: 500;
+  margin-top: 6px !important;
+  font-size: 0.78rem !important;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.onrepeat-buy-area .shopify-payment-button__more-options:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* ── Accelerated checkout alignment ────────────────────────── */
+/* Official CSS custom properties per Shopify docs:
+   https://shopify.dev/docs/storefronts/themes/pricing-payments/accelerated-checkout
+   These penetrate the closed shadow DOM of the new web component. */
+.onrepeat-buy-area shopify-accelerated-checkout,
+.onrepeat-buy-area shopify-accelerated-checkout-cart {
+  --shopify-accelerated-checkout-button-border-radius: 14px;
+  --shopify-accelerated-checkout-button-block-size: 54px;
+  --shopify-accelerated-checkout-button-box-shadow: 0 2px 8px rgba(92, 16, 17, 0.1);
+  --shopify-accelerated-checkout-skeleton-background-color: #f3eded;
+  --shopify-accelerated-checkout-skeleton-animation-opacity-start: 1;
+  --shopify-accelerated-checkout-skeleton-animation-opacity-end: 0.4;
+  --shopify-accelerated-checkout-skeleton-animation-duration: 2s;
+  --shopify-accelerated-checkout-row-gap: 8px;
+}
+
+/* Cart-drawer skeleton can flash mid-transition when the user clicks express
+   checkout right after the drawer opens — keep the loop quick so any residual
+   skeleton frame is barely perceptible. */
+.onrepeat-buy-area shopify-accelerated-checkout-cart,
+shopify-accelerated-checkout-cart {
+  --shopify-accelerated-checkout-skeleton-animation-duration: 0.9s;
+}
+
+@media screen and (min-width: 640px) {
+  .onrepeat-buy-area shopify-accelerated-checkout,
+  .onrepeat-buy-area shopify-accelerated-checkout-cart {
+    --shopify-accelerated-checkout-button-block-size: 58px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. BACK-IN-STOCK ALERT BUTTON — match the ghost style
+   ───────────────────────────────────────────────────────────── */
+.onrepeat-buy-area .product-form__alert {
+  border-radius: 14px !important;
+  min-height: 54px;
+}
+
+@media screen and (min-width: 640px) {
+  .onrepeat-buy-area .product-form__alert {
+    min-height: 58px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. REDUCED MOTION
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .onrepeat-btn-shimmer::after {
+    animation: none;
+  }
+
+  .onrepeat-buy-area .product-form__submit:hover:not([disabled]) .btn-text::before {
+    animation: none;
+  }
+
+  .onrepeat-buy-area button.shopify-payment-button__button--unbranded[aria-busy="true"]::before {
+    animation: none;
+  }
+
+  .onrepeat-buy-area .product-form__submit,
+  .onrepeat-buy-area .product-form__submit:hover:not([disabled]),
+  .onrepeat-buy-area .product-form__submit:active:not([disabled]),
+  .onrepeat-buy-area button.shopify-payment-button__button--unbranded,
+  .onrepeat-buy-area button.shopify-payment-button__button--unbranded:hover:not([disabled]),
+  .onrepeat-buy-area button.shopify-payment-button__button--unbranded:active:not([disabled]),
+  .onrepeat-buy-area .quantity .quantity__button:active {
+    transform: none;
+    transition: none;
+  }
+}

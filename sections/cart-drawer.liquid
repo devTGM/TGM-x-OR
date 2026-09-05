@@ -1,0 +1,1089 @@
+{%- if request.page_type != 'cart' and settings.cart_type == 'drawer' -%}
+  {{ 'cart-enhancements.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'cart.js' | asset_url }}" defer></script>
+  {%- if linklists.gift-wrapping.links != blank and linklists.gift-wrapping.links.first.type == 'product_link' -%}
+    <script src="{{ 'gift-wrapping.js' | asset_url }}" defer="defer"></script>
+  {%- endif -%}
+
+  <cart-drawer id="CartDrawer" class="cart-drawer drawer drawer--end z-35 fixed bottom-0 left-0 h-full w-full pointer-events-none"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="CartDrawerHeading-{{ section.id }}"
+    data-section-id="{{ section.id }}"
+    shopify-design-mode
+    hidden
+  >
+    <overlay-element class="overlay fixed-modal invisible opacity-0 fixed bottom-0 left-0 w-full h-screen pointer-events-none" aria-controls="CartDrawer" aria-expanded="false"></overlay-element>
+    <div class="drawer__inner z-10 absolute top-0 flex flex-col w-full h-full overflow-hidden">
+      <gesture-element class="drawer__header flex justify-between opacity-0 invisible relative">
+        <ul class="drawer__tabs flex gap-10{% unless section.settings.recent_products_enabled %} drawer__tabs--single{% endunless %}" is="tab-list">
+          <li>
+            {%- comment -%}
+              A lone tab switches to nothing, so it is taken out of the keyboard
+              order — one fewer dead stop, and no keyboard ring drawn around the
+              cart heading. The drawer still focuses it programmatically on open,
+              which works on tabindex="-1".
+            {%- endcomment -%}
+            <button class="drawer__tab relative" type="button" aria-controls="MiniCart-{{ section.id }}" aria-expanded="true"{% unless section.settings.recent_products_enabled %} tabindex="-1"{% endunless %}>
+              <span id="CartDrawerHeading-{{ section.id }}" role="heading" aria-level="2" class="drawer__title heading lg:text-3xl text-2xl leading-none tracking-tight">{{ 'general.cart.title' | t }}</span>
+              <cart-count class="count absolute font-medium text-xs lg:text-sm leading-none" aria-label="{{ 'general.cart.cart_count' | t: count: cart.item_count | escape }}"{% if cart == empty %} hidden{% endif %}>{{ cart.item_count }}</cart-count>
+            </button>
+          </li>
+          {%- if section.settings.recent_products_enabled -%}
+            <li>
+              <button class="drawer__tab" type="button" aria-controls="RecentlyViewed-{{ section.id }}" aria-expanded="false">
+                <span class="drawer__title heading lg:text-3xl text-2xl leading-none tracking-tight">{{ section.settings.recent_products_heading | escape }}</span>
+              </button>
+            </li>
+          {%- endif -%}
+        </ul>
+        <button class="button button--secondary button--close drawer__close flex items-center justify-center" type="button" is="hover-button" aria-controls="CartDrawer" aria-expanded="false" aria-label="{{ 'general.accessibility.close' | t | escape }}">
+          <span class="btn-fill" data-fill></span>
+          <span class="btn-text">
+            {%- render 'icon', icon: 'close', size: 'sm' -%}
+          </span>
+        </button>
+      </gesture-element>
+
+      <div class="drawer__content opacity-0 invisible flex flex-col h-full grow shrink">
+        <div id="MiniCart-{{ section.id }}" class="drawer__panel opacity-0 flex flex-col overflow-hidden" open>
+          <div class="flex flex-col h-full">
+            {%- if cart == empty -%}
+              <div class="drawer__scrollable relative flex justify-center items-start grow shrink text-center">
+                <div class="drawer__empty grid gap-5 md:gap-8">
+                  <h2 class="drawer__empty-text heading leading-none tracking-tight">{{ 'cart.general.empty' | t }}</h2>
+                  <div class="drawer__empty-message text-sm md:text-base leading-tight rte">
+                    {{- section.settings.empty_cart_message -}}
+                  </div>
+                  <ul class="drawer__empty-collections grid gap-3">
+                    {%- if section.settings.empty_cart_collections == blank -%}
+                      <li>
+                        <a class="flex items-center justify-between" href="{{ routes.all_products_collection_url }}">
+                          <span class="flex items-center">{{ 'cart.general.continue_shopping' | t }}</span>
+                          {%- render 'icon', icon: 'arrow-right', size: 'sm', class: 'transform' -%}
+                        </a>
+                      </li>
+                    {%- else -%}
+                      {%- for item in section.settings.empty_cart_collections -%}
+                        <li>
+                          <a class="flex items-center justify-between" href="{{ item.url }}">
+                            <span class="flex items-center gap-3">
+                              {%- liquid
+                                if item.metafields.theme.icon.value != blank
+                                  echo item.metafields.theme.icon.value | image_url: width: item.metafields.theme.icon.value.width | image_tag: loading: 'lazy', widths: '80,96,160,192', is: 'lazy-image'
+                                endif
+    
+                                echo item.title
+                              -%}
+                            </span>
+                            {%- render 'icon', icon: 'arrow-right', size: 'sm', class: 'transform' -%}
+                          </a>
+                        </li>
+                      {%- endfor -%}
+                    {%- endif -%}
+                  </ul>
+                </div>
+              </div>
+            {%- endif -%}
+            {%- comment -%}
+              The offer ladder is PINNED — a non-scrolling block between the
+              header and the item list, so "1 more piece and the cheapest is
+              free" stays on screen at every scroll position. A flex child, not
+              position:sticky, so iOS momentum scrolling can never detach it.
+              It sits inside #MiniCart-{{ section.id }}, the exact container
+              onCartUpdate swaps, so it re-renders with every cart change like
+              everything else. The trust bar stays in the scroller below —
+              ambience scrolls, state does not.
+            {%- endcomment -%}
+            {%- if section.settings.discount_rewards_enabled and cart != empty -%}
+              <div class="drawer__pinned">
+                {%- render 'free-shipping-bar', section: section, context: 'drawer', compact: true -%}
+              </div>
+            {%- endif -%}
+
+            <div class="drawer__scrollable relative flex flex-col gap-6 grow shrink{% if cart == empty %} hidden{% endif %}">
+
+              {%- if section.settings.trust_bar_enabled -%}
+                {%- comment -%}
+                  Two separate claims rather than one pre-baked string joined by a
+                  pipe. That string was stored twice — once per surface — and the
+                  two copies were live with DIFFERENT star ratings (4.8 in the
+                  drawer, 4.7 on the cart page) in the same funnel; both now read
+                  one theme setting. Splitting them also lets the rating carry
+                  tabular figures and a real vector star instead of an emoji, which
+                  renders at a different size and weight on every platform.
+
+                  It is no longer aria-hidden. That was there because the text used
+                  to be duplicated for a scrolling marquee; the marquee is gone, so
+                  the claim can simply be read.
+                {%- endcomment -%}
+                {%- liquid
+                  assign cart_trust_orders = settings.trust_orders_text | default: '10,000+ Orders Delivered'
+                  assign cart_trust_rating = settings.trust_rating | default: '4.7'
+                -%}
+                <div class="cart-trust-bar">
+                  <div class="cart-trust-bar__track">
+                    {%- if cart_trust_orders != blank -%}
+                      <span class="cart-trust-bar__item">{{ cart_trust_orders | escape }}</span>
+                    {%- endif -%}
+                    {%- if cart_trust_orders != blank and cart_trust_rating != blank -%}
+                      <span class="cart-trust-bar__sep" aria-hidden="true"></span>
+                    {%- endif -%}
+                    {%- if cart_trust_rating != blank -%}
+                      <span class="cart-trust-bar__item cart-trust-bar__rating">
+                        <svg class="cart-trust-bar__star" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.6l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.2l-4.94 2.6.94-5.5-4-3.9 5.53-.8L10 1.6Z"/></svg>
+                        <span class="cart-trust-bar__score">{{ cart_trust_rating | escape }}</span><span class="cart-trust-bar__score-max">/5</span>
+                      </span>
+                    {%- endif -%}
+                  </div>
+                </div>
+              {%- endif -%}
+
+              {%- liquid
+                if linklists.gift-wrapping.links != blank and linklists.gift-wrapping.links.first.type == 'product_link'
+                  assign gift_wrapping = linklists.gift-wrapping.links.first
+              
+                  assign gift_wrap_id = gift_wrapping.object.variants.first.id
+                  assign gift_wraps_in_cart = 0
+                  for item in cart.items
+                    if item.id == gift_wrap_id
+                      assign gift_wraps_in_cart = item.quantity
+                      break
+                    endif
+                  endfor
+                  assign items_in_cart = cart.item_count | minus: gift_wraps_in_cart
+                endif
+              -%}
+              <cart-items class="block grow" data-section-id="{{ section.id }}">
+                <ul class="horizontal-products grid" role="list" aria-label="{{ 'cart.general.title' | t | escape }}">
+                  {%- for item in cart.items -%}
+                    {%- liquid
+                      assign is_gift_wrap_item = false
+
+                      if gift_wrap_id != nil and item.id == gift_wrap_id
+                        assign is_gift_wrap_item = true
+                      endif
+
+                      comment
+                        A line is a free gift only if it was ADDED as one and is
+                        currently free. Both halves matter.
+
+                        Requiring it to be free keeps the original intent: when the
+                        cart drops below the threshold the gift discount lifts,
+                        Shopify charges for it again, and the row must go back to
+                        behaving like any normal paid line rather than staying a
+                        locked gift row because it still carries the property.
+
+                        Requiring the property is the other half, and it was missing.
+                        Inferring "gift" from a ₹0 line alone meant any ORDINARY line
+                        a discount happened to zero out became permanently
+                        quantity-locked — reachable here, since the ₹700 spend tier
+                        can zero any line priced at or under ₹700.
+                      endcomment
+                      assign is_free_gift = false
+                      if item.properties['_free_gift'] != blank and item.final_line_price == 0 and item.original_line_price > 0
+                        assign is_free_gift = true
+                      endif
+                    -%}
+
+                    {%- capture cart_item -%}
+                      {%- comment -%}
+                        The row is laid out by .cart-line (see cart-enhancements.css):
+                        image on the left, then title + remove, meta, and a footer
+                        holding the stepper and the price. The wrappers moved; every
+                        element JS binds to — quantity-input, .cart-remove-btn, the
+                        loader, the volume-pricing modal — is the same node with the
+                        same id and attributes it had before.
+                      {%- endcomment -%}
+                      <li id="CartDrawer-Item-{{ item.key }}" class="cart-line horizontal-product{% if is_free_gift %} horizontal-product--gift{% endif %}" data-variant-id="{{ item.variant_id }}" data-handle="{{ item.product.handle }}" data-quantity="{{ item.quantity }}" data-price="{{ item.original_price }}">
+                        {%- comment -%}
+                          The fallback src used to be `width: item.image.width`, i.e.
+                          the original upload (commonly 2000px+) for a 64px thumb, and
+                          with no `sizes` the browser assumes 100vw and picks the
+                          largest candidate. An imageless variant also rendered no cell
+                          at all, so the row's grid collapsed and misaligned.
+                        {%- endcomment -%}
+                        <a class="cart-line__media horizontal-product__media relative overflow-hidden" href="{{ item.url }}" tabindex="-1" aria-hidden="true">
+                          {%- if item.image -%}
+                            {{- item.image | image_url: width: 240 | image_tag: loading: 'lazy', widths: '76,152,240', sizes: '76px', alt: '', is: 'lazy-image' -}}
+                          {%- else -%}
+                            {{- 'product-1' | placeholder_svg_tag: 'placeholder-svg media__placeholder' -}}
+                          {%- endif -%}
+                        </a>
+
+                        <div class="cart-line__body horizontal-product__details">
+                          <div class="cart-line__head">
+                            <div class="cart-line__name">
+                              {%- if section.settings.show_vendor -%}
+                                <p class="text-xs text-opacity">{{ item.product.vendor }}</p>
+                              {%- endif -%}
+                              <a href="{{ item.url }}" class="horizontal-product__title reversed-link" data-cart-item-title>{{ item.product.title | escape }}</a>
+                            </div>
+                            {%- comment -%}
+                              The remove control sits with the title, not down beside
+                              the stepper: it is about the whole line, and putting it
+                              next to − / + is how people delete a line they meant to
+                              decrement.
+                            {%- endcomment -%}
+                            <div class="cart-line__remove">
+                              <div id="Loader-{{ section.id }}-{{ item.key }}" class="loader" hidden>
+                                {%- render 'icon', icon: 'rotator', size: 'xs', class: 'animate-rotator' -%}
+                              </div>
+                              <a class="cart-remove-btn" href="{{ item.url_to_remove }}"{% unless is_gift_wrap_item %} is="cart-remove-button"{% else %} is="remove-gift-wrap"{% endunless %} data-index="{{ item.key }}" data-no-instant aria-label="{{ 'cart.general.remove' | t }}: {{ item.product.title | escape }}">
+                                {%- render 'icon', icon: 'close', size: 'xs' -%}
+                              </a>
+                            </div>
+                          </div>
+
+                          <div class="cart-line__meta">
+                            {%- render 'cart-item-options', item: item, inline: true -%}
+                            {%- render 'cart-item-scarcity',
+                               item: item,
+                               enabled: section.settings.scarcity_badge_enabled,
+                               threshold: settings.scarcity_threshold,
+                               style: 'calm' -%}
+                          </div>
+
+                        <div class="cart-line__foot horizontal-product__quantity text-sm">
+                          {%- liquid
+                            assign has_qty_rules = false
+                            if item.variant.quantity_rule.increment > 1 or item.variant.quantity_rule.min > 1 or item.variant.quantity_rule.max != null
+                              assign has_qty_rules = true
+                            endif
+      
+                            assign has_vol_pricing = false
+                            if item.variant.quantity_price_breaks.size > 0
+                              assign has_vol_pricing = true
+                            endif
+                          -%}
+                          {%- if has_qty_rules or has_vol_pricing -%}
+                            {%- capture qty_rules_vol_pricing -%}
+                              {%- if has_qty_rules -%}
+                                <div class="quantity__rules text-sm font-medium leading-tight">
+                                  {%- if item.variant.quantity_rule.increment > 1 -%}
+                                    <span class="divider">
+                                      {{- 'products.quantity.multiples_of' | t: quantity: item.variant.quantity_rule.increment -}}
+                                    </span>
+                                  {%- endif -%}
+                                  {%- if item.variant.quantity_rule.min > 1 -%}
+                                    <span class="divider">
+                                      {{- 'products.quantity.min_of' | t: quantity: item.variant.quantity_rule.min -}}
+                                    </span>
+                                  {%- endif -%}
+                                  {%- if item.variant.quantity_rule.max != null -%}
+                                    <span class="divider">
+                                      {{- 'products.quantity.max_of' | t: quantity: item.variant.quantity_rule.max -}}
+                                    </span>
+                                  {%- endif -%}
+                                </div>
+                              {%- endif -%}
+                              {%- if has_vol_pricing -%}
+                                {{ 'volume-pricing.css' | asset_url | stylesheet_tag }}
+                                <volume-pricing class="volume-pricing grid gap-6">
+                                  <span class="caption-large font-medium">{{ 'products.volume_pricing.title' | t }}</span>
+                                  <ul class="list-unstyled">
+                                    <li class="text-sm flex gap-2d5 justify-between">
+                                      <span class="font-medium">{{ item.variant.quantity_rule.min }}+</span>
+                                      {%- assign price = item.variant.price | money_with_currency -%}
+                                      <span> {{ 'sections.quick_order_list.each' | t: money: price }}</span>
+                                    </li>
+                                    {%- for price_break in item.variant.quantity_price_breaks -%}
+                                      <li class="text-sm flex gap-2d5 justify-between">
+                                        <span class="font-medium">
+                                          {{- price_break.minimum_quantity -}}
+                                          <span aria-hidden="true">+</span>
+                                        </span>
+                                        {%- assign price = price_break.price | money_with_currency -%}
+                                        <span> {{ 'sections.quick_order_list.each' | t: money: price }}</span>
+                                      </li>
+                                    {%- endfor -%}
+                                  </ul>
+                                </volume-pricing>
+                              {%- endif -%}
+                            {%- endcapture -%}
+                          {%- endif -%}
+                          <div class="cart-line__qty">
+                            {%- unless is_gift_wrap_item or is_free_gift -%}
+                              <div class="cart-quantity__info flex items-center gap-3">
+                                {%- if has_qty_rules or has_vol_pricing -%}
+                                  <button type="button" class="hotspot hidden md:flex items-center justify-end relative cursor-pointer">
+                                    {%- render 'icon', icon: 'info', size: 'lg' -%}
+                                    <div class="hotspot__content grid gap-6 items-center absolute z-1 pointer-events-none overflow-hidden text-left">
+                                      {{- qty_rules_vol_pricing -}}
+                                    </div>
+                                  </button>
+                                  <button type="button" class="md:hidden flex items-center justify-center" aria-controls="VolumePricing-{{ section.id }}-{{ item.key }}" aria-expanded="false">
+                                    {%- render 'icon', icon: 'info', size: 'sm' -%}
+                                  </button>
+                                  <x-modal id="VolumePricing-{{ section.id }}-{{ item.key }}" class="x-modal drawer z-35 fixed bottom-0 left-0 h-full w-full pointer-events-none"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-label="{{ item.product.title | escape }}"
+                                    hidden
+                                  >
+                                    <overlay-element class="overlay fixed-modal invisible opacity-0 fixed bottom-0 left-0 w-full h-screen pointer-events-none" aria-controls="VolumePricing-{{ section.id }}-{{ item.key }}" aria-expanded="false"></overlay-element>
+                                    <div class="drawer__inner z-10 absolute top-0 flex flex-col w-full h-full overflow-hidden">
+                                      <gesture-element class="drawer__header flex justify-between opacity-0 invisible relative">
+                                        <span class="drawer__title heading title-md grid gap-4">
+                                          {{ item.product.title | escape }}
+                                          {%- unless item.product.has_only_default_variant -%}
+                                            <dl class="grid gap-1d5">
+                                              {%- for option in item.options_with_values -%}
+                                                <div class="flex gap-1 text-xs text-opacity leading-tight">
+                                                  <dt class="sr-only">{{ option.name }}:</dt>
+                                                  <dd>{{ option.value }}</dd>
+                                                </div>
+                                              {%- endfor -%}
+                                            </dl>
+                                          {%- endunless -%}
+                                        </span>
+                                        <button class="button button--secondary button--close drawer__close hidden sm:flex items-center justify-center" type="button" is="hover-button" aria-controls="VolumePricing-{{ section.id }}-{{ item.key }}" aria-expanded="false" aria-label="{{ 'general.accessibility.close' | t | escape }}">
+                                          <span class="btn-fill" data-fill></span>
+                                          <span class="btn-text">
+                                            {%- render 'icon', icon: 'close', size: 'sm' -%}
+                                          </span>
+                                        </button>
+                                      </gesture-element>
+                                      <div class="drawer__content opacity-0 invisible flex flex-col h-full grow shrink">
+                                        <div class="drawer__scrollable relative flex flex-col gap-5 md:gap-7 grow shrink">
+                                          <div class="text-base md:text-lg grid gap-6">
+                                            {{- qty_rules_vol_pricing -}}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </x-modal>
+                                {%- endif -%}
+                                <quantity-input class="cart-quantity flex items-center relative">
+                                  <label class="sr-only" for="Quantity-{{ section.id }}-{{ item.key }}">
+                                    {{- 'products.quantity.label' | t -}}
+                                  </label>
+                                  <input class="quantity__input input text-center w-full h-full"
+                                    type="number"
+                                    name="updates[{{ item.key }}]"
+                                    aria-label="{{ 'products.quantity.input_label' | t: product: item.product.title | escape }}"
+                                    id="Quantity-{{ section.id }}-{{ item.key }}"
+                                    data-index="{{ item.key }}"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    data-quantity-variant-id="{{ item.variant.id }}"
+                                    data-cart-quantity="{{ cart | item_count_for_variant: item.variant.id }}"
+                                    min="0"
+                                    data-min="{{ item.variant.quantity_rule.min }}"
+                                    {%- comment -%}
+                                      The ceiling is the merchant's order limit AND available stock,
+                                      whichever is lower — see cart-quantity-max. Without the stock half
+                                      the stepper's + never disabled and over-asking reached the server
+                                      as a 422 with the refused number still in the box.
+                                    {%- endcomment -%}
+                                    {%- capture q_max -%}{%- render 'cart-quantity-max', item: item -%}{%- endcapture -%}
+                                    {%- assign q_max = q_max | strip -%}
+                                    {%- if q_max != blank %} max="{{ q_max }}"{% endif %}
+                                    step="{{ item.variant.quantity_rule.increment }}"
+                                    value="{{ item.quantity }}"
+                                  />
+                                  <div class="quantity__buttons flex flex-row items-center justify-center h-full">
+                                    <button type="button" name="minus" class="quantity__button flex items-center justify-center" aria-label="{{ 'products.quantity.decrease' | t: product: item.product.title | escape }}">
+                                      {%- render 'icon', icon: 'decrease', size: 'sm', class: 'stroke-1' -%}
+                                    </button>
+                                    <button type="button" name="plus" class="quantity__button flex items-center justify-center" aria-label="{{ 'products.quantity.increase' | t: product: item.product.title | escape }}">
+                                      {%- render 'icon', icon: 'increase', size: 'sm', class: 'stroke-1' -%}
+                                    </button>
+                                  </div>
+                                </quantity-input>
+                              </div>
+                            {%- else -%}
+                              <div class="cart-quantity flex items-center relative">
+                                <label class="sr-only" for="Quantity-{{ section.id }}-{{ item.key }}">
+                                  {{- 'products.quantity.label' | t -}}
+                                </label>
+                                <input class="quantity__input input text-center w-full h-full"
+                                  type="number"
+                                  name="updates[{{ item.key }}]"
+                                  aria-label="{{ 'products.quantity.input_label' | t: product: item.product.title | escape }}"
+                                  id="Quantity-{{ section.id }}-{{ item.key }}"
+                                  data-index="{{ item.key }}"
+                                  inputmode="numeric"
+                                  autocomplete="off"
+                                  data-quantity-variant-id="{{ item.variant.id }}"
+                                  data-cart-quantity="{{ cart | item_count_for_variant: item.variant.id }}"
+                                  min="0"
+                                  data-min="{{ item.variant.quantity_rule.min }}"
+                                  {%- comment -%}
+                                    The ceiling is the merchant's order limit AND
+                                    available stock, whichever is lower — see
+                                    cart-quantity-max. Without the stock half the
+                                    stepper's + never disabled and over-asking
+                                    reached the server as a 422.
+                                  {%- endcomment -%}
+                                  {%- capture q_max -%}{%- render 'cart-quantity-max', item: item -%}{%- endcapture -%}
+                                  {%- assign q_max = q_max | strip -%}
+                                  {%- if q_max != blank %} max="{{ q_max }}"{% endif %}
+                                  step="{{ item.variant.quantity_rule.increment }}"
+                                  value="{{ item.quantity }}"
+                                  disabled
+                                />
+                                <div class="quantity__buttons flex flex-row items-center justify-center h-full sr-only">
+                                  <button type="button" name="minus" class="quantity__button flex items-center justify-center" aria-label="{{ 'products.quantity.decrease' | t: product: item.product.title | escape }}" disabled>
+                                    {%- render 'icon', icon: 'decrease', size: 'sm', class: 'stroke-1' -%}
+                                  </button>
+                                  <button type="button" name="plus" class="quantity__button flex items-center justify-center" aria-label="{{ 'products.quantity.increase' | t: product: item.product.title | escape }}" disabled>
+                                    {%- render 'icon', icon: 'increase', size: 'sm', class: 'stroke-1' -%}
+                                  </button>
+                                </div>
+                              </div>
+                            {%- endunless -%}
+                          </div>
+
+                          {%- comment -%}
+                            What this line actually costs once BOTH discounts are in:
+                            Shopify's item.final_price only carries the line-level
+                            ₹300, not the cart-level 5%, so it prints a figure the
+                            shopper is never charged. Apportion the real total by this
+                            line's share of the gross instead.
+
+                            Truncation means the per-unit figures need not re-multiply
+                            to the total exactly; the summary card below is the
+                            authority on what is owed, and it uses cart.total_price
+                            untouched.
+                          {%- endcomment -%}
+                          {%- liquid
+                            comment
+                              Spread from the POST-line-discount value, not the
+                              original. The old proportional spread divided the
+                              whole cart total across lines by original price,
+                              which was fine while every discount was pro-rata —
+                              but a Buy 2 Get 1 cart broke it: the free line
+                              showed FREE while the paid lines showed
+                              total ÷ 3, so the three lines summed to less than
+                              the total and the free piece was counted twice.
+
+                              final_line_price already carries each line's own
+                              allocations (the free piece, the flat tiers), so
+                              only the cart-level remainder (the 5%) needs
+                              spreading — proportionally over items_subtotal,
+                              which is exactly the sum of final line prices.
+                              A free line nets to 0 and shows FREE; paid lines
+                              show what they genuinely cost; the column sums to
+                              the total to the paisa. When no line-level
+                              allocation exists the two formulas agree exactly.
+                            endcomment
+                            assign line_net = 0
+                            if cart.items_subtotal_price > 0 and item.quantity > 0
+                              assign line_net = cart.total_price | times: item.final_line_price | divided_by: cart.items_subtotal_price | divided_by: item.quantity
+                            endif
+                          -%}
+                          <div class="cart-line__price">
+                            {%- render 'cart-item-price', item: item, show_discounts: false, net: line_net -%}
+                          </div>
+                        </div>
+                        </div>
+                      </li>
+                    {%- endcapture -%}
+
+                    {%- liquid
+                      unless is_gift_wrap_item
+                        echo cart_item
+                      else
+                        assign cart_gift_wrap_item = cart_item
+                      endunless
+                    -%}
+                  {%- endfor -%}
+
+                  {%- liquid
+                    if cart_gift_wrap_item
+                      echo cart_gift_wrap_item
+                    endif
+                  -%}
+                </ul>
+              </cart-items>
+
+              {%- if section.settings.exchange_returns_enabled -%}
+                <div class="cart-returns-banner flex items-center gap-3">
+                  <span class="cart-returns-banner__icon" aria-hidden="true">{% render 'icon', icon: 'return', size: 'sm' %}</span>
+                  <span class="text-sm font-medium">{{ section.settings.exchange_returns_text | escape }}</span>
+                </div>
+              {%- endif -%}
+
+{%- liquid
+                assign pb_usd = false
+                assign pb_rate = settings.usd_inr_rate | default: 0 | round
+                if settings.usd_display_enabled and pb_rate > 0 and localization.country.iso_code == 'US'
+                  assign pb_usd = true
+                endif
+              -%}
+              {%- comment -%}
+                The prepaid offer now rides on the summary card in the footer,
+                where the money is — see the gold strip in cart-totals.liquid.
+                This standalone banner sat in the scroll area above the fold and
+                would say the same thing a second time the moment the setting is
+                switched on, so it is off unless a checkout code is configured
+                and it therefore has an action the footer strip cannot carry.
+              {%- endcomment -%}
+              {%- if section.settings.prepaid_banner_enabled and pb_usd == false and section.settings.prepaid_checkout_code != blank -%}
+                <div class="prepaid-banner flex items-start gap-3">
+                  <span class="prepaid-banner__icon flex-shrink-0" aria-hidden="true">{% render 'icon', icon: 'discount', size: 'sm' %}</span>
+                  <div class="grid gap-1">
+                    <p class="prepaid-banner__headline text-sm font-semibold">{{ section.settings.prepaid_banner_text | escape }}</p>
+                    {%- comment -%}
+                      Shopify applies a code via /discount/<code>, not /cart/<code>.
+                      The old href produced /cart/PREPAID100, which is not a discount
+                      URL at all, and with the code left blank it degraded to /cart/ —
+                      a CTA that silently dumped the shopper on the cart page.
+                    {%- endcomment -%}
+                    {%- if section.settings.prepaid_checkout_code != blank -%}
+                      <a class="prepaid-banner__cta text-xs flex items-center gap-1" href="{{ routes.root_url }}discount/{{ section.settings.prepaid_checkout_code | url_param_escape }}?redirect={{ routes.cart_url | url_encode }}">{{ section.settings.prepaid_banner_cta | escape }} <span class="prepaid-banner__arrow" aria-hidden="true">&rarr;</span></a>
+                    {%- else -%}
+                      <p class="prepaid-banner__cta text-xs flex items-center gap-1">{{ section.settings.prepaid_banner_cta | escape }}</p>
+                    {%- endif -%}
+                  </div>
+                </div>
+              {%- endif -%}
+
+              {%- render 'gift-wrapping',
+                section_id: section.id,
+                gift_wrapping: gift_wrapping,
+                gift_wrap_id: gift_wrap_id,
+                gift_wraps_in_cart: gift_wraps_in_cart,
+                items_in_cart: items_in_cart,
+              -%}
+
+              {%- if cart != empty and section.settings.cart_recommendations_enabled -%}
+                {%- liquid
+                  assign first_product_id = cart.items.first.product_id
+                  if cart_gift_wrap_item
+                    if first_product_id == gift_wrapping.object.id
+                      if cart.items.size > 1
+                        assign first_product_id = cart.items[1].product_id
+                      endif
+                    endif
+                  endif
+                -%}
+                {%- render 'product-complementary',
+                  section_id: section.id,
+                  product_id: first_product_id,
+                  image_ratio: settings.product_image_ratio,
+                  image_fill: settings.product_image_fill,
+                  limit: section.settings.cart_recommendations_limit,
+                  heading: section.settings.cart_recommendations_heading,
+                  show_vendor: section.settings.show_cart_recommendations_vendor,
+                  show_price: section.settings.show_cart_recommendations_price,
+                  recommendations_products: section.settings.cart_recommendations_products,
+                -%}
+              {%- endif -%}
+            </div>
+            <div class="drawer__footer grid w-full{% if cart == empty %} hidden{% endif %}">
+              {%- if section.settings.show_cart_note or section.settings.show_shipping_calculator -%}
+                <div class="drawer__footer-top flex">
+                  {%- if section.settings.show_cart_note -%}
+                    <button type="button" class="flex gap-2d5 grow items-center justify-center" aria-controls="CartNote-{{ section.id }}" aria-expanded="false">
+                      {%- render 'icon', icon: 'note', size: 'lg', class: 'icon-light flex-auto' -%}
+                      <span class="reversed-link text-sm leading-tight">{{ 'general.cart.note.title' | t }}</span>
+                    </button>
+                  {%- endif -%}
+                  {%- if section.settings.show_shipping_calculator -%}
+                    <button type="button" class="flex gap-2d5 grow items-center justify-center" aria-controls="ShippingCalculator-{{ section.id }}" aria-expanded="false"> 
+                      {%- render 'icon', icon: 'package', size: 'lg', class: 'icon-light flex-auto' -%}
+                      <span class="reversed-link text-sm leading-tight">{{ 'general.cart.shipping_calculator.title' | t }}</span>
+                    </button>
+                  {%- endif -%}
+  
+                  {%- if section.settings.show_cart_note -%}
+                    <modal-element id="CartNote-{{ section.id }}" class="modal invisible absolute bottom-0 left-0 w-full h-full" role="dialog" hidden>
+                      <overlay-element class="fixed-modal opacity-0 z-1 absolute top-0 left-0 w-full h-full" aria-controls="CartNote-{{ section.id }}" aria-expanded="false"></overlay-element>
+                      <div class="modal__container flex flex-col z-3 absolute left-0 bottom-0 w-full">
+                        <div class="modal__header flex items-center justify-between relative">
+                          <span class="font-medium text-sm md:text-base">{{ 'general.cart.note.caption' | t }}</span>
+                          <button class="close flex items-center justify-center absolute top-0 right-0" type="button" is="magnet-button" aria-controls="CartNote-{{ section.id }}" aria-expanded="false" aria-label="{{ 'general.accessibility.close' | t | escape }}">
+                            {%- render 'icon', icon: 'close' -%}
+                          </button>
+                        </div>
+                        <div class="modal__content flex flex-col overflow-hidden">
+                          <cart-note class="modal__scrollable grid gap-4">
+                            <div class="field">
+                              <textarea name="note" class="textarea is-floating" rows="3" placeholder=" " id="CartNoteForm-{{ section.id }}">{{ cart.note }}</textarea>
+                              <label class="label is-floating" for="CartNoteForm-{{ section.id }}">{{ 'general.cart.note.title' | t }}</label>
+                            </div>
+                            <div class="justify-self-start">
+                              <button class="button button--primary" type="button" is="hover-button" aria-controls="CartNote-{{ section.id }}" aria-expanded="false">
+                                <span class="btn-fill" data-fill></span>
+                                <span class="btn-text">{{ 'general.cart.note.button' | t }}</span>
+                              </button>
+                            </div>
+                          </cart-note>
+                        </div>
+                      </div>
+                    </modal-element>
+                  {%- endif -%}
+                  {%- if section.settings.show_shipping_calculator -%}
+                    <modal-element id="ShippingCalculator-{{ section.id }}" class="modal invisible absolute bottom-0 left-0 w-full h-full" role="dialog" hidden>
+                      <overlay-element class="fixed-modal opacity-0 z-1 absolute top-0 left-0 w-full h-full" aria-controls="ShippingCalculator-{{ section.id }}" aria-expanded="false"></overlay-element>
+                      <div class="modal__container flex flex-col z-3 absolute left-0 bottom-0 w-full">
+                        <div class="modal__header flex items-center justify-between relative">
+                          <span class="font-medium text-sm md:text-base">{{ 'general.cart.shipping_calculator.caption' | t }}</span>
+                          <button class="close flex items-center justify-center absolute top-0 right-0" type="button" aria-controls="ShippingCalculator-{{ section.id }}" aria-expanded="false" is="magnet-button" aria-label="{{ 'general.accessibility.close' | t | escape }}">
+                            {%- render 'icon', icon: 'close' -%}
+                          </button>
+                        </div>
+                        <div class="modal__content flex flex-col overflow-hidden">
+                          <form class="modal__scrollable grid gap-4" action="{{ routes.cart_url }}" method="POST" novalidate is="shipping-calculator">
+                            <country-province class="grid gap-4"{% if shop.customer_accounts_enabled and customer %} data-country="{{ customer.default_address.country }}"{% if customer.default_address.province != '' %} data-province="{{ customer.default_address.province }}"{% endif %}{% endif %}>
+                              <div class="field">
+                                <select
+                                  name="address[country]"
+                                  class="select is-floating"
+                                  autocomplete="country"
+                                  is="custom-select"
+                                  id="ShippingCalculatorCountry-{{ section.id }}"
+                                >
+                                  {{- all_country_option_tags -}}
+                                </select>
+                                {%- render 'icon', icon: 'chevron-up', size: 'sm', class: 'absolute' -%}
+                                <label class="label is-floating" for="ShippingCalculatorCountry-{{ section.id }}">{{ 'customer.addresses.country' | t }}</label>
+                              </div>
+                              <div class="field" hidden>
+                                <select
+                                  name="address[province]"
+                                  class="select is-floating"
+                                  autocomplete="address-level1"
+                                  is="custom-select"
+                                  id="ShippingCalculatorProvince-{{ section.id }}"
+                                >
+                                </select>
+                                {%- render 'icon', icon: 'chevron-up', size: 'sm', class: 'absolute' -%}
+                                <label class="label is-floating" for="ShippingCalculatorProvince-{{ section.id }}">{{ 'customer.addresses.province' | t }}</label>
+                              </div>
+                            </country-province>
+                            <div class="field">
+                              <input
+                                name="address[zip]"
+                                class="input is-floating"
+                                type="text"
+                                autocapitalize="characters"
+                                autocomplete="postal-code"
+                                placeholder=" "
+                                id="ShippingCalculatorZip-{{ section.id }}"
+                                {% if shop.customer_accounts_enabled and customer %}value="{{ customer.default_address.zip }}"{% endif %}
+                              />
+                              <label class="label is-floating" for="ShippingCalculatorZip-{{ section.id }}">{{ 'customer.addresses.zip' | t }}</label>
+                            </div>
+                            <div class="justify-self-start">
+                              <button class="button button--primary" type="submit" is="hover-button">
+                                <span class="btn-fill" data-fill></span>
+                                <span class="btn-text">{{ 'general.cart.shipping_calculator.button' | t }}</span>
+                              </button>
+                            </div>
+                            <div class="grid gap-3 text-sm"></div>
+                          </form>
+                        </div>
+                      </div>
+                    </modal-element>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+              <div class="drawer__footer-bottom grid gap-6">
+
+                {%- comment -%}
+                  The free-delivery celebration band used to sit here. It now has a
+                  row inside the summary card — "Delivery — Free" — and a clause in
+                  the saving line beside the total, which is where a shopper looks
+                  for it. Two separate places congratulating you for the same thing,
+                  most of a screen apart, is what made this footer 305px tall.
+
+                  The cart PAGE keeps its band; it has the height, and there is no
+                  competing summary card there.
+                {%- endcomment -%}
+
+                {%- if section.settings.delivery_eta_enabled -%}
+                  <cart-delivery-eta class="cart-delivery-eta flex items-center justify-between"
+                    data-cutoff="{{ section.settings.delivery_cutoff_hour | default: 14 }}"
+                    data-tz-offset="{{ 'now' | date: '%z' }}"
+                    data-min-days="{{ section.settings.delivery_min_days }}"
+                    data-max-days="{{ section.settings.delivery_max_days }}"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="cart-delivery-eta__icon" aria-hidden="true">{% render 'icon', icon: 'package', size: 'sm' %}</span>
+                      <div>
+                        <p class="cart-delivery-eta__ship text-sm font-semibold js-ship-label">{{ section.settings.delivery_eta_text }}</p>
+                        <p class="cart-delivery-eta__arrival text-xs js-arrival-label">{{ settings.delivery_eta_subtext | default: 'Delivery in 3–4 Days' }}</p>
+                      </div>
+                    </div>
+                    <span class="cart-delivery-eta__price font-bold js-eta-price">{% render 'money-display', amount: cart.total_price %}</span>
+                  </cart-delivery-eta>
+                {%- endif -%}
+
+                {%- render 'cart-totals', context: 'drawer', section: section -%}
+
+                {%- render 'usd-billing-disclosure' -%}
+
+                {%- comment -%}
+                  One irreversible action, priced. Checkout and View cart used to
+                  split the row 50/50, which handed the exit the same visual
+                  authority as the commitment; View cart is now a text link beside
+                  the payment methods, where it is still one tap away without
+                  competing.
+
+                  The amount rides on the button deliberately — the one place the
+                  drawer repeats a figure, because a priced CTA is worth it and the
+                  total sits 60px above, not on the other side of the panel.
+
+                  The submit itself is untouched: same form, same action, same
+                  name="checkout". Nothing here changes what checkout receives.
+                {%- endcomment -%}
+                {%- if section.settings.show_checkout_button -%}
+                  <form action="{{ routes.cart_url }}" method="POST" novalidate class="drawer__footer-buttons">
+                    <button class="cart-cta" type="submit" name="checkout">
+                      <span class="cart-cta__lead">
+                        {%- render 'icon', icon: 'lock', size: 'sm' -%}
+                        {{- 'cart.general.checkout' | t -}}
+                      </span>
+                      <span class="cart-cta__amount">
+                        {%- render 'money-display', amount: cart.total_price, style: 'with_currency' -%}
+                      </span>
+                    </button>
+                  </form>
+                {%- endif -%}
+
+                {%- comment -%}
+                  Method reassurance at the moment of commitment. In India this is
+                  the single biggest thing a shopper wants to know before tapping,
+                  and the drawer said nothing about it at all.
+                {%- endcomment -%}
+                {%- if section.settings.show_checkout_button or section.settings.show_view_cart_button -%}
+                  <div class="cart-methods">
+                    {%- comment -%}
+                      The method list is reassurance ABOUT the checkout button, so
+                      it goes when the button does; View cart then simply keeps the
+                      row on its own.
+                    {%- endcomment -%}
+                    {%- if section.settings.show_checkout_button -%}
+                      {%- comment -%}
+                        The footer's own payment marks (assets/onrepeat-pay-*.svg —
+                        real artwork, see onrepeat-payment-icons.liquid for
+                        provenance) instead of the words: same reassurance, one
+                        line shorter, legible in every language. "Cards" becomes
+                        Visa + Mastercard + RuPay, which is what it meant; net
+                        banking and wallets ride under UPI in practice and the
+                        row must not scroll. Alt text keeps each mark readable
+                        to assistive tech, and the list stays a list.
+                      {%- endcomment -%}
+                      <ul class="cart-methods__marks list-unstyled" role="list" aria-label="Payment methods">
+                        <li><img src="{{ 'onrepeat-pay-upi.svg' | asset_url }}" alt="UPI" width="52" height="18" loading="lazy" decoding="async"></li>
+                        <li><img src="{{ 'onrepeat-pay-visa.svg' | asset_url }}" alt="Visa" width="40" height="26" loading="lazy" decoding="async"></li>
+                        <li><img src="{{ 'onrepeat-pay-mastercard.svg' | asset_url }}" alt="Mastercard" width="40" height="26" loading="lazy" decoding="async"></li>
+                        <li><img src="{{ 'onrepeat-pay-rupay.svg' | asset_url }}" alt="RuPay" width="56" height="15" loading="lazy" decoding="async"></li>
+                        <li><img src="{{ 'onrepeat-pay-cod.svg' | asset_url }}" alt="Cash on delivery" width="24" height="24" loading="lazy" decoding="async"></li>
+                      </ul>
+                    {%- endif -%}
+                    {%- if section.settings.show_view_cart_button -%}
+                      <a href="{{ routes.cart_url }}" class="cart-methods__link" data-no-instant>{{ 'general.cart.view_cart' | t }}</a>
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {%- if section.settings.recent_products_enabled -%}
+          <div id="RecentlyViewed-{{ section.id }}" class="drawer__panel opacity-0 flex flex-col overflow-hidden">
+            <span class="sr-only">{{ section.settings.recent_products_heading | escape }}</span>
+            <recently-viewed class="cart__recent flex flex-col h-full" data-url="{{ routes.search_url }}?section_id={{ section.id }}&type=product&q=" data-limit="{{ section.settings.recent_products_limit }}"{% if request.page_type == 'product' %} data-product-id="{{ product.id }}"{% endif %}>
+              {%- if request.page_type == 'search' and search.performed and search.results_count > 0 -%}
+                {%- liquid
+                  assign parsed_terms = search.terms | split: ' OR '
+                  capture recent_results
+                    for parsed_term in parsed_terms
+                      assign product_id = parsed_term | split: 'id:' | last | times: 1
+                      for item in search.results
+                        if item.id == product_id
+                          render 'product-card-horizontal', product: item, image_ratio: settings.product_image_ratio, image_fill: settings.product_image_fill, show_vendor: section.settings.show_recent_products_vendor, show_price: section.settings.show_recent_products_price, show_quick_add: true, show_quick_view: settings.product_quick_view
+                        endif
+                      endfor
+                    endfor
+                  endcapture
+                -%}
+                {%- if recent_results != blank -%}
+                  <div class="drawer__scrollable relative flex flex-col">
+                    <div class="horizontal-products grid">
+                      {{- recent_results -}}
+                    </div>
+                  </div>
+                {%- endif -%}
+              {%- endif -%}
+            </recently-viewed>
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+  </cart-drawer>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.cart-drawer.name",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:sections.cart-drawer.settings.paragraph.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "t:sections.cart-drawer.settings.show_vendor.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cart_note",
+      "label": "t:sections.cart-drawer.settings.show_cart_note.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_shipping_calculator",
+      "label": "t:sections.cart-drawer.settings.show_shipping_calculator.label",
+      "info": "t:sections.cart-drawer.settings.show_shipping_calculator.info",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_cart_button",
+      "label": "t:sections.cart-drawer.settings.show_view_cart_button.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_checkout_button",
+      "label": "t:sections.cart-drawer.settings.show_checkout_button.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.cart-drawer.settings.header__free_shipping.content"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.cart-drawer.settings.header__cart_recommendations.content",
+      "info": "t:sections.cart-drawer.settings.header__cart_recommendations.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "cart_recommendations_enabled",
+      "label": "t:sections.cart-drawer.settings.cart_recommendations_enabled.label",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "cart_recommendations_heading",
+      "default": "You may also like",
+      "label": "t:sections.cart-drawer.settings.cart_recommendations_heading.label"
+    },
+    {
+      "type": "range",
+      "id": "cart_recommendations_limit",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "default": 5,
+      "label": "t:sections.cart-drawer.settings.cart_recommendations_limit.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cart_recommendations_vendor",
+      "label": "t:sections.cart-drawer.settings.show_cart_recommendations_vendor.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cart_recommendations_price",
+      "label": "t:sections.cart-drawer.settings.show_cart_recommendations_price.label",
+      "default": true
+    },
+    {
+      "type": "product_list",
+      "id": "cart_recommendations_products",
+      "label": "t:sections.cart-drawer.settings.cart_recommendations_products.label",
+      "info": "t:sections.cart-drawer.settings.cart_recommendations_products.info"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.cart-drawer.settings.header__empty_cart.content"
+    },
+    {
+      "type": "richtext",
+      "id": "empty_cart_message",
+      "label": "t:sections.cart-drawer.settings.empty_cart_message.label"
+    },
+    {
+      "type": "collection_list",
+      "id": "empty_cart_collections",
+      "label": "t:sections.cart-drawer.settings.empty_cart_collections.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.cart-drawer.settings.header__recent_products.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "recent_products_enabled",
+      "label": "t:sections.cart-drawer.settings.recent_products_enabled.label",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "recent_products_heading",
+      "default": "Recently viewed",
+      "label": "t:sections.cart-drawer.settings.recent_products_heading.label"
+    },
+    {
+      "type": "range",
+      "id": "recent_products_limit",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "default": 5,
+      "label": "t:sections.cart-drawer.settings.recent_products_limit.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_recent_products_vendor",
+      "label": "t:sections.cart-drawer.settings.show_recent_products_vendor.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_recent_products_price",
+      "label": "t:sections.cart-drawer.settings.show_recent_products_price.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "✦ Trust Bar"
+    },
+    {
+      "type": "checkbox",
+      "id": "trust_bar_enabled",
+      "label": "Show trust bar",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "✦ Order Discount Rewards"
+    },
+    {
+      "type": "paragraph",
+      "content": "Shows a spend-more-save-more discount ladder in the cart and progress bar. IMPORTANT: these are display only — create matching automatic order discounts in Admin → Discounts (e.g. ₹300 off over ₹3000) so they actually apply at checkout."
+    },
+    {
+      "type": "checkbox",
+      "id": "discount_rewards_enabled",
+      "label": "Enable discount rewards bar",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "✦ Scarcity Badge"
+    },
+    {
+      "type": "checkbox",
+      "id": "scarcity_badge_enabled",
+      "label": "Show low stock badge on cart items",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "✦ Exchange & Returns Banner"
+    },
+    {
+      "type": "checkbox",
+      "id": "exchange_returns_enabled",
+      "label": "Show exchange & returns banner",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "exchange_returns_text",
+      "label": "Exchange & returns text",
+      "default": "7-Day Easy Exchange & Returns"
+    },
+    {
+      "type": "header",
+      "content": "✦ Prepaid Discount Banner"
+    },
+    {
+      "type": "checkbox",
+      "id": "prepaid_banner_enabled",
+      "label": "Show prepaid discount banner",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "prepaid_banner_text",
+      "label": "Prepaid banner headline",
+      "default": "Extra ₹100 OFF on Prepaid + Faster Delivery"
+    },
+    {
+      "type": "text",
+      "id": "prepaid_banner_cta",
+      "label": "Prepaid CTA text",
+      "default": "Auto apply at checkout → NEXT STEP"
+    },
+    {
+      "type": "text",
+      "id": "prepaid_checkout_code",
+      "label": "Prepaid discount code (appended to checkout URL)",
+      "info": "Leave empty to use standard checkout URL. Example: PREPAID100"
+    },
+    {
+      "type": "header",
+      "content": "✦ Delivery ETA"
+    },
+    {
+      "type": "checkbox",
+      "id": "delivery_eta_enabled",
+      "label": "Show delivery ETA above checkout",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "delivery_eta_text",
+      "label": "Ships-in label",
+      "default": "Ships in 24 Hrs"
+    },
+    {
+      "type": "range",
+      "id": "delivery_cutoff_hour",
+      "min": 0,
+      "max": 23,
+      "step": 1,
+      "default": 14,
+      "label": "Same-day cutoff hour (24h, store timezone)",
+      "info": "Orders placed before this hour count as same-day for ETA calculation."
+    },
+    {
+      "type": "range",
+      "id": "delivery_min_days",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "default": 3,
+      "label": "Minimum delivery days"
+    },
+    {
+      "type": "range",
+      "id": "delivery_max_days",
+      "min": 1,
+      "max": 14,
+      "step": 1,
+      "default": 4,
+      "label": "Maximum delivery days"
+    }
+  ],
+  "enabled_on": {
+    "groups": [
+      "custom.overlay"
+    ]
+  }
+}
+{% endschema %}

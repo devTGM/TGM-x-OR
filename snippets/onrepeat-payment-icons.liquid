@@ -1,0 +1,73 @@
+{%- comment -%}
+  Payment method marks for the footer.
+
+  Why this exists rather than Shopify's built-in row: the theme already had one at
+  sections/footer-copyright.liquid, wrapped in `unless shop.enabled_payment_types == empty`. Shopify
+  only populates that array for Shopify Payments. This store checks out through Razorpay, so the
+  array is empty, the guard short-circuits, and the footer rendered no payment marks at all.
+  Shopify's `payment_type_svg_tag` is no help either — it carries no UPI and no RuPay.
+
+  Real artwork, not redrawn:
+    Visa, Mastercard, Amex, PayPal  — github.com/aaronfagan/svg-credit-card-payment-icons (Apache-2.0)
+    UPI, RuPay, Apple Pay           — Wikimedia Commons, all published there as public domain
+    COD                             — Lucide `banknote` (ISC). Cash on delivery has no brand mark,
+                                      so it is an icon plus a wordmark rather than a logo.
+
+  They live in assets/ rather than inline: ~34 KB together would be dead weight in every page's
+  HTML, and as assets the CDN caches them.
+
+  Marks sit on light tiles. That is legibility, not decoration — these are the official colourways
+  and against this footer's near-black ground the Visa blue (#1434CB), RuPay navy (#1b3281), UPI
+  grey (#66686c) and the black Apple Pay logo are all close to invisible without a tile.
+
+  Every mark is behind its own setting, and nothing is assumed: claiming a payment method the store
+  does not accept is the same class of error as claiming a fabric it does not use. Untick anything
+  Razorpay is not actually configured for.
+
+  Usage: {%- render 'onrepeat-payment-icons', section: section -%}
+{%- endcomment -%}
+
+{%- liquid
+  assign pay_any = false
+  if section.settings.pay_upi or section.settings.pay_visa or section.settings.pay_mastercard or section.settings.pay_rupay or section.settings.pay_amex or section.settings.pay_paypal or section.settings.pay_applepay or section.settings.pay_cod
+    assign pay_any = true
+  endif
+-%}
+
+{%- if pay_any -%}
+  <div class="onrepeat-pay">
+    {%- if section.settings.pay_heading != blank -%}
+      <span class="onrepeat-pay__label">{{ section.settings.pay_heading }}</span>
+    {%- endif -%}
+    <ul class="onrepeat-pay__row">
+      {%- if section.settings.pay_upi -%}
+        <li class="onrepeat-pay__item"><img src="{{ 'onrepeat-pay-upi.svg' | asset_url }}" alt="UPI" width="52" height="18" loading="lazy" decoding="async"></li>
+      {%- endif -%}
+      {%- if section.settings.pay_visa -%}
+        <li class="onrepeat-pay__item"><img src="{{ 'onrepeat-pay-visa.svg' | asset_url }}" alt="Visa" width="40" height="26" loading="lazy" decoding="async"></li>
+      {%- endif -%}
+      {%- if section.settings.pay_mastercard -%}
+        <li class="onrepeat-pay__item"><img src="{{ 'onrepeat-pay-mastercard.svg' | asset_url }}" alt="Mastercard" width="40" height="26" loading="lazy" decoding="async"></li>
+      {%- endif -%}
+      {%- if section.settings.pay_rupay -%}
+        <li class="onrepeat-pay__item"><img src="{{ 'onrepeat-pay-rupay.svg' | asset_url }}" alt="RuPay" width="56" height="15" loading="lazy" decoding="async"></li>
+      {%- endif -%}
+      {%- if section.settings.pay_amex -%}
+        <li class="onrepeat-pay__item"><img src="{{ 'onrepeat-pay-amex.svg' | asset_url }}" alt="American Express" width="40" height="26" loading="lazy" decoding="async"></li>
+      {%- endif -%}
+      {%- if section.settings.pay_applepay -%}
+        <li class="onrepeat-pay__item onrepeat-pay__item--tight"><img src="{{ 'onrepeat-pay-applepay.svg' | asset_url }}" alt="Apple Pay" width="50" height="21" loading="lazy" decoding="async"></li>
+      {%- endif -%}
+      {%- if section.settings.pay_paypal -%}
+        <li class="onrepeat-pay__item"><img src="{{ 'onrepeat-pay-paypal.svg' | asset_url }}" alt="PayPal" width="40" height="26" loading="lazy" decoding="async"></li>
+      {%- endif -%}
+      {%- if section.settings.pay_cod -%}
+        {%- comment -%} No brand exists for cash on delivery, so this is a glyph plus a wordmark. {%- endcomment -%}
+        <li class="onrepeat-pay__item onrepeat-pay__item--cod">
+          <img src="{{ 'onrepeat-pay-cod.svg' | asset_url }}" alt="" aria-hidden="true" width="20" height="20" loading="lazy" decoding="async">
+          <span>COD</span>
+        </li>
+      {%- endif -%}
+    </ul>
+  </div>
+{%- endif -%}

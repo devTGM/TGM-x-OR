@@ -1,0 +1,193 @@
+/*
+ * OnRepeat brand-trust card (snippets/onrepeat-brand-trust.liquid).
+ * Premium, on-brand "Manufactured & Marketed By" panel: deep crimson card, gold verified
+ * badge + accents, Inter type. Static and lightweight — replaces the legacy animated
+ * emerald <canvas> widget.
+ *
+ * NOTE: the card renders inside the theme's collapsible-tab `.rte` wrapper, whose
+ * `.rte a { background: ... }` link-underline rule (specificity 0,1,1) would otherwise
+ * override the link's background. So the visual lives on the inner `.onrepeat-trust__card`
+ * span (which `.rte a` can't target); the <a> stays a transparent click wrapper.
+ */
+
+.onrepeat-trust {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+
+  --st-gold: #caa15a;
+  --st-gold-2: #f4e4c2;
+  --st-cream: #fbf4e9;
+}
+
+.onrepeat-trust__card {
+  position: relative;
+  /* One row: badge · text · pill · chevron. Was a column of three stacked
+     blocks, which cost roughly 100px of height before reaching the address. */
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-block: 6px;
+  padding: 12px 13px;
+  border-radius: 16px;
+  /* solid fallback first, gradient on top — both as longhands so nothing strips them */
+  background-color: #4a0d0e;
+  background-image: linear-gradient(150deg, #6a1416 0%, #4a0d0e 60%, #360a0b 100%);
+  box-shadow: 0 10px 24px -12px rgba(92, 16, 17, 0.5);
+  color: var(--st-cream);
+  overflow: hidden;
+  font-family: var(--font-body-family, 'Inter', sans-serif);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Soft gold glow in the top-right corner. */
+.onrepeat-trust__card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(80% 60% at 85% 0%, rgba(202, 161, 90, 0.16), transparent 60%);
+}
+
+@media (hover: hover) {
+  .onrepeat-trust:hover .onrepeat-trust__card {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px -12px rgba(92, 16, 17, 0.6);
+  }
+}
+
+.onrepeat-trust:focus-visible {
+  outline: none;
+}
+
+.onrepeat-trust:focus-visible .onrepeat-trust__card {
+  outline: 2px solid var(--st-gold);
+  outline-offset: 3px;
+}
+
+.onrepeat-trust__badge {
+  flex: none;
+  /* A marker, not a medallion — the gold pill already carries the verified
+     signal, so this only needs to anchor the row. */
+  margin-top: 1px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--st-gold-2), var(--st-gold));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.onrepeat-trust__badge svg {
+  width: 13px;
+  height: 13px;
+  color: #4a0d0e;
+}
+
+.onrepeat-trust__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.onrepeat-trust__sub {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--st-gold);
+}
+
+.onrepeat-trust__name {
+  font-family: var(--font-heading-family, 'Inter', sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--st-cream);
+}
+
+.onrepeat-trust__pill {
+  flex: none;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--st-gold-2), var(--st-gold));
+  color: #1f0606;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.onrepeat-trust__pill svg {
+  width: 9px;
+  height: 9px;
+}
+
+/* ---- address ---- */
+.onrepeat-trust__addr {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.onrepeat-trust__pin {
+  flex: none;
+  margin-top: 2px;
+  color: var(--st-gold);
+}
+
+.onrepeat-trust__pin svg {
+  width: 10px;
+  height: 10px;
+}
+
+.onrepeat-trust__addr-txt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: rgba(251, 244, 233, 0.78);
+}
+
+.onrepeat-trust__addr-txt strong {
+  color: var(--st-cream);
+  font-weight: 600;
+}
+
+.onrepeat-trust__chev {
+  flex: none;
+  margin-top: 8px;
+  color: var(--st-gold);
+  opacity: 0.7;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.onrepeat-trust__chev svg {
+  width: 6px;
+  height: 10px;
+}
+
+@media (hover: hover) {
+  .onrepeat-trust:hover .onrepeat-trust__chev {
+    transform: translateX(3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onrepeat-trust__card,
+  .onrepeat-trust__chev {
+    transition: none;
+  }
+}

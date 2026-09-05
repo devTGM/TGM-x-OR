@@ -1,0 +1,254 @@
+/* ============================================================================
+   PDP refinement — approved redesign, applied in phases
+   ============================================================================
+   One file for every phase of the PDP redesign so the whole effort loads from
+   a single stylesheet and reverts as one unit. Loaded from layout/theme.liquid
+   after theme.css and colour-swatches.css, which is what lets the orb rules
+   below win over the base swatch styling on specificity + order.
+
+   Phase 1 — square gallery thumbnails vs circular colour orbs.
+   The core complaint: both rows were rounded rectangles of the same model
+   photos, one screen apart. Shape now carries the meaning — SQUARE = view of
+   this product, CIRCLE = a different colourway. The orb markup comes from
+   snippets/colour-swatches.liquid (display: 'orb').
+   ========================================================================= */
+
+/* ── Gallery thumbnails: crisp squares, crimson active ring ──────────────── */
+
+/* The active ring goes brand-crimson everywhere (it was foreground-black).
+   rgb(var(--color-base-button)) follows the merchant's button colour setting;
+   the fallback is the brand crimson. */
+.product__thumbnail[aria-current='true']::after {
+  --tw-ring-color: rgb(var(--color-base-button, 92 16 17));
+}
+
+/* On phones the thumbs shrink from ~92px rounded rectangles to 52px squares —
+   visibly a strip of VIEWS, not a second product row. Desktop keeps the larger
+   beside-gallery thumbnails it was designed around. */
+@media screen and (max-width: 749px) {
+  .product__thumbnail {
+    width: 52px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+}
+
+/* ── Colour orbs ──────────────────────────────────────────────────────────
+   Each orb is the colourway's own flat-lay photo zoomed to the fabric
+   (700% / 50% 36% — calibrated on the real photography until only knit and
+   placket show, no skin), washed with the colourway's mapped hex so the row
+   reads as a palette, ringed in white so it sits cleanly on the page.
+   A sibling with no photo has no --cs-img and falls back to a plain disc of
+   --cs-fill, so the row never goes ragged. */
+
+.colour-swatches--orb .colour-swatches__row {
+  gap: var(--sp-3);
+  align-items: flex-start;
+}
+
+.colour-swatches--orb .colour-swatches__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  border: 0;
+  background: none;
+  min-inline-size: 50px; /* orb + padding: comfortably past a 44px hit target */
+}
+
+.colour-swatches--orb .colour-swatches__orb {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--cs-fill, #d9d6d1);
+  background-image: var(--cs-img, none);
+  background-repeat: no-repeat;
+  background-size: 700%;
+  background-position: 50% 36%;
+  box-shadow: inset 0 0 0 1px rgb(var(--color-foreground) / 0.12);
+}
+
+/* The colourway wash: multiply pulls the photo toward its mapped colour, so
+   six orbs read as a palette rather than six near-identical fabric close-ups. */
+.colour-swatches--orb .colour-swatches__orb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--cs-fill, transparent);
+  mix-blend-mode: multiply;
+  opacity: 0.32;
+}
+
+/* Inner white ring — and, when sold out, the diagonal strike drawn over it in
+   the per-colour strike shade the snippet already computes. */
+.colour-swatches--orb .colour-swatches__orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.55);
+}
+
+.colour-swatches--orb .colour-swatches__item.is-soldout .colour-swatches__orb {
+  opacity: 0.5;
+}
+
+.colour-swatches--orb .colour-swatches__item.is-soldout .colour-swatches__orb::after {
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.75px),
+    var(--cs-strike, #1a1a1a) calc(50% - 0.75px),
+    var(--cs-strike, #1a1a1a) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
+}
+
+.colour-swatches--orb .colour-swatches__item.is-active .colour-swatches__orb {
+  outline: 2px solid rgb(var(--color-base-button, 92 16 17));
+  outline-offset: 2.5px;
+}
+
+.colour-swatches--orb .colour-swatches__name {
+  max-inline-size: 58px;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  color: rgb(var(--color-foreground) / 0.55);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colour-swatches--orb .colour-swatches__item.is-active .colour-swatches__name {
+  color: rgb(var(--color-base-button, 92 16 17));
+  font-weight: 700;
+}
+
+@media (hover: hover) {
+  .colour-swatches--orb .colour-swatches__item:not(.is-active):hover .colour-swatches__orb {
+    box-shadow: inset 0 0 0 1px rgb(var(--color-foreground) / 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .colour-swatches--orb .colour-swatches__item,
+  .colour-swatches--orb .colour-swatches__orb {
+    transition: none;
+  }
+}
+
+/* ── Final mockup: edge-to-edge gallery on phones ───────────────────────────
+   The hero carousel bleeds to the glass — no side margins, no rounded
+   corners — while the thumbnails keep a page inset (the strip of small
+   squares is a control row, not imagery). The overlays (NEW IN, model chip,
+   rating pill) ride with the bleed, so their 12px offsets now measure from
+   the screen edge, exactly as drawn. */
+@media screen and (max-width: 749px) {
+  body.template-product .featured-product .product__media-container {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+  body.template-product .product__media-container .slider {
+    border-radius: 0;
+  }
+  body.template-product .featured-product .product__thumbnails {
+    padding-inline: 14px;
+  }
+}
+
+/* ── Final mockup: story images as a full-bleed 1 + 2 mosaic on phones ──────
+   All three collage images show (the user's call replacing the phase-4
+   one-image trim): the big story image full width, the two smaller ones side
+   by side beneath it, every one keeping its caption overlay. The section's
+   page gutter goes to zero so the mosaic touches the glass; the heading
+   keeps a text inset; the "View more" button is dropped on phones — the
+   images are the content. Scoped to product templates via the body class,
+   so a collage on any other page is untouched. */
+@media screen and (max-width: 749px) {
+  body.template-product [id*='__collage'] .page-width {
+    padding-inline: 0;
+  }
+  body.template-product [id*='__collage'] .collage .title-wrapper {
+    padding-inline: 16px;
+  }
+  body.template-product [id*='__collage'] .collage .title-wrapper > p {
+    display: none; /* the "View more" button paragraph */
+  }
+  body.template-product [id*='__collage'] .collage > .grid {
+    gap: 2px;
+  }
+  body.template-product [id*='__collage'] .collage-left,
+  body.template-product [id*='__collage'] .collage-right {
+    gap: 2px;
+  }
+  body.template-product [id*='__collage'] .collage-right {
+    flex-direction: row;
+  }
+  body.template-product [id*='__collage'] .collage-right > .collage__item {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  body.template-product [id*='__collage'] .collage__item {
+    border-radius: 0;
+  }
+  /* Half-width cells need a smaller caption than the full-width hero. */
+  body.template-product [id*='__collage'] .collage-right .collage__content p {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+}
+
+/* ── Final mockup: the reviews row reads as the fourth accordion ────────────
+   On phones the main-product section's runout shrinks so the reviews app
+   section (styled flat by sections/apps.liquid on product templates) sits
+   directly under "Manufacturer & care" as one continuous stack. */
+@media screen and (max-width: 749px) {
+  body.template-product [id$='__main-product'] .section--padding {
+    padding-block-end: 10px;
+  }
+}
+
+/* ── Final mockup: FAQ as one plain light card on phones ────────────────────
+   Headingless (the template sets heading/description empty), the four
+   questions plus the "More questions →" row sit in a single soft card with
+   hairline separators — matching the drawn mockup. Desktop keeps the
+   theme's bordered accordion style. */
+@media screen and (max-width: 749px) {
+  body.template-product [id$='__faq'] .section--padding {
+    padding-block: 8px 72px;
+  }
+  body.template-product [id$='__faq'] .faq {
+    background: #fbf8f3;
+    border: 1px solid #e4dccc;
+    border-radius: 12px;
+    padding: 4px 13px;
+  }
+  body.template-product [id$='__faq'] .faq .accordion {
+    border-bottom: 1px solid #eee5d7;
+  }
+  body.template-product [id$='__faq'] .faq .accordion:last-child {
+    border-bottom: 0;
+  }
+  body.template-product [id$='__faq'] .faq .accordion .details__summary,
+  body.template-product [id$='__faq'] .faq .onrepeat-faq-more .details__summary {
+    padding-block: 12px;
+  }
+  body.template-product [id$='__faq'] .faq .accordion .details__summary > span:first-child {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #3a322d;
+  }
+  body.template-product [id$='__faq'] .faq .onrepeat-faq-more .details__summary {
+    color: rgb(var(--color-base-button, 92 16 17));
+  }
+  body.template-product [id$='__faq'] .faq .onrepeat-faq-more .details__summary > span:first-child {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    color: inherit;
+  }
+}

@@ -1,0 +1,899 @@
+{%- comment -%}
+  The in-page purchase block: size, availability, Add to cart, Buy now.
+
+  WHY THIS EXISTS
+  Stage 2 moved buying to the sticky bar and dropped main-product's form, so
+  the product page has had no working purchase control of its own — the theme's
+  own Add to Cart still renders but is hidden by CSS in sections/main-product,
+  and its [form="ProductForm-…"] target no longer exists. This puts the
+  controls back on the page without reviving that dead form.
+
+  HOW IT STAYS IN SYNC
+  It renders as VariantPicker-{section}-{product}, which is exactly the id
+  onrepeat-buy-bar already carries in data-picker. The bar was written expecting a
+  picker there: choosing a chip calls echoToPicker(), which ticks the matching
+  radio here and fires a bubbling change; choosing here fires the same event,
+  which the bar's _onPickerChange listens for. Neither control owns the size —
+  they mirror each other, so a shopper can use whichever is in front of them.
+
+  WHY ITS OWN FORM
+  Same reasoning the bar records for its own: action=/cart/add, is=product-form,
+  a [name=id] and a [type=submit][name=add] is the three-element shape the
+  theme's ProductForm class drives, which keeps AJAX cart, cart-drawer opening
+  and error handling on the theme's tested path. {{ form | payment_button }}
+  needs a real product form around it, which is also what makes Buy now
+  possible here at all.
+
+  Accepts:
+  - product     {Object}  required
+  - section_id  {String}  required, for unique ids
+  - block       {Object}  optional, for shopify_attributes in the editor
+{%- endcomment -%}
+
+{%- liquid
+  assign bm_size_index = nil
+  for opt in product.options_with_values
+    assign opt_down = opt.name | downcase
+    if opt_down contains 'size'
+      assign bm_size_index = forloop.index0
+      break
+    endif
+  endfor
+
+  comment
+    Self-suppressing. The block is placed on every product template, but a gift
+    card, a bundle or anything without a single size option has nothing for it
+    to render — and a size picker with no sizes is worse than no picker. Those
+    products keep the sticky bar exactly as before.
+
+    The test lives in onrepeat-buy-module-active rather than here because
+    main-product.liquid has to reach the same answer: it suppresses the
+    shipping strip above the picker on exactly the products where this module
+    renders its own copy below the buttons. One condition, one file.
+  endcomment
+  capture bm_active
+    render 'onrepeat-buy-module-active', product: product
+  endcapture
+  assign bm_render = false
+  if bm_active != blank and bm_size_index != nil
+    assign bm_render = true
+  endif
+
+  assign bm_variant = product.selected_or_first_available_variant
+  assign bm_form_id = 'OnRepeatBuyModuleForm-' | append: section_id | append: '-' | append: product.id
+  assign bm_picker_id = 'VariantPicker-' | append: section_id | append: '-' | append: product.id
+
+  comment
+    Its own drawer id, for the reason the bar records: if two size-chart
+    drawers ever exist, sharing an id puts two elements with the same id in the
+    document and breaks whichever opener resolves second.
+  endcomment
+  assign bm_chart_page = settings.size_chart_page
+  if bm_chart_page == blank
+    assign bm_chart_page = pages['size-chart']
+  endif
+  assign bm_chart_modal_id = 'OnRepeatBuyModuleSizeChart-' | append: section_id | append: '-' | append: product.id
+-%}
+
+{%- if bm_render -%}
+{%- capture bm_variants -%}[{%- for v in product.variants -%}{"id":{{ v.id }},"available":{{ v.available }},"option_value":{{ v.options[bm_size_index] | json }},"inventory_quantity":{% if v.inventory_management == 'shopify' and v.inventory_policy != 'continue' %}{{ v.inventory_quantity }}{% else %}null{% endif %}}{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%}]{%- endcapture -%}
+
+<style>
+  /* Scoped to the element so nothing here can reach the rest of the page.
+     Everything is fluid: the size row is a wrapping grid rather than a fixed
+     column count, so two sizes and nine sizes both look deliberate, and the
+     action row collapses to one column only when two buttons genuinely stop
+     fitting — measured, not guessed at a device width. */
+  onrepeat-buy-module {
+    display: block;
+    margin: 18px 0 4px;
+    container-type: inline-size;
+  }
+  .sbm__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 9px;
+  }
+  .sbm__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8b8079;
+    margin: 0;
+  }
+  .sbm__label b {
+    color: #1a1512;
+    margin-left: 6px;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .sbm__guide {
+    font: inherit;
+    font-size: 12.5px;
+    line-height: 1.2;
+    color: #5b524b;
+    background: none;
+    border: 0;
+    padding: 2px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .sbm__guide:hover { color: #5c1011; }
+
+  /* ── the size row ───────────────────────────────────────────────────
+     One line, always. This used to be repeat(auto-fit, minmax(56px, 1fr)),
+     which wraps the moment six sizes stop fitting a 56px floor — so a
+     six-size tee showed five pills and a lonely XXL on a second row.
+
+     grid-auto-flow: column with auto-columns of minmax(0, 1fr) states the
+     rule directly: however many sizes arrive, they are columns of equal
+     width. It needs no count, so it cannot fall out of step with the number
+     of variants rendered. minmax's 0 floor is load-bearing — grid children
+     default to min-width:auto, so "XXL" would otherwise push its track wider
+     than its share and force the row past the container.
+
+     Nothing has a fixed width any more, so the pill has to carry the fit
+     itself; see .sbm__size span for the type and padding that do it.
+
+     The fieldset is its own container so the cell arithmetic below can ask
+     "how wide is this row" and get the row, not the block around it. --sbm-n
+     is the only thing Liquid has to supply, and only the type reads it: get
+     it wrong and the text is a little large or small, never wrapped. */
+  .sbm__sizes {
+    --sbm-gap: 7px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--sbm-gap);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    container-type: inline-size;
+  }
+  @container (max-width: 300px) {
+    .sbm__sizes { --sbm-gap: 5px; }
+  }
+  .sbm__size { position: relative; display: block; min-width: 0; }
+  /* The radio is hidden by clip-path, not by size or opacity alone. The theme
+     styles every radio on the page with
+       input:is([type="checkbox"],[type="radio"]):not(.switch) { width: 20px }
+     which is (0,2,1) and outranked the (0,1,1) this used to be — so the
+     "hidden" input kept its 20px width and its opacity, and painted a grey bar
+     across the top-left corner of every pill. Matching that specificity would
+     only win a tie on source order; clip-path removes the element from
+     painting outright, whatever any other rule does to its box. It stays
+     focusable, which is what the ring on the sibling span depends on. */
+  .sbm .sbm__size input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  /* --sbm-cell is the exact width one pill gets: the row minus the gaps,
+     divided by the number of pills. It is declared HERE rather than on the
+     row because a custom property resolves its units where it is used —
+     100cqw asked from inside a pill means the fieldset (the nearest
+     container), which is the width we actually want; asked from the fieldset
+     itself it would mean the block around it.
+
+     0.30 of the cell keeps "XXL" comfortably inside its pill, and the clamp
+     stops there: 15px is the size the row has always used and the ceiling for
+     three sizes on a desktop column, 10.5px the floor where six sizes still
+     read cleanly at 320px. Past the floor the ellipsis takes over rather than
+     the row breaking — a shrunken label is recoverable, a wrapped row is the
+     bug being fixed. */
+  .sbm__size span {
+    --sbm-cell: calc((100cqw - (var(--sbm-n, 6) - 1) * var(--sbm-gap)) / var(--sbm-n, 6));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 10px clamp(2px, calc(var(--sbm-cell) * 0.08), 8px);
+    border: 1px solid #ddd6ce;
+    border-radius: 9px;
+    background: #fff;
+    color: #1a1512;
+    font-size: clamp(10.5px, calc(var(--sbm-cell) * 0.3), 15px);
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .sbm__size:hover input:not(:disabled) + span { border-color: #b3a89f; }
+  .sbm__size input:checked + span {
+    background: #1a1512;
+    border-color: #1a1512;
+    color: #fff;
+  }
+  /* Focus lives on the hidden input, so the ring has to be drawn on the label
+     it controls or keyboard users get nothing. */
+  .sbm__size input:focus-visible + span {
+    outline: 2px solid #5c1011;
+    outline-offset: 2px;
+  }
+  .sbm__size input:disabled + span {
+    color: #c3bbb3;
+    background: #faf8f6;
+    cursor: not-allowed;
+  }
+  .sbm__size input:disabled + span::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9px;
+    background: linear-gradient(to top right, transparent calc(50% - 0.6px), #e3d5d5 50%, transparent calc(50% + 0.6px));
+  }
+  .sbm__dot {
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #b4740f;
+  }
+  .sbm__size input:checked + span .sbm__dot { background: #ffb74d; }
+  .sbm__size input:disabled + span .sbm__dot { display: none; }
+
+  /* Reserved height so choosing a size does not shunt the buttons down the
+     page under the shopper's thumb. */
+  .sbm__stock {
+    min-height: 18px;
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #8b8079;
+  }
+  .sbm__stock b { font-weight: 600; }
+  .sbm__stock[data-tone="low"] { color: #b4740f; }
+  .sbm__stock[data-tone="ok"] { color: #2f6b4f; }
+
+  .sbm__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin-top: 12px;
+  }
+  /* Container query, not a viewport media query: this block sits in a column
+     whose width does not track the viewport — it is full-bleed on a phone and
+     roughly half the page on a desktop PDP. Asking how wide THIS element is, is
+     the only question whose answer is always right. */
+  @container (max-width: 340px) {
+    .sbm__actions { grid-template-columns: 1fr; }
+  }
+  @supports not (container-type: inline-size) {
+    @media (max-width: 380px) {
+      .sbm__actions { grid-template-columns: 1fr; }
+    }
+    /* Without container queries cqw is not a length, so --sbm-cell resolves to
+       nothing and takes the whole clamp() with it — an invalid font-size falls
+       back to inherited body type, which is worse than any fixed value. Pin
+       both properties to the sizes that hold six pills on the narrowest phone
+       we support. The row itself is unaffected: grid-auto-flow needs no query. */
+    .sbm__size span {
+      font-size: 12.5px;
+      padding: 10px 3px;
+    }
+    @media (min-width: 481px) {
+      .sbm__size span { font-size: 15px; padding: 10px 6px; }
+    }
+  }
+
+  .sbm__btn {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    min-height: 48px;
+    padding: 13px 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    text-align: center;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+  }
+  .sbm__btn:active { transform: scale(0.985); }
+  .sbm__btn:focus-visible { outline: 2px solid #5c1011; outline-offset: 2px; }
+  .sbm__btn--atc {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border-color: #1a1512;
+    color: #1a1512;
+  }
+  .sbm__btn--atc:hover { background: #f5f2ef; }
+
+  /* ── the add in flight ──────────────────────────────────────────────
+     The same three states, colours and marks the sticky bar's CTA uses, so a
+     shopper who taps one and then the other sees one behaviour rather than
+     two. The bar owns the canonical version in onrepeat-buy-bar.liquid; this is
+     deliberately a mirror of it and the two are meant to be read together.
+
+     The theme's own ProductForm does set aria-busy on this button and animate
+     a dot loader inside it — but only inside a .btn-text span this button
+     does not have, so the whole response to a tap was nothing at all for the
+     ~1.7s two sequential requests take. */
+  .sbm__ico { display: flex; flex: 0 0 auto; }
+  .sbm__ico:empty { display: none; }
+  .sbm__btn--atc[data-cta='busy'],
+  .sbm__btn--atc[data-cta='busy']:hover {
+    background: #6e2122;
+    border-color: #6e2122;
+    color: #fff;
+    cursor: progress;
+  }
+  .sbm__btn--atc[data-cta='done'],
+  .sbm__btn--atc[data-cta='done']:hover {
+    background: #2f6b4f;
+    border-color: #2f6b4f;
+    color: #fff;
+    cursor: default;
+  }
+  .sbm__spin {
+    display: block;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    animation: sbm-spin 0.6s linear infinite;
+  }
+  @keyframes sbm-spin {
+    to { transform: rotate(360deg); }
+  }
+  .sbm__tick { display: block; width: 15px; height: 15px; }
+  .sbm__tick path {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 22;
+    stroke-dashoffset: 22;
+    animation: sbm-draw 0.28s ease forwards;
+  }
+  @keyframes sbm-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  /* A second signal, in case the button is under the thumb that just tapped
+     it. It rides the button's own bottom edge rather than the block's top, so
+     it cannot be mistaken for the page loading. */
+  .sbm__prog {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+  .sbm__btn--atc[data-cta='busy'] .sbm__prog { opacity: 1; }
+  .sbm__prog i {
+    display: block;
+    height: 100%;
+    width: 36%;
+    background: rgba(255, 255, 255, 0.85);
+    animation: sbm-slide 1s ease-in-out infinite;
+  }
+  @keyframes sbm-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(320%); }
+  }
+  /* While the add is in flight the size cannot change under it. */
+  .sbm[data-adding] .sbm__size { pointer-events: none; opacity: 0.55; }
+  .sbm[data-adding] .sbm__buy { pointer-events: none; opacity: 0.55; }
+
+  .sbm__err {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #9d2b28;
+  }
+
+  /* Before a size is chosen the block shows ONE live button, not two dead
+     ones. A disabled control explains nothing and cannot be tapped to find out
+     why; this one is tappable and points at what is missing. */
+  .sbm[data-state="unset"] .sbm__actions { grid-template-columns: 1fr; }
+  .sbm[data-state="unset"] .sbm__buy { display: none; }
+  .sbm[data-state="unset"] .sbm__btn--atc {
+    background: #efedea;
+    border-color: #e0dad3;
+    color: #8b8079;
+  }
+  .sbm[data-state="soldout"] .sbm__actions { grid-template-columns: 1fr; }
+  .sbm[data-state="soldout"] .sbm__buy { display: none; }
+  /* No accelerated checkout on the shop: Add to cart takes the whole row. */
+  .sbm--nobuy .sbm__actions { grid-template-columns: 1fr; }
+
+  @keyframes sbm-nudge {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .sbm__sizes.is-asking { animation: sbm-nudge 0.32s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    .sbm__sizes.is-asking { animation: none; }
+    .sbm__btn, .sbm__size span { transition: none; }
+    /* The spinner still has to read as "working", so it steps rather than
+       sweeps instead of disappearing entirely. */
+    .sbm__spin { animation-duration: 1.2s; animation-timing-function: steps(8, end); }
+    .sbm__tick path { animation: none; stroke-dashoffset: 0; }
+    .sbm__prog i { animation: none; width: 100%; opacity: 0.5; }
+  }
+
+  /* Shopify renders the dynamic checkout button itself, so it is styled to
+     match rather than rebuilt — its internals are not ours to author. */
+  .sbm__buy { display: block; min-height: 48px; }
+  /* Shopify's button ships its own colour, and the theme's reset sends
+     `color: inherit` down every button — so setting only the background left
+     black text on maroon. Both class variants are named because the unbranded
+     one is what renders once Shopify's script has run. */
+  .sbm__buy .shopify-payment-button__button,
+  .sbm__buy .shopify-payment-button__button--unbranded {
+    border-radius: 10px !important;
+    min-height: 48px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    color: #fff !important;
+    background: #780E09 !important;
+    border: 0 !important;
+    box-shadow: 0 2px 10px rgba(120, 16, 9, 0.22) !important;
+    transition: background 0.15s ease !important;
+  }
+  .sbm__buy .shopify-payment-button__button:hover,
+  .sbm__buy .shopify-payment-button__button--unbranded:hover:not([disabled]) {
+    background: #8f120c !important;
+    color: #fff !important;
+  }
+  /* Shopify paints a spinner into this pseudo-element while the order is being
+     staged; left at the inherited colour it is invisible on the maroon. */
+  .sbm__buy .shopify-payment-button__button[aria-busy="true"] { color: #fff !important; }
+  .sbm__buy .shopify-payment-button__more-options { display: none !important; }
+
+  /* ── Buy 2 Get 1 strip ──────────────────────────────────────────────
+     One line between the stock line and the buttons — read at the exact
+     moment the shopper decides how many. Gold border on a 7% gold wash so it
+     reads as the offer family (the ship strip below uses the same gold), with
+     the crimson chip carrying the offer name. Gated through onrepeat-b2g1-on,
+     so the live theme renders nothing until go-live. */
+  .sbm__offer {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 12px;
+    padding: 9px 11px;
+    border: 1px solid rgba(202, 161, 90, 0.55);
+    border-radius: 10px;
+    background: linear-gradient(0deg, rgba(202, 161, 90, 0.07), rgba(202, 161, 90, 0.07)), #fff;
+  }
+  .sbm__offer-tag {
+    flex: 0 0 auto;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    color: #fff;
+    background: #5c1011;
+    border-radius: 6px;
+    padding: 5px 7px;
+  }
+  .sbm__offer-txt {
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #1a1512;
+  }
+  .sbm__offer-txt b { font-weight: 600; }
+
+  /* Only the placement is ours; every colour, size and rule comes from
+     .onrepeat-ship-strip so the two strips stay identical by construction.
+     The strip already carries margin: 8px 0, so this just sets the gap from
+     the buttons above it. */
+  .sbm__strip { margin-top: 14px; }
+  /* Three short labels, so they hold one line far below the width the
+     reference strip survives at. The floor is the same 9px it steps down to. */
+  @container (max-width: 330px) {
+    .sbm__strip .onrepeat-ship-strip__val { font-size: 9px; }
+    .sbm__strip .onrepeat-ship-strip__col { gap: 4px; }
+  }
+</style>
+
+<onrepeat-buy-module
+  class="sbm"
+  data-state="unset"
+  data-variants='{{ bm_variants | strip_newlines | escape }}'
+  {% if block %}{{ block.shopify_attributes }}{% endif %}
+>
+  {%- form 'product', product, id: bm_form_id, is: 'product-form', data-hide-errors: 'true', class: 'sbm__form' -%}
+    <input type="hidden" name="id" value="{{ bm_variant.id }}" data-sbm-vid>
+    <input type="hidden" name="quantity" value="1">
+
+    <div class="sbm__head">
+      <p class="sbm__label">Size<b data-sbm-chosen></b></p>
+      {%- if bm_chart_page != blank -%}
+        <button type="button" class="sbm__guide" aria-controls="{{ bm_chart_modal_id }}" aria-expanded="false">Size guide</button>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      id is the contract with onrepeat-buy-bar's data-picker. Renamed and the two
+      controls stop mirroring each other, silently.
+    {%- endcomment -%}
+    {%- comment -%}
+      --sbm-n is the pill count, and only the type scale reads it — the row is
+      laid out by grid-auto-flow, which counts for itself. Every variant is
+      rendered, sold out ones included, so the count is the variant count.
+    {%- endcomment -%}
+    <fieldset class="sbm__sizes" id="{{ bm_picker_id }}" data-sbm-sizes style="--sbm-n: {{ product.variants.size }}">
+      <legend class="sr-only">Choose a size</legend>
+      {%- for v in product.variants -%}
+        {%- liquid
+          assign v_value = v.options[bm_size_index]
+          assign v_qty = nil
+          if v.inventory_management == 'shopify' and v.inventory_policy != 'continue'
+            assign v_qty = v.inventory_quantity
+          endif
+        -%}
+        <label class="sbm__size">
+          <input
+            type="radio"
+            name="sbm-size-{{ section_id }}-{{ product.id }}"
+            value="{{ v_value | escape }}"
+            data-variant-id="{{ v.id }}"
+            {% unless v.available %}disabled{% endunless %}
+          >
+          <span>
+            {{- v_value -}}
+            {%- if v.available and v_qty != nil and v_qty > 0 and v_qty <= 2 -%}
+              <i class="sbm__dot" aria-hidden="true"></i>
+            {%- endif -%}
+          </span>
+        </label>
+      {%- endfor -%}
+    </fieldset>
+
+    {%- comment -%}
+      A live region, so the availability that appears on choosing a size is
+      actually announced rather than only drawn.
+    {%- endcomment -%}
+    <p class="sbm__stock" data-sbm-stock role="status" aria-live="polite">Select a size to see availability</p>
+
+    {%- capture bm_b2g1 -%}{%- render 'onrepeat-b2g1-on' -%}{%- endcapture -%}
+    {%- if bm_b2g1 != blank -%}
+      {%- comment -%}
+        Placed inside the module rather than as its own block so it appears on
+        all 8 product templates automatically and disappears with the module on
+        products where it self-suppresses — an offer chip on a gift card would
+        be a lie. One line and no caveat: the strip names the offer, and the
+        cart ladder carries the tier walk and the amounts, where the shopper
+        is actually deciding how many.
+      {%- endcomment -%}
+      <div class="sbm__offer">
+        <span class="sbm__offer-tag" aria-hidden="true">B2G1</span>
+        {%- comment -%}
+          One line, no microcopy. The strip names the offer; the tier walk
+          lives where the decision is made — the cart ladder.
+        {%- endcomment -%}
+        <span class="sbm__offer-txt"><b>Buy any 2, get the 3rd free</b></span>
+      </div>
+    {%- endif -%}
+
+    <div class="sbm__actions">
+      {%- comment -%}
+        The icon slot and the progress rail are permanent children, not markup
+        the state machine writes and rewrites. Only the slot's contents change,
+        so nothing holding a reference to the label or the rail can have it
+        pulled out from under it mid-flight.
+      {%- endcomment -%}
+      <button type="submit" name="add" class="sbm__btn sbm__btn--atc" data-sbm-add>
+        <span class="sbm__ico" data-sbm-add-ico aria-hidden="true"></span>
+        <span data-sbm-add-text>Select a size</span>
+        <span class="sbm__prog" aria-hidden="true"><i></i></span>
+      </button>
+      <div class="sbm__buy" data-sbm-buy>
+        {{ form | payment_button }}
+      </div>
+    </div>
+
+    {%- comment -%}
+      The stock line above is already a live region, but it belongs to the size,
+      not to the add — announcing "Adding…" there would wipe "Only 1 left in L"
+      and never put it back. This is the add's own channel.
+    {%- endcomment -%}
+    <span class="sr-only" data-sbm-status role="status" aria-live="polite"></span>
+    <p class="sbm__err" data-sbm-err hidden></p>
+  {%- endform -%}
+
+  {%- comment -%}
+    Reuses .onrepeat-ship-strip rather than restyling a private copy. That class is
+    defined in sections/main-product.liquid, the same section this block renders
+    inside, so it is always present — and reusing it is the only way the two
+    strips on the page cannot drift apart when one is edited. Only the icons and
+    the three labels are ours.
+  {%- endcomment -%}
+  <div class="onrepeat-ship-strip sbm__strip">
+    <div class="onrepeat-ship-strip__col">
+      <span class="onrepeat-ship-strip__chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <span class="onrepeat-ship-strip__val">Secure payment</span>
+    </div>
+    <div class="onrepeat-ship-strip__col">
+      {%- comment -%} The same path the shipping strip uses, so the two read as one system. {%- endcomment -%}
+      <span class="onrepeat-ship-strip__chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+      <span class="onrepeat-ship-strip__val">7-day exchange</span>
+    </div>
+    <div class="onrepeat-ship-strip__col">
+      <span class="onrepeat-ship-strip__chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      <span class="onrepeat-ship-strip__val">Ships in 24 hrs</span>
+    </div>
+  </div>
+</onrepeat-buy-module>
+
+{%- if bm_chart_page != blank -%}
+  {%- render 'size-chart-modal',
+      modal_id: bm_chart_modal_id,
+      product: product,
+      chart_page: bm_chart_page,
+      title: bm_chart_page.title | default: 'Size chart' -%}
+{%- endif -%}
+
+<script>
+  (function () {
+    if (customElements.get('onrepeat-buy-module')) return;
+
+    class OnRepeatBuyModule extends HTMLElement {
+      connectedCallback() {
+        try { this.variants = JSON.parse(this.dataset.variants || '[]'); }
+        catch (e) { this.variants = []; }
+
+        this.vid      = this.querySelector('[data-sbm-vid]');
+        this.sizesEl  = this.querySelector('[data-sbm-sizes]');
+        this.stockEl  = this.querySelector('[data-sbm-stock]');
+        this.chosenEl = this.querySelector('[data-sbm-chosen]');
+        this.addText  = this.querySelector('[data-sbm-add-text]');
+        this.addIco   = this.querySelector('[data-sbm-add-ico]');
+        this.addBtn   = this.querySelector('[data-sbm-add]');
+        this.statusEl = this.querySelector('[data-sbm-status]');
+        this.errEl    = this.querySelector('[data-sbm-err]');
+        this.formEl   = this.querySelector('form');
+
+        // Delegated, and listening for `change` rather than click: the sticky
+        // bar mirrors a choice by ticking a radio and firing change, so a click
+        // handler would miss everything the bar does.
+        this._onChange = (e) => {
+          const r = e.target;
+          if (!r || r.type !== 'radio') return;
+          this.select(r.value);
+        };
+        this.addEventListener('change', this._onChange);
+
+        // The un-set button is live on purpose; it points at the size row.
+        this._onAdd = (e) => {
+          if (this.adding) { e.preventDefault(); return; }
+          if (this.dataset.state !== 'unset') return;
+          e.preventDefault();
+          this.ask();
+        };
+        if (this.addBtn) this.addBtn.addEventListener('click', this._onAdd);
+
+        // Listening for submit rather than the click: the theme's ProductForm
+        // is what actually performs the add, and submit is the one signal that
+        // fires however it was reached — pointer, Enter on the button, or a
+        // requestSubmit from anywhere else. Its own handler preventDefaults and
+        // takes over from here; ours only drives what the button looks like.
+        this._onSubmit = () => {
+          if (this.dataset.state === 'ready') this.begin();
+        };
+        if (this.formEl) this.formEl.addEventListener('submit', this._onSubmit);
+
+        // {{ form | payment_button }} renders nothing when the shop has no
+        // accelerated checkout enabled. Left alone that is an empty 48px gap
+        // beside Add to cart, so the column is dropped instead and the button
+        // goes full width — the same shape the un-set state already uses.
+        const buy = this.querySelector('[data-sbm-buy]');
+        if (buy && !buy.querySelector('button, [role="button"], iframe')) {
+          buy.remove();
+          this.classList.add('sbm--nobuy');
+        }
+
+        // A pre-selected variant (?variant= in the URL) should arrive chosen.
+        const pre = this.querySelector('input[type="radio"]:checked');
+        if (pre) this.select(pre.value);
+        else this.paint(null);
+      }
+
+      disconnectedCallback() {
+        this.removeEventListener('change', this._onChange);
+        if (this.addBtn) this.addBtn.removeEventListener('click', this._onAdd);
+        if (this.formEl) this.formEl.removeEventListener('submit', this._onSubmit);
+        // An add in flight holds two document listeners and two timers; leaving
+        // either behind would let a detached element answer a later add.
+        this.settle(false, null, true);
+      }
+
+      byValue(v) {
+        return this.variants.filter((x) => x.option_value === v)[0] || null;
+      }
+
+      select(value) {
+        const v = this.byValue(value);
+        if (!v) return;
+        const radio = Array.prototype.slice
+          .call(this.querySelectorAll('input[type="radio"]'))
+          .filter((r) => r.value === value)[0];
+        if (radio && !radio.checked) radio.checked = true;
+        if (this.vid) this.vid.value = v.id;
+        this.paint(v);
+      }
+
+      paint(v) {
+        // A new size is a new attempt; the previous failure no longer applies.
+        // The live region is emptied along with it, or a second failure with
+        // the same wording would leave its text unchanged and go unannounced.
+        this.showErr('');
+        this.say('');
+        if (!v) {
+          this.dataset.state = 'unset';
+          if (this.chosenEl) this.chosenEl.textContent = '';
+          if (this.stockEl) {
+            this.stockEl.removeAttribute('data-tone');
+            this.stockEl.textContent = 'Select a size to see availability';
+          }
+          this.setCta('Select a size', '');
+          return;
+        }
+        if (this.chosenEl) this.chosenEl.textContent = ' ' + v.option_value;
+
+        if (!v.available) {
+          this.dataset.state = 'soldout';
+          if (this.stockEl) {
+            this.stockEl.removeAttribute('data-tone');
+            this.stockEl.textContent = 'Sold out in ' + v.option_value;
+          }
+          this.setCta('Sold out', '');
+          if (this.addBtn) this.addBtn.disabled = true;
+          return;
+        }
+
+        this.dataset.state = 'ready';
+        if (this.addBtn) this.addBtn.disabled = false;
+        this.setCta('Add to cart', '');
+        if (this.stockEl) {
+          const q = v.inventory_quantity;
+          if (q != null && q > 0 && q <= 2) {
+            this.stockEl.setAttribute('data-tone', 'low');
+            this.stockEl.innerHTML = 'Only <b>' + q + ' left</b> in ' + v.option_value;
+          } else {
+            this.stockEl.setAttribute('data-tone', 'ok');
+            this.stockEl.textContent = 'In stock';
+          }
+        }
+      }
+
+      // ── the button's visible state ───────────────────────────────────
+      // The label always names what is happening, and the mark carries it for
+      // anyone who does not read the label. data-cta is only ever set for the
+      // two transient states, so the resting look stays governed by the host's
+      // data-state and there is one source of truth per state.
+      setCta(label, icon) {
+        if (!this.addBtn) return;
+        // An add in flight owns the button until it settles — a variant
+        // re-render must not wipe the spinner out from under it.
+        if (this.adding && icon !== 'spin') return;
+        if (icon === 'spin' || icon === 'tick') {
+          this.addBtn.dataset.cta = icon === 'spin' ? 'busy' : 'done';
+        } else {
+          delete this.addBtn.dataset.cta;
+        }
+        if (this.addIco) {
+          this.addIco.innerHTML =
+            icon === 'spin' ? '<span class="sbm__spin"></span>'
+            : icon === 'tick' ? '<svg class="sbm__tick" viewBox="0 0 24 24" focusable="false"><path d="M4 12.5l5.2 5.2L20 7"/></svg>'
+            : '';
+        }
+        if (this.addText) this.addText.textContent = label;
+      }
+
+      say(msg) {
+        if (this.statusEl) this.statusEl.textContent = msg;
+      }
+
+      showErr(msg) {
+        if (!this.errEl) return;
+        this.errEl.textContent = msg || '';
+        this.errEl.hidden = !msg;
+      }
+
+      // The theme's ProductForm does the add; this only tracks it. It answers
+      // to the two document events the theme dispatches, bound for the life of
+      // one submit so another surface's add can never drive this button.
+      begin() {
+        if (this.adding) return;
+        this.adding = true;
+        this.dataset.adding = '';
+        this.showErr('');
+        window.clearTimeout(this._doneTimer);
+        this.setCta('Adding', 'spin');
+        this.say('Adding ' + (this.chosenEl ? this.chosenEl.textContent.trim() : '') + ' to your bag');
+
+        this._onAdded = () => this.settle(true);
+        this._onErr = (e) => this.settle(false, e && e.detail && e.detail.errorMessage);
+        document.addEventListener('ajaxProduct:added', this._onAdded);
+        document.addEventListener('ajaxProduct:error', this._onErr);
+        // If the network never answers, the button must not stay stuck.
+        this._addTimer = window.setTimeout(
+          () => this.settle(false, 'That took too long. Please try again.'),
+          15000
+        );
+      }
+
+      // quiet: tear the listeners and timers down without touching the DOM,
+      // for the case where the element is going away.
+      settle(ok, msg, quiet) {
+        if (!this.adding) return;
+        this.adding = false;
+        window.clearTimeout(this._addTimer);
+        document.removeEventListener('ajaxProduct:added', this._onAdded);
+        document.removeEventListener('ajaxProduct:error', this._onErr);
+        if (quiet) return;
+        delete this.dataset.adding;
+
+        if (!ok) {
+          this.setCta('Add to cart', '');
+          this.showErr(msg || 'Could not add that. Please try again.');
+          this.say(msg || 'Could not add that item');
+          return;
+        }
+
+        // Held, not flashed: the cart drawer is opening over this, and a
+        // confirmation nobody sees is the problem we started with.
+        this.setCta('Added', 'tick');
+        this.say('Added to your bag');
+        this._doneTimer = window.setTimeout(() => {
+          if (this.adding) return;
+          if (this.dataset.state === 'ready') this.setCta('Add to cart', '');
+        }, 1100);
+      }
+
+      ask() {
+        if (!this.sizesEl) return;
+        this.sizesEl.classList.remove('is-asking');
+        void this.sizesEl.offsetWidth;
+        this.sizesEl.classList.add('is-asking');
+        const first = this.querySelector('input[type="radio"]:not(:disabled)');
+        if (first) first.focus();
+        window.setTimeout(() => this.sizesEl.classList.remove('is-asking'), 700);
+      }
+    }
+
+    customElements.define('onrepeat-buy-module', OnRepeatBuyModule);
+  })();
+</script>
+{%- endif -%}

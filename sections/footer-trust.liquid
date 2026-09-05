@@ -1,0 +1,265 @@
+<style>
+  #shopify-section-{{ section.id }} {
+    --trust-bg: {{ section.settings.color_background }};
+    --trust-text: {{ section.settings.color_text }};
+    --trust-accent: {{ section.settings.color_accent }};
+    --trust-muted: {{ section.settings.color_muted }};
+  }
+
+  .footer-trust {
+    background: var(--trust-bg);
+    color: var(--trust-text);
+    font-family: 'Inter', system-ui, sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .footer-trust::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--trust-accent), transparent);
+  }
+
+  .footer-trust__inner {
+    max-width: 1900px;
+    margin: 0 auto;
+    padding: clamp(1.25rem, 3vw, 2rem) clamp(1.25rem, 3vw, 3rem);
+  }
+
+  .footer-trust__grid {
+    display: grid;
+    grid-template-columns: repeat({{ section.blocks.size }}, 1fr);
+    gap: 0;
+  }
+
+  @media (max-width: 749px) {
+    .footer-trust__grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem 0;
+    }
+    .footer-trust__item:last-child:nth-child(odd) {
+      grid-column: span 2;
+    }
+  }
+
+  .footer-trust__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    padding: 1rem 0.75rem;
+    position: relative;
+    gap: 0.5rem;
+    transition: opacity 0.3s ease;
+  }
+
+  .footer-trust__item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  @media (max-width: 749px) {
+    .footer-trust__item:not(:last-child)::after {
+      display: none;
+    }
+    .footer-trust__item:nth-child(odd):not(:last-child)::after {
+      display: block;
+    }
+  }
+
+  .footer-trust__item:hover {
+    opacity: 0.85;
+  }
+
+  .footer-trust__icon {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    color: var(--trust-accent);
+    opacity: 0.9;
+  }
+
+  .footer-trust__label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    color: var(--trust-text);
+  }
+
+  .footer-trust__desc {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--trust-muted);
+    max-width: 180px;
+  }
+</style>
+
+{%- if section.blocks.size > 0 -%}
+<div class="footer-trust" role="region" aria-label="Trust badges">
+  <div class="footer-trust__inner">
+    <div class="footer-trust__grid">
+      {%- for block in section.blocks -%}
+        <div class="footer-trust__item" {{ block.shopify_attributes }}>
+          <div class="footer-trust__icon">
+            {%- case block.settings.icon -%}
+              {%- when 'shipping' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 4v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              {%- when 'exchange' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              {%- when 'guarantee' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              {%- when 'quality' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              {%- when 'orders' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              {%- when 'star' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              {%- when 'heart' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              {%- else -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {%- endcase -%}
+          </div>
+          <span class="footer-trust__label">{{ block.settings.label }}</span>
+          {%- if block.settings.description != blank -%}
+            <span class="footer-trust__desc">{{ block.settings.description }}</span>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Trust badges",
+  "class": "footer-trust-section",
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "color",
+      "id": "color_background",
+      "label": "Background",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "color_text",
+      "label": "Text",
+      "default": "#fafafa"
+    },
+    {
+      "type": "color",
+      "id": "color_accent",
+      "label": "Icon accent",
+      "default": "#5c1011"
+    },
+    {
+      "type": "color",
+      "id": "color_muted",
+      "label": "Description",
+      "default": "#999999"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "badge",
+      "name": "Badge",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "shipping", "label": "Shipping truck" },
+            { "value": "exchange", "label": "Exchange arrows" },
+            { "value": "guarantee", "label": "Shield / guarantee" },
+            { "value": "quality", "label": "Quality medal" },
+            { "value": "orders", "label": "People / orders" },
+            { "value": "star", "label": "Star" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "check", "label": "Checkmark" }
+          ],
+          "default": "shipping"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Free shipping"
+        },
+        {
+          "type": "text",
+          "id": "description",
+          "label": "Description",
+          "info": "Optional short description"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Trust badges",
+      "blocks": [
+        {
+          "type": "badge",
+          "settings": {
+            "icon": "shipping",
+            "label": "Free shipping",
+            "description": "On all orders across India"
+          }
+        },
+        {
+          "type": "badge",
+          "settings": {
+            "icon": "exchange",
+            "label": "7-day exchanges",
+            "description": "Easy returns & exchanges"
+          }
+        },
+        {
+          "type": "badge",
+          "settings": {
+            "icon": "guarantee",
+            "label": "Money back promise",
+            "description": "100% refund on defects"
+          }
+        },
+        {
+          "type": "badge",
+          "settings": {
+            "icon": "quality",
+            "label": "German threading",
+            "description": "Precision-built durability"
+          }
+        },
+        {
+          "type": "badge",
+          "settings": {
+            "icon": "orders",
+            "label": "10,000+ orders",
+            "description": "Trusted by thousands"
+          }
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "groups": ["footer"]
+  }
+}
+{% endschema %}

@@ -1,0 +1,246 @@
+{%- comment -%} OnRepeat: collapsible app section (Reviews). resync marker v2. {%- endcomment -%}
+{%- liquid
+  assign onrepeat_collapse = false
+  if section.settings.enable_collapsible
+    assign onrepeat_collapse = true
+  endif
+  comment
+    Force the collapsible on product pages regardless of the section setting, so
+    the Reviews app always renders inside the accordion even if Shopify hasn't
+    applied the new section setting to the live instance yet.
+  endcomment
+  if request.page_type == 'product'
+    assign onrepeat_collapse = true
+  endif
+-%}
+<style>
+  #shopify-section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+    {%- render 'section-variables', section: section -%}
+  }
+  {%- if onrepeat_collapse -%}
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion {
+      border: 1px solid rgba(92, 16, 17, 0.12);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 6px 18px -12px rgba(92, 16, 17, 0.2);
+      overflow: hidden;
+    }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion > .details__summary {
+      padding: 15px 16px;
+      list-style: none;
+    }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion > .details__summary::-webkit-details-marker { display: none; }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion__heading {
+      font-size: 15px; font-weight: 800; color: #5c1011; letter-spacing: -0.01em;
+    }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion__rating {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 12.5px; font-weight: 700; color: #5c1011; white-space: nowrap;
+    }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion__rating .onrepeat-star { color: #5c1011; font-size: 13px; line-height: 1; }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion__count { color: #9a8a8c; font-weight: 600; }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion__content { padding: 2px 14px 14px; }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion__chevron { transition: transform 0.25s ease; color: #5c1011; flex: none; }
+    #shopify-section-{{ section.id }} .onrepeat-app-accordion[open] .onrepeat-app-accordion__chevron { transform: rotate(45deg); }
+    /* the app prints its own "Reviews" h2 — redundant with the accordion header */
+    #shopify-section-{{ section.id }} #AirReviews-BlockWrapper .AirReviews-Blocks--Title { display: none !important; }
+    {%- if template.name == 'product' -%}
+    /* Approved final PDP mockup: on phones this section reads as the FOURTH
+       accordion of the product stack — a flat hairline row continuing
+       Details & fabric / Description / Manufacturer & care — not a boxed
+       card. pdp-refine.css shrinks the main-product runout above to match.
+       Desktop and every non-product placement keep the card. */
+    @media screen and (max-width: 749px) {
+      #shopify-section-{{ section.id }} .section--padding {
+        padding-block-start: 0;
+        padding-block-end: 0;
+      }
+      #shopify-section-{{ section.id }} .onrepeat-app-accordion {
+        border: 0;
+        border-block-end: 1px solid rgb(var(--color-border));
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+      }
+      #shopify-section-{{ section.id }} .onrepeat-app-accordion > .details__summary {
+        padding: clamp(var(--sp-4d5), 1.2vw, var(--sp-5d5)) var(--sp-2);
+      }
+      #shopify-section-{{ section.id }} .onrepeat-app-accordion__heading {
+        font-size: var(--text-sm-base, 0.9375rem);
+        font-weight: 500;
+        color: rgb(var(--color-foreground));
+        letter-spacing: 0;
+      }
+    }
+    {%- endif -%}
+  {%- endif -%}
+</style>
+
+<div class="section section--padding{% if section.settings.divider %} section--divider{% endif %}{% if section.settings.rounded %} section--rounded relative{% endif %}">
+  <div class="page-width{% if section.settings.full_width %} page-width--full{% endif %} relative">
+    {%- if onrepeat_collapse -%}
+      {%- liquid
+        assign onrepeat_rv = product.metafields.reviews.rating.value
+        assign onrepeat_rv_count = product.metafields.reviews.rating_count.value
+      -%}
+      <details class="onrepeat-app-accordion details" is="accordion-details"{% if section.settings.collapsible_default_open %} open{% endif %}>
+        <summary class="details__summary flex items-center justify-between gap-3 cursor-pointer">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="onrepeat-app-accordion__heading">{{ section.settings.collapsible_heading | default: 'Reviews' | escape }}</span>
+            {%- if onrepeat_rv != blank and onrepeat_rv_count > 0 -%}
+              <span class="onrepeat-app-accordion__rating">
+                <span class="onrepeat-star" aria-hidden="true">&#9733;</span>{{ onrepeat_rv.rating }}
+                <span class="onrepeat-app-accordion__count">({{ onrepeat_rv_count }})</span>
+              </span>
+            {%- endif -%}
+          </span>
+          <svg class="onrepeat-app-accordion__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </summary>
+        <div class="onrepeat-app-accordion__content details__content">
+          {%- for block in section.blocks -%}
+            {% render block %}
+          {%- endfor -%}
+        </div>
+      </details>
+    {%- else -%}
+      {%- for block in section.blocks -%}
+        {% render block %}
+      {%- endfor -%}
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.apps.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__colors.content",
+      "info": "t:sections.global.settings.header__colors.info"
+    },
+    {
+      "type": "color",
+      "id": "color_text",
+      "label": "t:sections.global.settings.color_text.label"
+    },
+    {
+      "type": "color",
+      "id": "color_background",
+      "label": "t:sections.global.settings.color_background.label"
+    },
+    {
+      "type": "color_background",
+      "id": "gradient_background",
+      "label": "t:sections.global.settings.gradient_background.label"
+    },
+    {
+      "type": "color",
+      "id": "color_highlight",
+      "label": "t:sections.global.settings.color_highlight.label"
+    },
+    {
+      "type": "color_background",
+      "id": "gradient_highlight",
+      "label": "t:sections.global.settings.gradient_highlight.label"
+    },
+    {
+      "type": "color",
+      "id": "color_button_text",
+      "label": "t:sections.global.settings.color_button_text.label"
+    },
+    {
+      "type": "color",
+      "id": "color_button_background",
+      "label": "t:sections.global.settings.color_button_background.label"
+    },
+    {
+      "type": "color_background",
+      "id": "color_button_gradient",
+      "label": "t:sections.global.settings.color_button_gradient.label"
+    },
+    {
+      "type": "header",
+      "content": "Collapsible"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_collapsible",
+      "label": "Make this section collapsible",
+      "info": "Wraps the app (e.g. Reviews) in a tap-to-expand accordion.",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "collapsible_heading",
+      "label": "Collapsible heading",
+      "default": "Reviews"
+    },
+    {
+      "type": "checkbox",
+      "id": "collapsible_default_open",
+      "label": "Open by default",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__section.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.global.settings.padding_top.label",
+      "default": 72
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.global.settings.padding_bottom.label",
+      "default": 72
+    },
+    {
+      "type": "checkbox",
+      "id": "divider",
+      "label": "t:sections.global.settings.divider.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "t:sections.global.settings.full_width.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "rounded",
+      "default": false,
+      "label": "t:sections.global.settings.rounded.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.apps.presets.name"
+    }
+  ],
+  "disabled_on": {
+    "groups": [
+      "custom.overlay"
+    ]
+  }
+}
+{% endschema %}

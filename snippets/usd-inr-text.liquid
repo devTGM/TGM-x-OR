@@ -1,0 +1,55 @@
+{%- liquid
+  comment
+    Converts the known ladder figures inside an Admin-authored INR string for
+    US-market visitors, and echoes the string untouched for everyone else.
+
+      text  the string to convert ("5% Off — Spend ₹1499", "₹300 Off — …")
+
+    Spend thresholds round UP ('ceil' — "Spend $18" is never sooner than the
+    real unlock); the two flat amounts convert exactly. Replacements run
+    longest-token-first so "₹300" never matches inside "₹3000"; the comma
+    variants cover "₹1,499"-style titles. Used by cart-savings-rows and
+    line-discounts — anywhere a discount title is printed rather than built.
+  endcomment
+  assign ut_out = text
+  if settings.usd_display_enabled and localization.country.iso_code == 'US'
+    assign ut_rate = settings.usd_inr_rate | default: 0 | round
+    if ut_rate > 0
+      assign ut_t1 = settings.reward_tier1_amount | default: 1499
+      assign ut_t2 = settings.reward_tier2_amount | default: 3000
+      assign ut_t3 = settings.reward_tier3_amount | default: 5000
+      assign ut_f2 = settings.reward_tier2_flat | default: 300
+      assign ut_f3 = settings.reward_tier3_flat | default: 700
+      assign ut_t1_paise = ut_t1 | times: 100
+      assign ut_t2_paise = ut_t2 | times: 100
+      assign ut_t3_paise = ut_t3 | times: 100
+      assign ut_f2_paise = ut_f2 | times: 100
+      assign ut_f3_paise = ut_f3 | times: 100
+      capture ut_t1_usd
+        render 'money-display', amount: ut_t1_paise, style: 'ceil'
+      endcapture
+      capture ut_t2_usd
+        render 'money-display', amount: ut_t2_paise, style: 'ceil'
+      endcapture
+      capture ut_t3_usd
+        render 'money-display', amount: ut_t3_paise, style: 'ceil'
+      endcapture
+      capture ut_f2_usd
+        render 'money-display', amount: ut_f2_paise, style: 'compact'
+      endcapture
+      capture ut_f3_usd
+        render 'money-display', amount: ut_f3_paise, style: 'compact'
+      endcapture
+      assign ut_t1_comma = ut_t1_paise | money_without_trailing_zeros
+      assign ut_t2_comma = ut_t2_paise | money_without_trailing_zeros
+      assign ut_t3_comma = ut_t3_paise | money_without_trailing_zeros
+      assign ut_t1_plain = '₹' | append: ut_t1
+      assign ut_t2_plain = '₹' | append: ut_t2
+      assign ut_t3_plain = '₹' | append: ut_t3
+      assign ut_f2_plain = '₹' | append: ut_f2
+      assign ut_f3_plain = '₹' | append: ut_f3
+      assign ut_out = ut_out | replace: ut_t1_comma, ut_t1_usd | replace: ut_t2_comma, ut_t2_usd | replace: ut_t3_comma, ut_t3_usd | replace: ut_t3_plain, ut_t3_usd | replace: ut_t2_plain, ut_t2_usd | replace: ut_t1_plain, ut_t1_usd | replace: ut_f3_plain, ut_f3_usd | replace: ut_f2_plain, ut_f2_usd
+    endif
+  endif
+  echo ut_out
+-%}

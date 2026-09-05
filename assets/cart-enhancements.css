@@ -1,0 +1,2483 @@
+/* =============================================================
+   CART — ENHANCEMENTS LAYER
+   Reward bar, milestone dots, auto-applied discount badge, trust
+   marquee, delivery ETA, toast wiring, and the drawer's summary
+   card (.cart-summary — the collapsed total handle over the
+   ledger). Loaded alongside cart.css on both cart-drawer.liquid
+   and main-cart.liquid.
+
+   Boundary vs cart.css: cart.css owns structural / layout rules
+   shared with the stock Shopify cart. This file owns anything
+   ONREPEAT-specific that could be lifted into a separate theme later
+   without breaking the base cart.
+   ============================================================= */
+
+/* ── Cart Trust Bar ─────────────────────────────────────────── */
+.cart-trust-bar {
+  overflow: hidden;
+  background: #fafafa;
+  color: #5c1011;
+  padding-block: var(--sp-3);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  border: 1px solid #f2ecec;
+  margin-inline: calc(var(--sp-5) * -1);
+  margin-block-start: calc(var(--sp-6) * -1);
+}
+
+@media screen and (min-width: 768px) {
+  .cart-trust-bar {
+    font-size: 12px;
+    padding-block: var(--sp-3d5);
+    min-height: 36px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .cart-trust-bar {
+    margin-inline: calc(var(--sp-12) * -1);
+    margin-block-start: calc(var(--sp-8) * -1);
+  }
+}
+
+.cart-trust-bar--main {
+  margin-inline: 0;
+  margin-block-start: var(--sp-6);
+  margin-block-end: var(--sp-4);
+}
+
+@media screen and (min-width: 1024px) {
+  .cart-trust-bar--main {
+    margin-block-start: 0; /* Reset on desktop where it rests safely at the top of the sticky sidebar */
+  }
+}
+
+.cart-trust-bar__track {
+  display: flex;
+  align-items: center; /* Ensure contents do not clip vertically */
+  width: max-content;
+}
+
+/* .cart-trust-bar__text, the trustBarScroll keyframes and the hover-to-pause rule
+   were removed with the marquee: the bar renders .cart-trust-bar__item elements in
+   a static centred row now, so none of them matched anything. */
+
+/* ── Unified Reward Rail — OnRepeat brand ────────────────────────
+   One accent-variable set drives the whole rail so it ANIMATES
+   between states: crimson (progress) → deeper crimson (reward
+   earned). JS contract preserved:
+   .reward-track · .reward-fill[--progress] · .reward-thumb[--thumb]
+   · .reward-dot[data-tier] · .is-acknowledging · .just-unlocked
+   · .is-complete.
+   ============================================================= */
+.free-shipping-bar {
+  --reward-accent: #5c1011;     /* Crimson — brand */
+  --reward-accent-2: #780e09;   /* Highlight */
+  --reward-tint: rgba(92, 16, 17, 0.10);
+  --reward-glow: rgba(92, 16, 17, 0.28);
+}
+
+.free-shipping-bar.is-complete {
+  --reward-accent: #5c1011;     /* Reward earned — brand crimson (NOT olive) */
+  --reward-accent-2: #780e09;
+  --reward-tint: rgba(92, 16, 17, 0.12);
+  --reward-glow: rgba(92, 16, 17, 0.30);
+}
+
+.reward-track-container {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.reward-track {
+  position: relative;
+  height: 6px;
+  background: var(--reward-tint);
+  border-radius: 999px;
+  overflow: visible;
+  margin-inline: 12px; /* room so the 22px end node / thumb never clip */
+  box-shadow: inset 0 1px 1.5px rgb(0 0 0 / 0.07);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+.reward-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--progress, 0%);
+  background: linear-gradient(90deg, var(--reward-accent) 0%, var(--reward-accent-2) 100%);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px var(--reward-glow);
+  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1), background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Top sheen → dimensional, premium fill (not flat). */
+.reward-fill::before {
+  content: '';
+  position: absolute;
+  inset: 1px 2px auto 2px;
+  height: 38%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.reward-thumb {
+  position: absolute;
+  top: 50%;
+  left: var(--thumb, 0%);
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 2px solid var(--reward-accent);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18), 0 0 0 4px var(--reward-tint);
+  transition: left 0.55s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s ease, box-shadow 0.4s ease;
+  z-index: 4;
+  pointer-events: none;
+}
+
+@keyframes thumbPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50%      { transform: translate(-50%, -50%) scale(1.12); }
+}
+
+/* Milestone tier nodes — a "station" on the rail. Outlined + muted when
+   locked; filled crimson with a check the moment the tier unlocks. */
+.reward-dot {
+  position: absolute;
+  top: 50%;
+  left: var(--dot-left, 0%);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(var(--color-background));
+  border: 1.5px solid rgb(var(--color-foreground) / 0.20);
+  color: rgb(var(--color-foreground) / 0.42);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.10);
+  transition: background 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease, transform 0.3s ease;
+  z-index: 3;
+}
+
+.reward-dot__icon {
+  width: 12px;
+  height: 12px;
+}
+
+.reward-dot.is-unlocked {
+  background: linear-gradient(135deg, var(--reward-accent), var(--reward-accent-2));
+  border-color: var(--reward-accent-2);
+  color: #fff;
+  box-shadow: 0 2px 7px var(--reward-glow);
+}
+
+/* The upcoming tier ripples to point the way — a directional cue. */
+.reward-dot.is-next {
+  border-color: var(--reward-accent);
+  color: var(--reward-accent);
+  animation: rewardNextPulse 1.9s ease-in-out infinite;
+}
+
+@keyframes rewardNextPulse {
+  0%   { box-shadow: 0 0 0 0 var(--reward-glow); }
+  70%  { box-shadow: 0 0 0 9px rgba(0, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+/* ── Real-time feedback: a subtle kick on every cart update ──── */
+.reward-track.is-acknowledging .reward-thumb {
+  animation: thumbPulse 2.5s ease infinite, thumbKick 0.7s ease;
+}
+
+@keyframes thumbKick {
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  40%  { transform: translate(-50%, -50%) scale(1.28); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ── Tier-cross celebration: pop the node that was just unlocked ─ */
+.reward-dot.just-unlocked {
+  animation: dotUnlock 0.9s ease;
+}
+
+@keyframes dotUnlock {
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  35%  { transform: translate(-50%, -50%) scale(1.42); box-shadow: 0 0 0 9px var(--reward-glow); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ── Complete — soft accent glow + shimmer (reward earned) ───── */
+.free-shipping-bar.is-complete .reward-track {
+  box-shadow: inset 0 1px 1.5px rgb(0 0 0 / 0.05), 0 0 0 1px var(--reward-tint), 0 0 10px var(--reward-glow);
+}
+
+.free-shipping-bar.is-complete .reward-fill {
+  overflow: hidden;
+}
+
+.free-shipping-bar.is-complete .reward-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 100%);
+  animation: rewardShimmer 2.4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rewardShimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-track.is-acknowledging .reward-thumb,
+  .reward-dot.is-next,
+  .reward-dot.just-unlocked,
+  .free-shipping-bar.is-complete .reward-fill::after {
+    animation: none;
+  }
+}
+
+/* ── Reward headline — one clear, action-oriented status line ─── */
+.reward-headline {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 500;
+  color: rgb(var(--color-foreground));
+}
+
+.reward-headline__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--reward-tint);
+  color: var(--reward-accent);
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+.reward-headline__icon svg { width: 16px; height: 16px; }
+
+.reward-headline__text strong {
+  font-weight: 800;
+  color: var(--reward-accent);
+  transition: color 0.4s ease;
+}
+
+/* Labels: absolutely positioned directly under each node so the copy
+   always lines up with the milestone it describes (no grid drift). */
+.reward-labels {
+  position: relative;
+  min-height: 32px;
+  margin-top: 4px;
+  /* Match the track's inline margin so label %s line up with the node %s. */
+  margin-inline: 12px;
+}
+
+.reward-label {
+  position: absolute;
+  top: 0;
+  left: var(--label-left, 0%);
+  transform: translateX(-50%);
+  display: grid;
+  gap: 1px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.reward-label__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #595656;
+  line-height: 1.2;
+  transition: color 0.3s ease;
+}
+
+.reward-label__sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: #595656;
+  opacity: 0.7;
+  line-height: 1.2;
+  transition: color 0.3s ease;
+}
+
+.reward-label.is-unlocked .reward-label__title { color: var(--reward-accent); }
+
+.reward-label.is-unlocked .reward-label__sub {
+  color: var(--reward-accent);
+  opacity: 0.9;
+}
+
+/* Amount inside the header message, tinted to the live accent. */
+.free-shipping-bar__msg-amount {
+  color: var(--reward-accent);
+  font-weight: 700;
+}
+
+/* "Free shipping unlocked" header copy → olive success accent. */
+.free-shipping-bar__success {
+  color: var(--reward-accent);
+}
+
+/* ── Applied / gift note — slim single line under the header ──── */
+.reward-applied-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: calc(var(--sp-1) * -1);
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--reward-accent);
+  animation: rewardBadgeFadeIn 0.4s ease;
+}
+
+.reward-applied-badge[hidden] {
+  display: none;
+}
+
+.reward-applied-badge svg {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+}
+
+.reward-applied-badge strong {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+@keyframes rewardBadgeFadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Gift-active state — the deep-crimson accent (fill / thumb / nodes /
+   glow / headline) is driven entirely by the --reward-* variables above
+   and the card surface by cart.css; no per-label overrides needed now
+   that every milestone is a gift tier. */
+
+/* ── Scarcity Badge ─────────────────────────────────────────── */
+.scarcity-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #dc2626;
+  font-weight: 600;
+  margin-top: 6px;
+  font-size: var(--text-xs);
+}
+
+.scarcity-dot {
+  animation: scarcityPulse 1.5s ease infinite;
+  color: #dc2626;
+  font-size: 8px;
+}
+
+@keyframes scarcityPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Exchange & Returns Banner ───────────────────────────────── */
+.cart-returns-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--rounded-block);
+  color: #15803d;
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.cart-returns-banner .icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Prepaid Discount Banner ─────────────────────────────────── */
+.prepaid-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f0fdf4;
+  border-left: 3px solid #16a34a;
+  border-radius: 0 var(--rounded-block) var(--rounded-block) 0;
+}
+
+.prepaid-banner--standalone {
+  border-radius: var(--rounded-block);
+  border: 1px solid #bbf7d0;
+  border-left: 3px solid #16a34a;
+  margin-top: var(--sp-4);
+}
+
+.prepaid-banner .icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #16a34a;
+  margin-top: 2px;
+}
+
+.prepaid-banner__headline {
+  color: rgb(var(--color-foreground));
+  line-height: 1.3;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
+.prepaid-banner__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #16a34a;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+  margin-top: 4px;
+}
+
+.prepaid-banner__cta:hover {
+  text-decoration: underline;
+}
+
+.prepaid-banner__arrow {
+  display: inline-block;
+  animation: arrowBounce 1.2s ease infinite;
+}
+
+@keyframes arrowBounce {
+  0%, 100% { transform: translateX(0); }
+  50%       { transform: translateX(5px); }
+}
+
+/* ── Delivery ETA ──────────────────────────────────────────── */
+.cart-delivery-eta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgb(var(--color-foreground) / 0.04);
+  border: 1px solid rgb(var(--color-foreground) / 0.08);
+  border-radius: var(--rounded-block);
+}
+
+.cart-delivery-eta .icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: rgb(var(--color-base-button));
+}
+
+.cart-delivery-eta__ship {
+  color: rgb(var(--color-foreground));
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
+.cart-delivery-eta__arrival {
+  color: rgb(var(--color-foreground) / 0.6);
+  font-size: var(--text-xs);
+  margin: 0;
+}
+
+.cart-delivery-eta__price {
+  font-size: var(--text-base);
+  color: rgb(var(--color-foreground));
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+/* ── Free Delivery Celebration ──────────────────────────────── */
+.cart-free-delivery {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1d5);
+  text-align: center;
+  padding: 8px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--rounded-block);
+  font-size: var(--text-xs);
+  color: #15803d;
+  line-height: 1.4;
+}
+
+.cart-free-delivery__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.cart-free-delivery__icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.cart-free-delivery strong {
+  color: #16a34a;
+}
+
+.cart-free-delivery.is-visible {
+  animation: freeDeliveryBounce 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes freeDeliveryBounce {
+  0%   { opacity: 0; transform: scale(0.85) translateY(6px); }
+  60%  { opacity: 1; transform: scale(1.04) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Subtotal Number Flip ───────────────────────────────────── */
+.totals__subtotal-value.is-flipping {
+  animation: subtotalFlip 0.35s ease;
+}
+
+@keyframes subtotalFlip {
+  0%   { transform: translateY(0); opacity: 1; }
+  30%  { transform: translateY(-8px); opacity: 0; }
+  60%  { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Quantity button press animation ──────────────────────── */
+.quantity__button:active {
+  transform: scale(0.88);
+  transition: transform 0.1s ease;
+}
+
+/* ── Cart Item removal animation ─────────────────────────── */
+.horizontal-product.is-removing,
+.cart-item.is-removing {
+  animation: itemRemove 0.4s ease forwards;
+}
+
+@keyframes itemRemove {
+  0%   { opacity: 1; transform: translateX(0); max-height: 200px; }
+  50%  { opacity: 0; transform: translateX(-12px); }
+  100% { opacity: 0; transform: translateX(-12px); max-height: 0; margin: 0; padding: 0; }
+}
+
+/* ── Cart totals breakdown ───────────────────────────────── */
+.cart-totals {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.cart-totals__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.cart-totals__label {
+  font-size: 14px;
+  color: rgb(var(--color-foreground) / 0.7);
+}
+
+.cart-totals__value {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-totals__savings {
+  display: grid;
+  gap: var(--sp-1d5);
+  margin: 0;
+  padding: 0;
+}
+
+.cart-totals__savings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 13px;
+}
+
+.cart-totals__divider {
+  border: 0;
+  border-top: 1px solid rgb(var(--color-border) / 0.25);
+  margin: var(--sp-1) 0;
+}
+
+.cart-totals__grand-total {
+  align-items: center;
+}
+
+.cart-totals__grand-total .cart-totals__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.cart-totals__grand-total .cart-totals__value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cart-totals--main .cart-totals__grand-total .cart-totals__value {
+  font-size: 24px;
+}
+
+@media (min-width: 768px) {
+  .cart-totals--main .cart-totals__grand-total .cart-totals__value {
+    font-size: 30px;
+  }
+}
+
+.cart-totals__note {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: var(--sp-1);
+}
+
+.cart-totals--drawer {
+  gap: var(--sp-1);
+}
+
+.cart-totals--drawer .cart-totals__note {
+  font-size: 11px;
+  opacity: 1;
+  color: #595656;
+  margin-top: var(--sp-0d5);
+}
+
+/* =============================================================
+   DRAWER SHEET GEOMETRY
+   -------------------------------------------------------------
+   Two things were spending screen without buying anything.
+
+   The bottom sheet is capped at calc(100% - 60px) on phones, so
+   60px of every session is a strip of the page behind it. A sheet
+   needs enough of a lip to read as a sheet and to leave the close
+   affordance obvious; 24px does that. The other 36px goes to the
+   cart.
+
+   The header is padded 32/20/24 around a single word. That is a
+   page-heading rhythm on a panel whose job is to get out of the
+   way of the list. 14/16/12 keeps the title's presence without
+   the ceremony.
+   ============================================================= */
+/* Full-bleed sheet: the drawer owns the whole screen on mobile. The 24px
+   reveal of dimmed page above it bought nothing and cost an item row; with
+   the gap gone the top radius goes too — a rounded corner against nothing
+   reads as a rendering error. 100% of the fixed parent, not 100vh, so the
+   browser's own URL-bar arithmetic keeps the checkout button on screen. */
+@media screen and (max-width: 639px) {
+  html.js .cart-drawer .drawer__inner {
+    max-height: 100%;
+    height: 100%;
+    /* theme.css rounds the sheet's own top corners (border-start-*-radius on
+       .drawer__inner) in this same media query, and the inner clips to them
+       (overflow hidden) — so a full-bleed sheet still showed two notches of
+       dimmed page through the corners. Zeroing the header alone was not
+       enough; the radius lives on the inner too. */
+    border-radius: 0;
+  }
+  html.js .cart-drawer .drawer__header {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+}
+
+/* The pinned block between the drawer header and the scroller — the offer
+   ladder lives here so the offer state never scrolls away. Bottom hairline
+   marks where the scroll begins; the ladder's own end margin is redundant
+   inside it. */
+.cart-drawer .drawer__pinned {
+  flex: 0 0 auto;
+  padding: 10px 16px 12px;
+  border-block-end: 1px solid rgba(92, 16, 17, 0.08);
+}
+.cart-drawer .drawer__pinned .onrepeat-lad,
+.cart-drawer .drawer__pinned .reward-compact,
+.cart-drawer .drawer__pinned .free-shipping-bar {
+  margin-block-end: 0;
+}
+/* Nothing to pin renders an empty band otherwise (rewards off after go-live,
+   or the rail's own verification staying silent). */
+.cart-drawer .drawer__pinned:empty {
+  display: none;
+}
+
+/* The header stretched its children instead of centring them, so the close
+   button — the tallest thing in the row — set the header's height and then sat
+   below the title's centre line, overhanging the bottom edge. Centre both, and
+   give the button a real 44px target with a real margin from the edge. */
+/* padding-block has to leave the 44px close button room to sit INSIDE the
+   header. At 8px the header came to 43-44px against a 44px button, so it
+   overflowed by a hair at every rounding. 10px clears it and the header is
+   still 47px against the theme's original 84px. */
+.cart-drawer .drawer__header {
+  display: flex;
+  align-items: center;
+  padding-block: 10px;
+  padding-inline: var(--sp-4) 12px;
+}
+
+.cart-drawer .drawer__close {
+  height: 44px;
+  width: 44px;
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+}
+
+.cart-drawer .drawer__title {
+  font-size: 22px;
+}
+
+/* With recent-products off there is exactly one tab, and a tab list of one
+   cannot switch to anything. It was still a focusable button that the drawer
+   focuses on open, so Chrome painted its keyboard ring — the crimson box drawn
+   around "Cart" every time the drawer opened. Out of the tab order (nothing to
+   operate) and no ring; assistive tech can still be moved to it programmatically,
+   which is all the drawer wanted it for. */
+.cart-drawer .drawer__tabs--single .drawer__tab {
+  cursor: default;
+}
+
+.cart-drawer .drawer__tabs--single .drawer__tab:focus,
+.cart-drawer .drawer__tabs--single .drawer__tab:focus-visible {
+  outline: none;
+}
+
+/* =============================================================
+   DRAWER CART LINE
+   -------------------------------------------------------------
+   Full-bleed rows with a hairline between them, not inset cream
+   cards. The cards cost padding on all four sides plus a margin,
+   which on a 402px screen is most of a garment's worth of height
+   spent on chrome — and they made the drawer read as a list of
+   widgets rather than a list of clothes.
+
+   Layout: image | (title + remove) / meta / (stepper + price).
+   ============================================================= */
+.cart-drawer .cart-line {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px;
+  margin: 0;
+  background: none;
+  border-radius: 0;
+  align-items: start;
+}
+
+.cart-drawer .cart-line + .cart-line {
+  border-block-start: 1px solid #f0ebe3;
+}
+
+.cart-drawer .cart-line__media {
+  inline-size: 76px;
+  aspect-ratio: 3 / 4;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #f4efe7;
+  display: block;
+}
+
+.cart-drawer .cart-line__media img,
+.cart-drawer .cart-line__media svg {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cart-drawer .cart-line__body {
+  display: grid;
+  /* !important to beat the blanket `.horizontal-product__details { gap: 4px
+     !important }` above, which this element still matches for its price
+     typography. */
+  gap: 5px !important;
+  min-width: 0;
+}
+
+.cart-drawer .cart-line__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cart-drawer .cart-line__name {
+  min-width: 0;
+}
+
+.cart-drawer .cart-line__name .horizontal-product__title {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  line-height: 1.3;
+  color: #2b1214;
+}
+
+.cart-drawer .cart-line__remove {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-block-start: -2px;
+}
+
+.cart-drawer .cart-line__remove .cart-remove-btn {
+  color: #6f665f;
+  padding: 2px;
+}
+
+.cart-drawer .cart-line__remove .cart-remove-btn:hover {
+  color: #5c1011;
+}
+
+/* One running line under the title: "Size L · 2 left". Baseline, not centre:
+   the size value is heavier than the label beside it, and centring made the two
+   sit on visibly different lines. */
+.cart-drawer .cart-line__meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #6f665f;
+}
+
+.cart-drawer .cart-item-options--inline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0;
+}
+
+.cart-drawer .cart-item-options--inline .cart-item-option__name {
+  color: #6f665f !important;
+  font-size: 12.5px;
+  font-weight: 400 !important;
+}
+
+/* The boxed uppercase pill is a cart-page device. In the drawer's single meta
+   line it is a chunk of chrome around one letter, and it forces the row taller
+   than the garment thumbnail beside it. Inline, "Size L" is just words. */
+.cart-drawer .cart-item-options--inline .cart-item-option__pill {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.35;
+  gap: 6px;
+}
+
+.cart-drawer .cart-item-options--inline .cart-item-option__pill span {
+  color: #2b1214 !important;
+  font-size: 12.5px;
+  font-weight: 600 !important;
+}
+
+.cart-drawer .cart-item-options--inline .cart-edit-size-btn {
+  font-size: 11.5px;
+  text-underline-offset: 2px;
+}
+
+/* Oxblood rather than the alarm red used on the cart page: it still reads as a
+   warning beside the size, and it stays in the brand's family next to a crimson
+   total instead of fighting it. 11:1 on the drawer's white. */
+.cart-drawer .cart-line__meta .scarcity-badge--calm {
+  color: #8b1a1a;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* The separator is drawn, not typed, so it never ends up orphaned on a line of
+   its own when the meta wraps. */
+.cart-drawer .cart-line__meta > * + *::before {
+  content: '·';
+  margin-inline-end: 8px;
+  color: #b9b0a6;
+}
+
+/* This element also carries .horizontal-product__quantity, which the theme
+   pushes right with `margin-inline-start: auto`. That was for the old
+   three-column row; here it indented the stepper away from the title and meta
+   above it, so the left edge of the row zig-zagged. */
+.cart-drawer .cart-line__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-block-start: 4px;
+  margin-inline-start: 0;
+}
+
+.cart-drawer .cart-line__qty {
+  flex: 0 0 auto;
+}
+
+.cart-drawer .cart-line__price {
+  min-width: 0;
+  text-align: end;
+}
+
+.cart-drawer .cart-line__price .price {
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-drawer .cart-line__price .price__regular {
+  font-size: 14px;
+  font-weight: 620;
+  color: #2b1214;
+}
+
+.cart-drawer .cart-line__price .price__sale {
+  font-size: 12.5px;
+}
+
+/* =============================================================
+   DRAWER SUMMARY CARD  ("the ledger")
+   -------------------------------------------------------------
+   One money surface for the drawer: a collapsed total handle over
+   an itemised ledger, with the prepaid nudge riding underneath so
+   it stays readable while the ledger is folded away.
+
+   Deliberately its own namespace rather than an extension of
+   .cart-totals__*: the cart PAGE still uses those, and the two
+   layouts want opposite things (the page has height to spend, the
+   drawer does not).
+   ============================================================= */
+
+.cart-totals--drawer {
+  --cs-cream: #fbf8f4;
+  --cs-rule: #e9e2d8;
+  --cs-rule-soft: #f0ebe3;
+  --cs-ink: #2b1214;
+  --cs-ink-2: #55494a;
+  --cs-muted: #6f665f;
+  --cs-crimson: #5c1011;
+
+  /* Brand gold #caa15a is 2.2:1 on cream — fine for a rule or an icon, never
+     for something a customer has to read. This is the same hue as ink: 6.2:1. */
+  --cs-gold: #caa15a;
+  --cs-gold-ink: #7a5714;
+
+  display: block;
+}
+
+/* <cart-summary> is a custom element, so it inherits display:inline until the
+   definition upgrades it — and the definition ships in a deferred script. Set it
+   explicitly or the card is laid out as a run of inline text on first paint. */
+.cart-summary {
+  display: block;
+  border: 1px solid var(--cs-rule);
+  border-radius: 12px;
+  background: var(--cs-cream);
+  overflow: hidden;
+}
+
+.cart-summary__d {
+  display: block;
+}
+
+.cart-summary__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  color: var(--cs-ink);
+}
+
+.cart-summary__bar::-webkit-details-marker {
+  display: none;
+}
+
+.cart-summary__bar:focus-visible {
+  outline: 2px solid var(--cs-crimson);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+.cart-summary__k {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cart-summary__lbl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  color: var(--cs-ink-2);
+  line-height: 1.3;
+}
+
+.cart-summary__count {
+  color: var(--cs-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-summary__chevron {
+  display: inline-flex;
+  line-height: 1;
+  color: var(--cs-muted);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cart-summary__chevron svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.cart-summary__d[open] .cart-summary__chevron {
+  transform: rotate(180deg);
+}
+
+/* While <cart-summary> is running the close, `open` is still set — so these have
+   to out-specify the [open] rules above rather than merely follow them. */
+.cart-summary[data-closing] .cart-summary__d[open] .cart-summary__chevron {
+  transform: rotate(0deg);
+}
+
+.cart-summary__save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 620;
+  color: var(--cs-gold-ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+.cart-summary__dot {
+  inline-size: 3px;
+  block-size: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 3px;
+}
+
+.cart-summary__amt {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cs-crimson);
+  white-space: nowrap;
+}
+
+.cart-summary__wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cart-summary__d[open] .cart-summary__wrap {
+  grid-template-rows: 1fr;
+}
+
+.cart-summary[data-closing] .cart-summary__d[open] .cart-summary__wrap {
+  grid-template-rows: 0fr;
+}
+
+.cart-summary__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.cart-summary__list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 11px 14px 13px;
+  border-top: 1px solid var(--cs-rule-soft);
+  list-style: none;
+}
+
+.cart-summary__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-size: 13.5px;
+}
+
+.cart-summary__rk {
+  color: var(--cs-ink-2);
+  min-width: 0;
+}
+
+.cart-summary__rv {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--cs-ink);
+}
+
+.cart-summary__row--off .cart-summary__rk,
+.cart-summary__row--off .cart-summary__rv {
+  color: var(--cs-gold-ink);
+}
+
+.cart-summary__row--soon .cart-summary__rv {
+  color: var(--cs-muted);
+}
+
+.cart-summary__row--pay {
+  border-top: 1px solid var(--cs-rule-soft);
+  padding-top: 9px;
+  margin-top: 2px;
+  font-size: 14.5px;
+  font-weight: 640;
+}
+
+.cart-summary__row--pay .cart-summary__rk {
+  color: var(--cs-ink);
+}
+
+.cart-summary__prep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--cs-ink-2);
+  background: rgba(202, 161, 90, 0.13);
+  border-top: 1px solid rgba(202, 161, 90, 0.3);
+}
+
+.cart-summary__prep-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--cs-gold-ink);
+}
+
+/* The shared icon set draws at a 24 viewBox with a 1px stroke; at 15px that
+   thins to a hairline the tag shape disappears into. Thicken it here rather
+   than shipping a second copy of the path. */
+.cart-summary__prep-icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  stroke-width: 1.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-summary__wrap,
+  .cart-summary__chevron {
+    transition: none;
+  }
+}
+
+/* The global sale style (theme.css) strikes the old price with a red hairline
+   rotated -15deg. Everywhere else that reads as a sale flag; in the drawer, where
+   the summary card now owns the whole discount story, it is a second and louder
+   announcement of the same saving — and at 12px the tilt cuts through the digits
+   rather than across them. Inside the cart drawer only, a plain rule in the muted
+   ink. The PDP and product cards keep the red slash. */
+.cart-drawer .price__sale::before {
+  display: none;
+}
+
+.cart-drawer .price__sale {
+  color: #6f665f;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* ── Drawer CTA — one priced action ───────────────────────── */
+.cart-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 3.25rem;
+  padding-inline: 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #5c1011;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 620;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.cart-cta:hover {
+  background: #7a1a1b;
+}
+
+.cart-cta:active {
+  transform: scale(0.994);
+}
+
+.cart-cta:focus-visible {
+  outline: 2px solid #5c1011;
+  outline-offset: 2px;
+}
+
+.cart-cta__lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cart-cta__lead svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.cart-cta__amount {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Payment methods + the demoted View cart ──────────────── */
+.cart-methods {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-inline: 3px;
+  font-size: 11px;
+  color: #6f665f;
+}
+
+.cart-methods__list {
+  letter-spacing: 0.04em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The marks that replaced the word list. 13px tall on hairline tiles — the
+   same artwork the site footer ships, shrunk to a whisper. The row must
+   never scroll or wrap: five marks at this size fit 240px, and View cart
+   keeps its place on the right. */
+.cart-methods__marks {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.cart-methods__marks li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid rgba(26, 21, 18, 0.12);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.cart-methods__marks img {
+  display: block;
+  width: auto;
+  height: 12px;
+}
+.cart-methods__marks li:last-child img {
+  height: 13px;
+}
+
+.cart-methods__link {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: #6f665f;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: #e9e2d8;
+}
+
+.cart-methods__link:hover {
+  color: #2b1214;
+}
+
+/* ── Compact reward ladder (drawer only) ──────────────────── */
+.reward-compact {
+  display: grid;
+  gap: 8px;
+}
+
+.reward-compact__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2d5);
+  font-size: 12.5px;
+  color: #55494a;
+  line-height: 1.35;
+}
+
+.reward-compact__msg strong {
+  color: #2b1214;
+  font-weight: 620;
+}
+
+.reward-compact__count {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 620;
+  letter-spacing: 0.06em;
+  color: #7a5714;
+  font-variant-numeric: tabular-nums;
+}
+
+.reward-compact__rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+}
+
+.reward-compact__seg {
+  block-size: 3px;
+  border-radius: 999px;
+  background: #f0ebe3;
+}
+
+/* #b58a35 rather than the display gold: 3.1:1 against the track, so the filled
+   segments are distinguishable without relying on the n/3 counter alone. */
+.reward-compact__seg.is-on {
+  background: #b58a35;
+}
+
+/* ── Drawer footer compactness ────────────────────────────── */
+.drawer__footer-bottom {
+  padding: var(--sp-3) var(--sp-4) var(--sp-4) !important;
+  gap: var(--sp-2d5) !important;
+}
+
+.drawer__footer-bottom .cart-delivery-eta {
+  padding: var(--sp-2) var(--sp-3) !important;
+}
+
+.drawer__footer-bottom > .grid.gap-4 {
+  gap: var(--sp-2);
+}
+
+/* ── Drawer checkout CTA — slimmer + living shimmer ────────── */
+.drawer__footer-buttons .button {
+  min-height: 3.25rem;
+  padding-block: var(--sp-3d5);
+}
+
+/* A soft highlight glides across the gradient on a gentle loop.
+   Sits above the button gradient, below .btn-text (position:relative). */
+.drawer__footer-buttons .button--primary::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 55%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.16) 50%,
+    transparent 100%
+  );
+  transform: translateX(-130%) skewX(-12deg);
+  animation: ctaShimmer 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes ctaShimmer {
+  0%        { transform: translateX(-130%) skewX(-12deg); }
+  55%, 100% { transform: translateX(260%) skewX(-12deg); }
+}
+
+/* =============================================================
+   CART REFRESH TRANSITIONS
+   Pure CSS — fires automatically on DOM insertion after each
+   innerHTML swap. No JS, no Liquid, no existing rule touched.
+   ============================================================= */
+
+/* ── 1. Loading dim — card fades while fetch is in-flight ────
+   Uses :has() (Chrome 105+, Safari 15.4+, Firefox 121+).
+   enableLoading() sets loader.hidden = false → card dims.
+   After innerHTML swap the new node starts at full opacity.  */
+.horizontal-product:has(.loader:not([hidden])) {
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.18s ease;
+}
+
+/* ── 2. Line item price — fade+rise on refresh ───────────── */
+@keyframes cartPriceIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cart-line-total {
+  animation: cartPriceIn 0.25s ease both;
+}
+
+/* ── 3. Cart totals values — after DOM swap ──────────────── */
+.cart-totals__value {
+  animation: cartPriceIn 0.3s ease both;
+}
+
+/* Grand total reacts with a subtle pop when the cart changes */
+@keyframes cartTotalPop {
+  0%   { opacity: 0; transform: translateY(-3px) scale(0.985); }
+  55%  { opacity: 1; transform: translateY(0) scale(1.045); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cart-totals__grand-total .cart-totals__value,
+.cart-summary__amt {
+  animation: cartTotalPop 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: right center;
+}
+
+/* ── 4. Item list — soft fade on full refresh ────────────── */
+@keyframes cartListFade {
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
+}
+
+.drawer__scrollable .horizontal-products {
+  animation: cartListFade 0.22s ease both;
+}
+
+/* ── 5. Footer — staggered entrance after refresh ────────── */
+@keyframes cartFooterIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cart-delivery-eta {
+  animation: cartFooterIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+}
+
+.cart-free-delivery {
+  animation: cartFooterIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+
+.cart-totals {
+  animation: cartFooterIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.drawer__footer-buttons {
+  animation: cartFooterIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.13s both;
+}
+
+/* ── 6. Reduced motion ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cart-line-total,
+  .cart-totals__value,
+  .cart-totals__grand-total .cart-totals__value,
+  .cart-summary__amt,
+  .drawer__scrollable .horizontal-products,
+  .cart-delivery-eta,
+  .cart-free-delivery,
+  .cart-totals,
+  .drawer__footer-buttons,
+  .drawer__footer-buttons .button--primary::before {
+    animation: none;
+  }
+  .horizontal-product:has(.loader:not([hidden])) {
+    opacity: 0.5;
+    transition: none;
+  }
+}
+
+/* ── Modern Cart Item Quantities ───────────────────────────── */
+.drawer quantity-input.cart-quantity {
+  background: #fdfdfd !important;
+  border: 1px solid #eaeaea !important;
+  border-radius: 99px !important;
+  padding: 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 80px !important;
+  height: 32px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+  transition: all 0.2s ease;
+}
+.drawer quantity-input.cart-quantity:hover {
+  border-color: #ddd !important;
+}
+.drawer quantity-input.cart-quantity .quantity__buttons {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  pointer-events: none;
+}
+.drawer quantity-input.cart-quantity .quantity__button {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  color: #111 !important;
+  pointer-events: auto;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.drawer quantity-input.cart-quantity .quantity__button:hover {
+  background: #f2f2f2 !important;
+}
+.drawer quantity-input.cart-quantity .quantity__input {
+  width: 100% !important;
+  text-align: center !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  color: #111 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* ── Inline Size Switcher ───────────────────────────────────── */
+/* #888 at 11px measured 3.17:1 against the line's tint — under the 4.5:1 floor,
+   and this is a control, not decoration. */
+.cart-edit-size-btn {
+  color: #6b6b6b;
+  font-size: 11px;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+.cart-edit-size-btn:hover {
+  color: #111;
+}
+.cart-size-switcher {
+  background: #fafafa;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 6px;
+  animation: slideDown 0.2s ease-out;
+}
+.cart-size-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  color: #444;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.cart-size-pill:hover:not(.is-disabled) {
+  border-color: #111;
+  color: #111;
+}
+.cart-size-pill.is-active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+  pointer-events: none;
+}
+.cart-size-pill.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Cart Drawer Layout Refinements ────────────────────────── */
+.cart-remove-btn {
+  color: #a3a3a3;
+  transition: all 0.2s ease;
+  padding: 4px;
+}
+.cart-remove-btn:hover {
+  color: #ff3b30;
+  transform: scale(1.1);
+}
+.horizontal-product__details {
+  gap: 4px !important; /* Tighter layout for item details */
+}
+/* #888 on the near-white cart line measured 3.41:1 at 12px — under the 4.5:1
+   floor for body text. #6b6b6b is the same neutral two steps darker and clears
+   it at 5.3:1, with no visible change to the "softer label" intent. */
+.cart-item-option__name {
+  color: #6b6b6b !important;
+  font-weight: 500 !important;
+}
+.cart-item-option__pill span {
+  font-weight: 600 !important;
+  color: #111 !important;
+}
+
+/* The drawer's old three-column grid (thumb | details | actions) went with the
+   markup it was propping up: the actions column no longer exists, because the
+   remove control sits with the title and the stepper sits with the price. The
+   .cart-line rules above own this layout now. What survives is the guarantee
+   that mattered — the list can never spill horizontally. */
+.drawer__scrollable .horizontal-products {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* ===========================================================
+   FREE GIFT LINE ITEMS
+   Gift lines have no editable quantity; collapse the locked
+   stepper so the row stays compact, but keep the remove (×)
+   button and line total visible.
+   =========================================================== */
+.cart-item--gift .cart-quantity,
+.horizontal-product--gift .cart-quantity {
+  display: none !important;
+}
+/* Keep the actions column (remove + total) visible & right-aligned */
+.horizontal-product--gift .horizontal-product__quantity .cart-line__qty {
+  align-items: flex-end;
+}
+.horizontal-product--gift .cart-remove-btn,
+.cart-item--gift .cart-remove-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+}
+/* The green FREE badge already communicates the reward — hide the
+   redundant auto-discount allocation pills on the gift line. */
+.cart-item--gift .discounts,
+.horizontal-product--gift .discounts {
+  display: none !important;
+}
+.cart-gift-free.badge {
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.45rem;
+}
+
+/* Line-item discount tags moved to snippets/line-discounts.liquid (its own
+   {% stylesheet %}) so the styling travels to the order page too. */
+
+/* ── Cart drawer scrolling: single bounded scroller, no chaining ──────────
+   Scoped to .cart-drawer (and the cart-only gift rail) so the menu/search
+   drawers are untouched. The drawer nests two overflow:auto containers
+   (.drawer__content + .drawer__scrollable) inside a flex chain that lacks
+   min-height:0, so the inner area never gets a bounded height and scroll
+   competes/chains to the page behind. These additive overrides make
+   .drawer__scrollable the single bounded scroller and contain overscroll. */
+.cart-drawer .drawer__content {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.cart-drawer .drawer__panel[open],
+.cart-drawer .drawer__panel[open] > div {
+  min-height: 0;
+}
+
+.cart-drawer .drawer__scrollable {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+/* The horizontal gift rail must not chain its scroll to the drawer/page;
+   keep vertical scroll passing through (no touch-action:pan-y — that would
+   break the cards' horizontal swipe). */
+.cart-gift__scroller {
+  overscroll-behavior: contain;
+}
+
+/* The footer (Total + Check out) is a sibling OUTSIDE .drawer__scrollable, and the
+   body isn't reliably scroll-locked on mobile, so a swipe starting on the footer
+   used to scroll the page behind the drawer. touch-action:none makes gestures that
+   start here a no-op for scrolling/zoom; taps (checkout button, the Total <details>
+   toggle) and input focus/typing are unaffected. */
+.cart-drawer .drawer__footer {
+  touch-action: none;
+}
+
+/* ------------------------------------------------------------------
+   Cart error feedback
+   Rendered by CartFeedback in assets/cart.js when a /cart/* request
+   fails. Before this existed the quantity simply snapped back with no
+   explanation, which reads as a broken button rather than a failure.
+   ------------------------------------------------------------------ */
+.cart-row-error {
+  grid-column: 1 / -1;
+  margin: 0.4rem 0 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(220, 38, 38, 0.07);
+  color: #b3261e;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cart-row-error {
+    animation: cartRowErrorIn 0.18s ease-out both;
+  }
+}
+
+@keyframes cartRowErrorIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ==================================================================
+   DRAWER SURFACES — moved here from assets/cart.css
+   ------------------------------------------------------------------
+   These rules style the cart drawer, but they lived in cart.css, which
+   is loaded ONLY by sections/main-cart.liquid. The drawer renders on
+   every page EXCEPT /cart (cart-drawer.liquid bails when page_type is
+   'cart'), so they never applied to the thing they were written for:
+   they ran on the cart page, where there is no drawer, and were absent
+   from every page that has one.
+
+   Visible consequences, all live: the drawer's two footer buttons never
+   stacked below 640px (two cramped ~148px buttons on a 360px phone),
+   line items lost their card padding and hover, line totals lost their
+   weight and tabular-nums so they shimmied on every quantity change,
+   the footer had no separating shadow, and the empty state had no
+   padding.
+
+   cart-enhancements.css is loaded by BOTH surfaces, so this is where
+   they belong. Adding cart.css to the drawer instead would have pulled
+   600+ lines of cart-page-only CSS onto every page of the site.
+   ================================================================== */
+
+/* The cart PAGE keeps its tinted cards. The drawer does not: at 402px the
+   card's padding, radius and inter-card margin cost roughly a third of a
+   garment's row height, and stacked tinted boxes read as a list of widgets
+   rather than a list of clothes. Drawer rows are full-bleed with a hairline
+   between them — see .cart-line above. */
+.cart__content .horizontal-product {
+  background-color: rgb(var(--color-foreground) / 0.02);
+  padding: var(--sp-4);
+  border-radius: var(--rounded-block);
+  transition: background-color var(--animation-fast);
+  position: relative;
+}
+
+.cart__content .horizontal-product:hover {
+  background-color: rgb(var(--color-foreground) / 0.04);
+}
+
+.cart__content .horizontal-product + .horizontal-product {
+  border-top: none;
+  margin-top: var(--sp-3);
+}
+
+/* Typography for the line total. The animation-only rule earlier in this
+   file was all the drawer ever got; tabular-nums in particular stops the
+   figure jittering horizontally as quantities change. */
+.cart-line-total {
+  font-weight: 800;
+  font-size: var(--text-sm);
+  color: rgb(var(--color-foreground));
+  margin-top: var(--sp-1);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@media screen and (min-width: 768px) {
+  .cart-line-total {
+    font-size: var(--text-base);
+  }
+}
+
+.drawer__footer {
+  border-top: 1px solid rgb(var(--color-border-light));
+  box-shadow: 0 -4px 16px rgb(var(--color-foreground) / 0.04);
+}
+
+.drawer__footer-top {
+  border-bottom: 1px solid rgb(var(--color-border-light));
+}
+
+.drawer__footer .totals {
+  padding: var(--sp-3) 0;
+}
+
+.drawer__footer .totals__subtotal-value {
+  font-size: clamp(var(--text-xl), 2.5vw, var(--text-2xl));
+}
+
+/* Checkout and View cart stay SIDE BY SIDE at every width.
+
+   The markup already asks for this — col-span-6 each on mobile, 7/5 from md up.
+   cart.css used to force both to span 12 below 640px, but the drawer never
+   loaded cart.css, so the stacking never actually happened and the buttons have
+   always sat side by side in production. Moving that file's drawer rules into
+   this one would have silently introduced the stack, so the override is dropped
+   here deliberately rather than by omission.
+
+   What the narrow case needs instead is room: the two buttons share a 328px row
+   at 360px, so the gap tightens and the labels are kept on one line. */
+@media screen and (max-width: 639px) {
+  .drawer__footer-buttons {
+    gap: var(--sp-2d5);
+  }
+
+  .drawer__footer-buttons .button {
+    padding-inline: var(--sp-2);
+    white-space: nowrap;
+  }
+
+  /* The label sits inside .btn-text alongside a lock icon that is itself hidden
+     below sm; without min-width:0 the flex child refuses to shrink and the text
+     can push past the button's edge. */
+  .drawer__footer-buttons .button .btn-text {
+    min-width: 0;
+    justify-content: center;
+  }
+}
+
+/* Very small phones (320px). Shrink the type a step rather than let either label
+   wrap to two lines or clip. */
+@media screen and (max-width: 359px) {
+  .drawer__footer-buttons .button {
+    font-size: 0.8125rem;
+    letter-spacing: 0;
+    padding-inline: var(--sp-1);
+  }
+}
+
+.drawer__empty {
+  padding: var(--sp-12) var(--sp-6);
+  animation: emptyCartFadeIn 0.5s ease;
+}
+
+.drawer__empty-text {
+  font-size: clamp(var(--text-xl), 3vw, var(--text-2xl));
+}
+
+.drawer__empty-collections li {
+  border-bottom: 1px solid rgb(var(--color-border-light));
+  padding: var(--sp-4) 0;
+}
+
+.drawer__empty-collections li:last-child {
+  border-bottom: none;
+}
+
+.drawer__empty-collections a {
+  font-weight: 500;
+  transition: color var(--animation-fast);
+}
+
+.drawer__empty-collections a:hover {
+  color: rgb(var(--color-base-button));
+}
+
+/* .drawer__empty referenced this keyframe from cart.css, which the drawer
+   does not load — an undefined animation name is silently ignored. */
+@keyframes emptyCartFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer__empty {
+    animation: none;
+  }
+}
+
+/* ==================================================================
+   MOBILE FUNDAMENTALS
+   ================================================================== */
+
+/* layout/theme.liquid sets viewport-fit=cover, so the page paints under
+   the iOS home indicator. Nothing in the drawer accounted for it, which
+   put the Check out CTA partly beneath it on every notched iPhone. */
+.cart-drawer .drawer__footer-bottom {
+  padding-block-end: calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* theme.css carries a global `*:focus-visible { outline: none }` (with an
+   outline-offset but no outline, so it is a no-op). Only two elements in
+   the whole cart restated a ring, leaving the drawer's checkout button,
+   remove buttons, quantity steppers, close button, size pills and empty
+   -state links with no visible keyboard focus at all. */
+:where(.cart-drawer, .cart, .cart__content) :is(
+  button, a[href], summary, input, select, textarea, [is='cart-remove-button']
+):focus-visible {
+  outline: 2px solid rgb(var(--color-base-button, 92 16 17));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Tap targets. The visual sizes are deliberate and stay as they are; this
+   extends the hit area to the 44px minimum with a transparent overlay, so
+   nothing moves but the buttons stop being fiddly on a phone. */
+.cart-drawer .quantity__button,
+.cart-drawer .cart-remove-btn,
+.cart .quantity__button,
+.cart .cart-remove-btn {
+  position: relative;
+}
+
+.cart-drawer .quantity__button::after,
+.cart-drawer .cart-remove-btn::after,
+.cart .quantity__button::after,
+.cart .cart-remove-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+/* The stepper glyphs inherited padding-inline-end from theme.css's vertical
+   stepper, so inside these centred round buttons the icon sat ~6px left of
+   true centre. */
+.cart-drawer .cart-quantity .quantity__button,
+.cart .cart-quantity .quantity__button {
+  padding: 0 !important;
+}
+
+/* Two nested scrollers (.drawer__content and .drawer__scrollable) meant a
+   stray default scrollbar could appear beside the styled one. */
+.cart-drawer .drawer__content {
+  overflow: hidden;
+}
+
+/* Mandatory snapping is inherited from the generic drawer rules; in a cart
+   list it fights the user's scroll as soon as recommendations are enabled. */
+.cart-drawer .drawer__scrollable {
+  scroll-snap-type: none;
+}
+
+/* touch-action:none also blocked pinch-zoom and made the footer impossible
+   to scroll if it ever exceeded the viewport (delivery ETA + free-delivery
+   line + an open breakdown + two buttons on a short phone). pan-y keeps the
+   scroll-chaining fix while restoring zoom. */
+.cart-drawer .drawer__footer {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Long discount titles and long money strings must not push the amount out
+   of the row. */
+.cart-totals__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cart-totals__value {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ==================================================================
+   PREMIUM FINISH
+   Motion, palette and disclosure corrections. Everything here is
+   scoped to the cart surfaces so no other part of the theme moves.
+   ================================================================== */
+
+/* --- Motion ------------------------------------------------------
+
+   The drawer slid for 600ms while its own contents stayed at opacity 0
+   for the first 350ms, so the shopper watched a blank white sheet for
+   more than half the animation before the cart appeared. Shorten the
+   panel and bring the content in just behind it. */
+.loaded .cart-drawer .drawer__inner {
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cart-drawer[active] > .drawer__inner > :is(.drawer__content, .drawer__header) {
+  transition: opacity 0.22s ease 0.08s, visibility 0.22s ease 0.08s;
+}
+
+/* The grand total scale-popped and the whole footer re-choreographed on
+   every +/- tap: total scaling 1 -> 1.045 -> 1, the totals block sliding
+   up 6px, and the delivery/free-delivery rows staggering back in. On a
+   surface the shopper taps repeatedly that reads as instability, not
+   polish. A single short crossfade acknowledges the change instead. */
+.cart-totals__grand-total .cart-totals__value {
+  animation: cartValueFade 0.15s ease-out both !important;
+}
+
+.cart-totals,
+.cart-delivery-eta,
+.cart-free-delivery {
+  animation: none !important;
+}
+
+@keyframes cartValueFade {
+  from { opacity: 0.45; }
+  to   { opacity: 1; }
+}
+
+/* An infinitely scrolling trust ticker and a forever-shimmering checkout
+   button are discount-store cues. The trust line still says everything it
+   said; it just holds still. */
+.cart-trust-bar__track {
+  animation: none;
+  width: auto;
+  justify-content: center;
+}
+
+.drawer__footer-buttons .button--primary::before {
+  animation: none;
+  display: none;
+}
+
+/* prefers-reduced-motion previously covered only a handful of these.
+   Anything that moves in the cart is listed here. */
+@media (prefers-reduced-motion: reduce) {
+  .cart-trust-bar__track,
+  .scarcity-dot,
+  .cart-free-delivery,
+  .cart-totals,
+  .cart-totals__value,
+  .cart-totals__grand-total .cart-totals__value,
+  .cart-line-total,
+  .cart-delivery-eta,
+  .cart-remove-btn,
+  .cart-row-error,
+  .drawer__empty,
+  cart-count,
+  .reward-fill,
+  .reward-thumb,
+  .prepaid-banner__arrow,
+  .cart-drawer .drawer__inner,
+  .cart-drawer[active] > .drawer__inner > :is(.drawer__content, .drawer__header) {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* --- Discount palette --------------------------------------------
+
+   Three unrelated palettes said "discount" on one 360px screen: Tailwind
+   green line pills, a hot-rose sale badge, and the brand crimson of the
+   reward rail. Everything that represents money saved now uses one
+   brand-derived pair. Defined here rather than in css-variables.liquid so
+   the tokens live beside the rules that consume them. */
+.cart-drawer,
+.cart,
+.cart__content {
+  --cart-save-bg: #f6f2ea;
+  --cart-save-border: #e4dccc;
+  --cart-save-text: #5c1011;
+  --cart-save-strong: #780e09;
+}
+
+.cart-drawer .discounts--line .discounts__discount,
+.cart .discounts--line .discounts__discount {
+  background: var(--cart-save-bg);
+  border-color: var(--cart-save-border);
+  color: var(--cart-save-text);
+}
+
+.cart-drawer .discounts--line .discounts__icon,
+.cart .discounts--line .discounts__icon {
+  color: var(--cart-save-strong);
+}
+
+.cart-drawer .discounts--line .discounts__amount,
+.cart .discounts--line .discounts__amount {
+  color: var(--cart-save-strong);
+}
+
+.cart-drawer .cart-totals__savings-item .badge--onsale,
+.cart .cart-totals__savings-item .badge--onsale {
+  background: var(--cart-save-strong);
+  color: #fff;
+}
+
+.cart-drawer .cart-free-delivery,
+.cart .cart-free-delivery,
+.cart-drawer .cart-returns-banner,
+.cart .cart-returns-banner,
+.cart-drawer .prepaid-banner,
+.cart .prepaid-banner {
+  background: var(--cart-save-bg);
+  border-color: var(--cart-save-border);
+  color: var(--cart-save-text);
+}
+
+/* The first pass set only background and color on these banners, which left
+   their green borders, green left-rules and — most visibly — the green <strong>
+   inside "You get free delivery on this order" untouched. */
+.cart-drawer .cart-free-delivery strong,
+.cart .cart-free-delivery strong,
+.cart-drawer .cart-returns-banner strong,
+.cart .cart-returns-banner strong,
+.cart-drawer .prepaid-banner strong,
+.cart .prepaid-banner strong {
+  color: var(--cart-save-strong);
+}
+
+.cart-drawer .cart-free-delivery__icon,
+.cart .cart-free-delivery__icon,
+.cart-drawer .cart-returns-banner__icon,
+.cart .cart-returns-banner__icon,
+.cart-drawer .prepaid-banner__icon,
+.cart .prepaid-banner__icon {
+  color: var(--cart-save-strong);
+}
+
+.cart-drawer .cart-returns-banner,
+.cart .cart-returns-banner,
+.cart-drawer .prepaid-banner,
+.cart .prepaid-banner {
+  border-left-color: var(--cart-save-strong);
+}
+
+.cart-drawer .cart-gift-free.badge,
+.cart .cart-gift-free.badge {
+  background: var(--cart-save-strong);
+  color: #fff;
+}
+
+/* Discount pill label.
+
+   This previously tried to rescue a too-long title by clamping it to two lines,
+   which fought line-discounts.css's nowrap + ellipsis and produced the worst of
+   both: the text truncated mid-word AND the orphaned tail wrapped underneath —
+   "₹300 Off — Spend…" over "₹3000".
+
+   The label is now shortened at the source (snippets/line-discounts.liquid keeps
+   only the reward, dropping the "— Spend ₹3000" qualifier), so it fits on one
+   line and there is nothing to clamp. The ellipsis from line-discounts.css stays
+   as the backstop for an unusually long third-party discount name. */
+.discounts--line .discounts__title {
+  min-width: 0;
+}
+
+/* Keep the whole pill on one line and let it shrink rather than push the row. */
+.discounts.discounts--line {
+  min-width: 0;
+}
+
+.discounts--line .discounts__discount {
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+
+/* The last tier's label sits at the far right of the rail and had no rule
+   to keep it inside the container, so it clipped on narrow phones. */
+.reward-label--end {
+  transform: translateX(-72%);
+}
+
+.reward-label--end .reward-label__title,
+.reward-label--end .reward-label__sub {
+  text-align: right;
+}
+
+/* ==================================================================
+   TRUST BAR — centred, two claims, no marquee
+   ------------------------------------------------------------------
+   Was a single pipe-joined string on an 18s infinite scroll. The
+   scroll is gone (see PREMIUM FINISH above); this gives what remains
+   a deliberate composition rather than a stopped ticker: the row is
+   genuinely centred, the two claims are separated by a dot instead of
+   a typed "|", and the rating uses a vector star with tabular figures
+   so it cannot shift as the number changes.
+   ================================================================== */
+.cart-trust-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--sp-2d5) var(--sp-4);
+  /* The original rule clipped this box and pulled it upward with negative
+     margins — scaffolding for the full-bleed marquee, which no longer exists.
+     With a centred static row those only risk shearing the text off, so the
+     clip is released and the box owns its own space. */
+  overflow: visible;
+  min-block-size: 0;
+  margin-block-start: 0;
+  margin-inline: 0;
+}
+
+.cart-trust-bar__track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0 var(--sp-3);
+  width: auto;
+  max-width: 100%;
+  animation: none;
+  will-change: auto;
+}
+
+.cart-trust-bar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--cart-save-text, #5c1011);
+}
+
+/* Dot separator. A typed "|" sits on the text baseline and reads as a
+   stray character; a rendered dot is centred and unambiguous. */
+.cart-trust-bar__sep {
+  flex: 0 0 auto;
+  inline-size: 3px;
+  block-size: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  color: var(--cart-save-text, #5c1011);
+}
+
+/* Brand gold at #c9a227 sits at 2.32:1 against the trust bar — below the 3:1
+   floor for non-text UI. Deepened to the same hue at 3.4:1; it still reads gold
+   beside the score, it just survives a bright phone screen outdoors. */
+.cart-trust-bar__star {
+  inline-size: 12px;
+  block-size: 12px;
+  flex: 0 0 12px;
+  color: #a37c14;
+}
+
+.cart-trust-bar__score {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.cart-trust-bar__score-max {
+  opacity: 0.55;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Under ~340px the two claims stack rather than overflow; the row gap
+   keeps them from colliding and the dot is dropped since it would then
+   sit between lines rather than between items. */
+@media screen and (max-width: 339px) {
+  .cart-trust-bar__track {
+    gap: 2px var(--sp-2);
+  }
+  .cart-trust-bar__sep {
+    display: none;
+  }
+}
+
+/* ==================================================================
+   REWARD HEADLINE — one line, fixed height
+   ------------------------------------------------------------------
+   The copy is now short by construction (see free-shipping-bar.liquid),
+   but the height is still reserved so that crossing a tier — which
+   swaps "Add ₹1,902 for 5% + ₹700" for "5% + ₹700 unlocked" — cannot
+   nudge the rail and everything under it.
+   ================================================================== */
+.reward-headline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2d5);
+  min-block-size: 2.25em;
+}
+
+.reward-headline__text {
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12.5px;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.reward-headline__text strong {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.reward-headline__icon {
+  flex: 0 0 auto;
+}
+
+@media screen and (max-width: 359px) {
+  .reward-headline__text {
+    font-size: 11.5px;
+  }
+}
+
+/* ============================================================
+   USD billing disclosure (US display context only).
+   The one line that names the real INR charge — it sits directly above the
+   checkout button in the drawer and on the cart page, styled with the same
+   brand save tokens as every other money-saved surface so it reads as
+   information, not warning. Rendered by snippets/usd-billing-disclosure.liquid.
+   ============================================================ */
+.usd-disclosure {
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--cart-save-bg, #f6f2ea);
+  border: 1px solid var(--cart-save-border, #e4dccc);
+  color: var(--cart-save-text, #5c1011);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.55;
+  text-align: center;
+}
+.usd-disclosure strong {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   The unified offer ladder — 5% off → ₹300 off → 3rd piece free.
+   Rendered by snippets/free-shipping-bar.liquid, where it REPLACES both the
+   old B2G1 meter and the spend rail whenever the offer is on: one journey,
+   one card. Chips carry the earned/pending state (crimson while counting,
+   the save-green once the third piece lands, a struck dashed chip for the
+   flat tier checkout genuinely drops in favour of the free piece).
+   Same card grammar as .reward-compact so the drawer reads as one system.
+   ============================================================ */
+.onrepeat-lad {
+  display: grid;
+  gap: 8px;
+  padding: 11px 14px 12px;
+  margin-block-end: var(--sp-2d5);
+  border: 1px solid rgba(92, 16, 17, 0.10);
+  border-radius: 12px;
+  background: #faf8f6;
+}
+.onrepeat-lad.is-won {
+  border-color: rgba(47, 107, 79, 0.35);
+  background: rgba(47, 107, 79, 0.06);
+}
+
+.onrepeat-lad__chips {
+  display: flex;
+  align-items: center;
+}
+.onrepeat-lad__chips > i {
+  flex: 1 1 0;
+  min-width: 8px;
+  height: 2px;
+  margin: 0 5px;
+  border-radius: 2px;
+  background: rgba(92, 16, 17, 0.15);
+}
+.onrepeat-lad__chips > i.is-on {
+  background: #5c1011;
+}
+.onrepeat-lad.is-won .onrepeat-lad__chips > i.is-on {
+  background: #2f6b4f;
+}
+
+.onrepeat-lad__chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 5px 8px;
+  border: 1px solid rgba(92, 16, 17, 0.18);
+  color: #55494a;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.onrepeat-lad__chip.is-done {
+  background: #5c1011;
+  border-color: #5c1011;
+  color: #fff;
+}
+.onrepeat-lad__chip.is-free {
+  background: #2f6b4f;
+  border-color: #2f6b4f;
+  color: #fff;
+}
+.onrepeat-lad__chip.is-absorbed {
+  border-style: dashed;
+  color: #8b8079;
+  text-decoration: line-through;
+}
+
+.onrepeat-lad__line {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #55494a;
+}
+.onrepeat-lad__line strong {
+  color: #2b1214;
+  font-weight: 620;
+}
+.onrepeat-lad.is-won .onrepeat-lad__line strong {
+  color: #2f6b4f;
+}
+.onrepeat-lad__nudge {
+  color: #5c1011;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+/* Ultra-narrow: chips shrink before they wrap. */
+@media screen and (max-width: 359px) {
+  .onrepeat-lad__chip { font-size: 9px; padding: 4px 6px; }
+  .onrepeat-lad__chips > i { margin: 0 3px; }
+}

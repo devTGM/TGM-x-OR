@@ -1,0 +1,1210 @@
+{%- comment -%}
+  OnRepeat buy bar — the permanent PDP purchase bar.
+
+  One self-contained component: markup, styles and behaviour in this single
+  snippet, inlined into every product render. Nothing here references an
+  external versioned asset, so Shopify's page cache can never pair this
+  markup with stale styling or script.
+
+  Layout — a FLOATING CARD of two rows:
+
+      (  [M] [L] [XL]              Size guide  )
+      (  [img]  ₹1,394             ( ADD TO BAG ) )
+      (  TRY ON  Only 1 left in L                )
+
+  WHY THE SIZE RAIL IS HERE (2026-08-27 rebuild)
+  Every product in this catalogue is single-option — Size, three to six
+  values. That is small enough to put the whole variant set on the bar, and
+  once it is there four separate problems in the old bar close at once:
+
+  1. The old bar printed a bare "2 left". That was the stock of
+     selected_or_first_available_variant, while product-variant-picker
+     deliberately clears the pre-checked radio before paint — so the number
+     described a size that was explicitly NOT selected, and was wrong for
+     anyone wanting a different one. Stock is now only ever stated with the
+     size it belongs to, and only once a size has actually been chosen.
+  2. The old bar had two buttons (bag + BUY NOW) that opened the SAME size
+     sheet and diverged only afterwards, while their accessible names
+     promised outcomes neither delivered. There is now one action, and its
+     label always names what the next tap does.
+  3. The selected size was never shown at all, though it gated the purchase.
+  4. Crimson was doing three jobs (CTA fill, bag outline, discount badge).
+     It is now spent only on the primary action; the discount reverted to
+     recessive text that actually passes contrast.
+
+  SINGLE SOURCE OF TRUTH
+  The rail does not hold its own state. A chip tap checks the matching radio
+  inside <variant-selects> and dispatches a bubbling 'change', so the theme's
+  own picker performs the variant switch exactly as if the shopper had used
+  the on-page control. We then re-render from the resulting 'variant:change'.
+  Two pickers that each held their own idea of the selection is precisely the
+  class of bug that produced the phantom "2 left".
+
+  ADD TO CART
+  The CTA drives the theme's own hidden .product-form__submit rather than
+  posting to /cart/add itself, so AJAX cart, cart-drawer opening, error
+  handling and sold-out relabelling all remain the theme's tested code path.
+
+  Behaviour contract (unchanged from the previous bar):
+  - Floats clear of the screen: 8px in from each side, 12px + iOS safe area
+    above the bottom, no rounded-display clipping, no home-indicator overlap.
+  - Solid near-opaque background ON PURPOSE: backdrop-filter blur painted a
+    white halo outside the card on phones (bisected live, 2026-08-06,
+    reproduced in Chromium and iOS Safari). Do not reintroduce it here.
+  - Price is the automatic-discount NET (flat tier subtracted first, then the
+    percentage on the remainder — mirroring how Shopify applies them).
+  - INR prints whole rupees; US visitors keep theme.money's converted display.
+  - Publishes its height as --onrepeat-sticky-reserve and reserves footer runway.
+  - Virtual Try-On sits outside the availability gate: half the catalogue is
+    sold out at any time and try-on must stay reachable there.
+
+  Params: product, product_form_id, section_id
+{%- endcomment -%}
+
+{%- liquid
+  assign bb_variant = product.selected_or_first_available_variant
+
+  assign bb_size_index = -1
+  for bb_opt in product.options_with_values
+    assign bb_opt_handle = bb_opt.name | downcase
+    if bb_opt_handle contains 'size'
+      assign bb_size_index = forloop.index0
+      break
+    endif
+  endfor
+  assign bb_has_size_rail = false
+  if bb_size_index >= 0 and product.options_with_values.size == 1 and product.has_only_default_variant == false
+    assign bb_has_size_rail = true
+  endif
+  if bb_size_index < 0
+    assign bb_size_index = 0
+  endif
+
+  comment
+    Reward settings — the same source the ladder, offer line and cart rail
+    read, so every surface states the same numbers.
+  endcomment
+  assign bb_min = settings.reward_tier1_amount | default: 1499 | times: 100
+  assign bb_pct = settings.reward_percent | default: 5
+  assign bb_t2 = settings.reward_tier2_amount | default: 3000 | times: 100
+  assign bb_a2 = settings.reward_tier2_flat | default: 300 | times: 100
+  assign bb_t3 = settings.reward_tier3_amount | default: 5000 | times: 100
+  assign bb_a3 = settings.reward_tier3_flat | default: 700 | times: 100
+
+  assign bb_flat = 0
+  if bb_t3 > 0 and bb_variant.price >= bb_t3
+    assign bb_flat = bb_a3
+  elsif bb_t2 > 0 and bb_variant.price >= bb_t2
+    assign bb_flat = bb_a2
+  endif
+  assign bb_keep = 100 | minus: bb_pct
+  assign bb_net = bb_variant.price | minus: bb_flat | times: bb_keep | divided_by: 100
+
+  comment
+    Same >0 guards as the JS render() — a reward setting of 0 must not print
+    '0% off applied' server-side only for the first variant change to snap it
+    away.
+  endcomment
+  assign bb_on_offer = false
+  if bb_min > 0 and bb_pct > 0 and bb_variant.price >= bb_min
+    assign bb_on_offer = true
+  endif
+
+  capture bb_badge
+    if bb_on_offer
+      echo bb_pct
+      echo '%'
+      if bb_flat > 0
+        echo ' + '
+        render 'money-display', amount: bb_flat, style: 'no_zeros'
+      endif
+      echo ' off applied'
+    elsif bb_variant.compare_at_price > bb_variant.price
+      assign bb_sale_pct = bb_variant.compare_at_price | minus: bb_variant.price | times: 100.0 | divided_by: bb_variant.compare_at_price | round
+      echo bb_sale_pct
+      echo '% off'
+    endif
+  endcapture
+
+  comment
+    Scarcity dot threshold. Most polos sit at 1-4 units, so dotting every
+    chip at <=3 would light the whole rail and stop meaning anything. Default
+    is 1 — the merchant can widen it without touching code.
+  endcomment
+  assign bb_dot_at = settings.buy_bar_dot_at | default: 1
+
+  capture bb_sc_key
+    render 'size-chart-key', product: product
+  endcapture
+  assign bb_sc_key = bb_sc_key | strip
+
+  comment
+    The size sheet's trigger contract, captured once. Both the "Size guide"
+    link and the optional Buy Now button are sheet triggers, so they read the
+    same values rather than each building their own.
+  endcomment
+  assign bb_thumb_url = bb_variant.featured_media | default: product.featured_media | image_url: width: 120
+
+  comment
+    The size-chart drawer the bar opens. The page normally comes from the
+    variant picker's block setting, but that block is disabled on these
+    templates, and a disabled block is absent from section.blocks — its
+    setting cannot be read at all. So the page is resolved from a theme
+    setting, falling back to the 'size-chart' page every product template
+    already points at.
+
+    Its own id, not the picker's: if the picker is ever switched back on both
+    drawers exist, and reusing one id would put two elements with the same id
+    in the document and break whichever opener resolved second.
+  endcomment
+  assign bb_chart_page = settings.size_chart_page
+  if bb_chart_page == blank
+    assign bb_chart_page = pages['size-chart']
+  endif
+  assign bb_chart_modal_id = 'OnRepeatBuyBarSizeChart-' | append: section_id | append: '-' | append: product.id
+  assign bb_chart_title = bb_chart_page.title | default: 'Size chart'
+-%}
+{%- capture bb_sheet_variants -%}[{%- for v in product.variants -%}{"id":{{ v.id }},"title":{{ v.title | json }},"available":{{ v.available }}}{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%}]{%- endcapture -%}
+{%- capture bb_sheet_price -%}{%- render 'onrepeat-sheet-price', product: product -%}{%- endcapture -%}
+
+<style>
+  onrepeat-buy-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* The product page scrolls horizontally inside the gallery slider, which
+       widens the box a fixed left:0/right:0 element resolves against — below
+       ~375px the card was running past the right edge. Clamping pins it back. */
+    max-width: 100vw;
+    /* WebKit's documented pattern: max() keeps the card clear of rounded
+       corners, landscape notches and the home indicator in every toolbar
+       state, and still gives a constant margin when the insets are 0. */
+    padding: 0
+      max(8px, env(safe-area-inset-left, 0px))
+      max(12px, calc(12px + env(safe-area-inset-bottom, 0px)))
+      max(8px, env(safe-area-inset-right, 0px));
+    pointer-events: none;
+  }
+  .onrepeat-bb__card {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1 1 auto;
+    max-width: 100%;
+    padding: 10px;
+    background: #ffffff;
+    border: 0.5px solid rgba(26, 21, 18, 0.1);
+    border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(26, 21, 18, 0.16), 0 2px 6px rgba(26, 21, 18, 0.06);
+  }
+
+  /* ── size rail ─────────────────────────────────────────────────────── */
+  .onrepeat-bb__sizes {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 0;
+  }
+  .onrepeat-bb__chip {
+    flex: 1 1 0;
+    min-width: 38px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0;
+    border: 1px solid rgba(26, 21, 18, 0.16);
+    border-radius: 10px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1512;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+  .onrepeat-bb__chip[aria-pressed='true'] {
+    /* Ink, not crimson: the brand colour is reserved for the one action. */
+    background: #1a1512;
+    border-color: #1a1512;
+    color: #fff;
+  }
+  .onrepeat-bb__chip[disabled] {
+    color: rgba(26, 21, 18, 0.3);
+    border-color: rgba(26, 21, 18, 0.08);
+    cursor: not-allowed;
+    background: linear-gradient(
+      to top left,
+      transparent calc(50% - 0.6px),
+      rgba(26, 21, 18, 0.22) 50%,
+      transparent calc(50% + 0.6px)
+    );
+  }
+  .onrepeat-bb__dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #9a5200;
+  }
+  .onrepeat-bb__chip[aria-pressed='true'] .onrepeat-bb__dot {
+    background: #e9a23b;
+  }
+  .onrepeat-bb__guide {
+    flex: 0 0 auto;
+    height: 40px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6f625c;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  /* Asking for a size the shopper can already see needs a nudge, not a modal. */
+  @media (prefers-reduced-motion: no-preference) {
+    .onrepeat-bb__sizes.is-asking .onrepeat-bb__chip:not([disabled]) {
+      animation: onrepeat-bb-ask 0.42s ease;
+    }
+  }
+  .onrepeat-bb__sizes.is-asking .onrepeat-bb__chip:not([disabled]) {
+    border-color: #5c1011;
+  }
+  @keyframes onrepeat-bb-ask {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-3px); }
+    60% { transform: translateY(0); }
+  }
+
+  /* ── main row ──────────────────────────────────────────────────────── */
+  .onrepeat-bb__main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .onrepeat-bb__thumb {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0.5px solid rgba(26, 21, 18, 0.12);
+    border-radius: 10px;
+    background: #efedea;
+    position: relative;
+    display: block;
+    cursor: pointer;
+  }
+  {%- comment -%}
+    No overflow clip here. With try-on on, this element IS the minimised
+    try-on tile, and its "ready" dot deliberately sits outside the 48px box at
+    top/right -3px. This snippet's <style> is inline in the body and therefore
+    wins over assets/vto.css on equal specificity, so `overflow: hidden` here
+    silently ate the one signal that says a look is waiting. The image and the
+    label carry their own radii instead — nothing needs the parent to cut it.
+  {%- endcomment -%}
+  .onrepeat-bb__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 10px;
+  }
+  /* With try-on switched off the tile is identity only: it must not advertise
+     itself as pressable, and with no ring or dot to escape the box it keeps
+     the clip. */
+  .onrepeat-bb__thumb--static {
+    cursor: default;
+    overflow: hidden;
+  }
+  .onrepeat-bb__thumb span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(26, 21, 18, 0.86);
+    color: #fff;
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .onrepeat-bb__price {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .onrepeat-bb__net {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: #1a1512;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .onrepeat-bb__sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 6px;
+    font-size: 12.5px;
+    line-height: 1.25;
+    min-width: 0;
+  }
+  .onrepeat-bb__sub[hidden] {
+    display: none;
+  }
+  /* #6f625c is 5.87:1 on white. The old #a4968f at 10.24px was 2.86:1 — the
+     strike is the half of the price line that does the persuading, and it
+     was the least readable thing on the card. */
+  .onrepeat-bb__was {
+    font-weight: 500;
+    color: #6f625c;
+    font-variant-numeric: tabular-nums;
+  }
+  .onrepeat-bb__off {
+    font-weight: 500;
+    color: #6f625c;
+  }
+  /* #9a5200 is 5.86:1; the old #d97706 was 3.19:1. */
+  .onrepeat-bb__stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #9a5200;
+  }
+  .onrepeat-bb__stock[hidden] {
+    display: none;
+  }
+  .onrepeat-bb__stock::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #9a5200;
+  }
+  /* An error the shopper has to be told about — "the maximum quantity of this
+     item is already in your cart" and friends. The form carries
+     data-hide-errors, so without this the request fails and the bar says
+     nothing at all. */
+  .onrepeat-bb__err {
+    /* Shopify's cart messages run long ("All 2 CANE Knit Polo — Slate are in
+       your cart."). Unclamped it wrapped to three lines and grew the card by
+       ~40px mid-interaction, which is worse than the silence it replaced.
+       Two lines, then ellipsis; the colour does the flagging, so there is no
+       bullet to strand halfway down a wrapped line. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #b3401a;
+  }
+  .onrepeat-bb__err[hidden] {
+    display: none;
+  }
+  .onrepeat-bb__cta {
+    flex: 0 0 auto;
+    /* Sized to the widest label the button ever carries ("Select size", 140px
+       at this size and weight) so it holds still through every state change.
+       At 132px it shrank 8px the instant it was tapped, moving the card under
+       the thumb that was still on it. */
+    min-width: 140px;
+    height: 52px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 12px;
+    background: rgb(var(--color-base-button, 92 16 17));
+    color: rgb(var(--color-base-button-text, 255 255 255));
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    /* The icon and the word sit on one line and the min-width above is wider
+       than every label, so the card never resizes under a thumb that is still
+       on the glass. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.1s ease, opacity 0.18s ease;
+  }
+  .onrepeat-bb__cta[data-state='idle'] {
+    background: #fff;
+    color: #1a1512;
+    border: 1.5px solid rgba(26, 21, 18, 0.22);
+  }
+  .onrepeat-bb__cta[data-state='gone'] {
+    background: #efedea;
+    color: #8a817b;
+    cursor: not-allowed;
+  }
+  /* ── in flight ──────────────────────────────────────────────────────
+     The theme sets aria-busy on its own submit button and animates a dot
+     loader inside it — but that button is display:none on this template, so
+     the loader ran where nobody could see it and the whole response to a tap
+     was the 28% opacity drop this replaces. Two sequential requests take
+     around 1.7s, which is a long time to look like nothing happened.
+     -------------------------------------------------------------------- */
+  .onrepeat-bb__cta[data-state='busy'] {
+    background: #6e2122;
+    cursor: progress;
+  }
+  .onrepeat-bb__cta[data-state='done'] {
+    background: #2f6b4f;
+    cursor: default;
+  }
+  .onrepeat-bb__spin {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2px solid rgb(var(--color-base-button-text, 255 255 255) / 0.35);
+    border-top-color: rgb(var(--color-base-button-text, 255 255 255));
+    animation: onrepeat-bb-spin 0.6s linear infinite;
+  }
+  @keyframes onrepeat-bb-spin {
+    to { transform: rotate(360deg); }
+  }
+  .onrepeat-bb__tick {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+  }
+  .onrepeat-bb__tick path {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 22;
+    stroke-dashoffset: 22;
+    animation: onrepeat-bb-draw 0.28s ease forwards;
+  }
+  @keyframes onrepeat-bb-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  /* A second signal, in case the button is under the thumb that just tapped it. */
+  .onrepeat-bb__prog {
+    position: absolute;
+    inset-inline: 10px;
+    inset-block-start: 0;
+    height: 2px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgb(var(--color-base-button, 92 16 17) / 0.1);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+  .onrepeat-bb__card { position: relative; }
+  .onrepeat-bb__card[data-adding] .onrepeat-bb__prog { opacity: 1; }
+  .onrepeat-bb__prog i {
+    display: block;
+    height: 100%;
+    width: 36%;
+    border-radius: 2px;
+    background: rgb(var(--color-base-button, 92 16 17));
+    animation: onrepeat-bb-slide 1s ease-in-out infinite;
+  }
+  @keyframes onrepeat-bb-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(320%); }
+  }
+  /* While the add is in flight the size cannot change under it. */
+  .onrepeat-bb__card[data-adding] .onrepeat-bb__chip {
+    pointer-events: none;
+    opacity: 0.55;
+  }
+  .onrepeat-bb__cta:active {
+    transform: scale(0.97);
+  }
+  .onrepeat-bb__chip:focus-visible,
+  .onrepeat-bb__cta:focus-visible,
+  .onrepeat-bb__guide:focus-visible,
+  .onrepeat-bb__thumb:focus-visible,
+  .onrepeat-bb__second:focus-visible {
+    outline: 2px solid rgb(var(--color-base-button, 92 16 17));
+    outline-offset: 2px;
+  }
+
+  /* Optional second action, off by default — see the snippet header. */
+  .onrepeat-bb__second {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 40px;
+    border: 1.5px solid rgba(26, 21, 18, 0.22);
+    border-radius: 12px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #1a1512;
+    cursor: pointer;
+  }
+
+  @media screen and (max-width: 359px) {
+    .onrepeat-bb__card { padding: 8px; gap: 8px; }
+    .onrepeat-bb__sizes { gap: 5px; }
+    .onrepeat-bb__chip { min-width: 30px; font-size: 12.5px; }
+    /* The guide used to be hidden at this width. It can't be now: the variant
+       picker carried the page's other size-guide link and the picker is gone,
+       so this is the only way in. Narrowed instead of dropped — six chips plus
+       the link still fit 320px. */
+    .onrepeat-bb__guide { padding: 0 6px; font-size: 11.5px; }
+    .onrepeat-bb__cta { min-width: 122px; padding: 0 10px; font-size: 12px; }
+    .onrepeat-bb__net { font-size: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .onrepeat-bb__cta, .onrepeat-bb__chip { transition: none; }
+    .onrepeat-bb__cta:active { transform: none; }
+    /* The spinner still has to read as "working", so it steps rather than
+       sweeps instead of disappearing entirely. */
+    .onrepeat-bb__spin { animation-duration: 1.2s; animation-timing-function: steps(8, end); }
+    .onrepeat-bb__tick path { animation: none; stroke-dashoffset: 0; }
+    .onrepeat-bb__prog i { animation: none; width: 100%; opacity: 0.5; }
+  }
+  @media screen and (min-width: 768px) {
+    onrepeat-buy-bar {
+      left: auto;
+      right: var(--sp-5, 20px);
+      bottom: var(--sp-5, 20px);
+      justify-content: flex-end;
+      padding: 0;
+    }
+    .onrepeat-bb__card {
+      /* desktop docks bottom-right and sizes to content */
+      flex: 0 0 auto;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px;
+    }
+    /* The row reads thumb, price, sizes, action — but the CTA lives inside
+       .onrepeat-bb__main and `order` cannot move a child between flex
+       containers. display:contents dissolves the wrapper so all four become
+       direct children of the card and one order sequence governs them. */
+    .onrepeat-bb__main { display: contents; }
+    .onrepeat-bb__thumb { order: 1; }
+    .onrepeat-bb__price { order: 2; flex: 0 1 auto; }
+    .onrepeat-bb__sizes { order: 3; flex: 0 0 auto; }
+    .onrepeat-bb__chip { flex: 0 0 auto; width: 44px; }
+    .onrepeat-bb__cta { order: 4; }
+    .onrepeat-bb__second { order: 5; width: auto; padding: 0 16px; }
+  }
+  @media screen and (max-width: 767px) {
+    /* The bar covers the end of the page — reserve exactly its height
+       (published as --onrepeat-sticky-reserve by the element) plus the float
+       gap, so the footer scrolls fully clear. */
+    body:has(onrepeat-buy-bar) .footer-copyright {
+      padding-block-end: calc(
+        var(--sp-5, 20px) + var(--onrepeat-sticky-reserve, 5rem) + 12px + env(safe-area-inset-bottom, 0px)
+      );
+    }
+  }
+</style>
+
+{%- capture bb_variants_json -%}
+  [{%- for v in product.variants -%}
+    {
+      "id":{{ v.id }},
+      "title":{{ v.title | json }},
+      "available":{{ v.available }},
+      "option_value":{{ v.options[bb_size_index] | json }},
+      "price":{{ v.price }},
+      "compare_at_price":{% if v.compare_at_price %}{{ v.compare_at_price }}{% else %}null{% endif %},
+      "inventory_quantity":{% if v.inventory_management == 'shopify' and v.inventory_policy != 'continue' %}{{ v.inventory_quantity }}{% else %}null{% endif %}
+    }{%- unless forloop.last -%},{%- endunless -%}
+  {%- endfor -%}]
+{%- endcapture -%}
+
+<onrepeat-buy-bar
+  id="OnRepeatBuyBar-{{ section_id }}-{{ product.id }}"
+  data-section-id="{{ section_id }}"
+  data-product-id="{{ product.id }}"
+  data-picker="VariantPicker-{{ section_id }}-{{ product.id }}"
+  data-promo-min="{{ bb_min }}"
+  data-promo-pct="{{ bb_pct }}"
+  data-flat-t2="{{ bb_t2 }}" data-flat-a2="{{ bb_a2 }}"
+  data-flat-t3="{{ bb_t3 }}" data-flat-a3="{{ bb_a3 }}"
+  data-dot-at="{{ bb_dot_at }}"
+>
+  {%- comment -%}
+    The bar carries its own cart form.
+
+    There is no product <form> on this page: purchasing was moved to the
+    sticky bar plus the size sheet, and main-product's form was dropped with
+    it — every [form="ProductForm-…"] reference on the page, the variant
+    picker's radios included, points at an element that does not exist. So
+    driving "the theme's hidden add-to-cart button" is not available here;
+    there isn't one.
+
+    This is the same three-element shape the size sheet uses and that the
+    theme's ProductForm class is built around: action=/cart/add, is=product-form,
+    a [name=id] input and a [type=submit][name=add]. Rendering our own keeps
+    AJAX cart, cart-drawer opening and error handling on the theme's tested
+    path without depending on page structure that is not there, and without
+    reaching into the sheet's form and fighting whatever it has staged.
+  {%- endcomment -%}
+  <form
+    method="post"
+    action="{{ routes.cart_add_url }}"
+    is="product-form"
+    id="OnRepeatBuyBarForm-{{ section_id }}-{{ product.id }}"
+    data-hide-errors="true"
+    hidden
+  >
+    <input type="hidden" name="id" value="{{ bb_variant.id }}" data-bb-vid>
+    <input type="hidden" name="quantity" value="1">
+    <button type="submit" name="add" class="product-form__submit" tabindex="-1" aria-hidden="true"></button>
+  </form>
+
+  <div class="onrepeat-bb__card" role="region" aria-label="Buy {{ product.title | escape }}">
+    <span class="onrepeat-bb__prog" aria-hidden="true"><i></i></span>
+    {%- comment -%}
+      The button's own label changes are not announced, so the state is
+      mirrored here for screen readers.
+    {%- endcomment -%}
+    <span class="sr-only" role="status" aria-live="polite" data-bb-status></span>
+
+    {%- comment -%}
+      The rail. Rendered only for single-option size products (every product
+      in this catalogue today); anything else falls back to the CTA opening
+      the size sheet, exactly as before.
+    {%- endcomment -%}
+    {%- if bb_has_size_rail and product.available -%}
+      {%- comment -%}
+        Literal strings, not | t with a | default fallback: a missing key
+        returns the truthy string "Translation missing: …", so the default
+        filter never fires and the shopper reads the error. These keys do not
+        exist in the theme's locales.
+      {%- endcomment -%}
+      <div class="onrepeat-bb__sizes" role="group" aria-label="Choose a size" data-bb-sizes>
+        {%- for v in product.variants -%}
+          {%- liquid
+            assign v_qty = nil
+            if v.inventory_management == 'shopify' and v.inventory_policy != 'continue'
+              assign v_qty = v.inventory_quantity
+            endif
+            assign v_dot = false
+            if v.available and v_qty != nil and v_qty > 0 and v_qty <= bb_dot_at
+              assign v_dot = true
+            endif
+          -%}
+          <button
+            type="button"
+            class="onrepeat-bb__chip"
+            data-bb-chip
+            data-vid="{{ v.id }}"
+            data-size="{{ v.options[bb_size_index] | escape }}"
+            aria-pressed="false"
+            {% unless v.available %}disabled aria-label="{{ v.options[bb_size_index] | escape }} — {{ 'products.product.sold_out' | t }}"{% endunless %}
+          >{{ v.options[bb_size_index] | escape }}{% if v_dot %}<i class="onrepeat-bb__dot" aria-hidden="true"></i>{% endif %}</button>
+        {%- endfor -%}
+        {%- comment -%}
+          Opens the theme's own size-chart drawer — the same one the variant
+          picker's "Size chart · Find my size" link opens, rendered from the
+          shared snippet just below.
+
+          The link always pointed here by aria-controls; what broke it was that
+          the drawer was written inline inside the picker, so hiding the picker
+          took the drawer off the page and the id resolved to nothing. The
+          drawer is now rendered by the bar itself, so the link works whether
+          the picker is on the page or not.
+        {%- endcomment -%}
+        {%- if bb_chart_page != blank -%}
+          <button
+            type="button"
+            class="onrepeat-bb__guide"
+            aria-controls="{{ bb_chart_modal_id }}"
+            aria-expanded="false"
+          >Size guide</button>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="onrepeat-bb__main">
+      {%- comment -%}
+        Try-on as a 48px tile rather than the full-width row it used to be.
+        That row plus the old card ran 129px; this whole card measures 124px,
+        so the rail is paid for and five pixels come back. It stays outside
+        the availability gate — half the catalogue is sold out at any time and
+        browsing is most of the traffic.
+
+        settings.vto_enabled is the switch added when try-on was withdrawn
+        from the live theme. With try-on off the tile is still worth its
+        space: past the gallery the bar is otherwise a floating price with no
+        referent, and the shopper is by then looking at a carousel of other
+        garments. So it degrades to a plain thumbnail rather than vanishing.
+      {%- endcomment -%}
+      {%- if settings.vto_enabled -%}
+        {%- render 'vto-button', product: product, placement: 'tile' -%}
+      {%- else -%}
+        {%- assign bb_tile_media = bb_variant.featured_media | default: product.featured_media -%}
+        {%- if bb_tile_media != blank -%}
+          <span class="onrepeat-bb__thumb onrepeat-bb__thumb--static" aria-hidden="true">
+            {{- bb_tile_media.preview_image | image_url: width: 144 | image_tag: loading: 'lazy', widths: '48,96,144', alt: '' -}}
+          </span>
+        {%- endif -%}
+      {%- endif -%}
+
+      <div class="onrepeat-bb__price">
+        <b class="onrepeat-bb__net" data-bb-net>
+          {%- if bb_on_offer -%}
+            {%- render 'money-display', amount: bb_net, style: 'whole' -%}
+          {%- else -%}
+            {%- render 'money-display', amount: bb_variant.price, style: 'whole' -%}
+          {%- endif -%}
+        </b>
+        {%- comment -%}
+          No stock line on the server render: nothing is selected yet, and a
+          stock figure without a size beside it is the bug this rebuild exists
+          to remove.
+        {%- endcomment -%}
+        <span class="onrepeat-bb__sub" data-bb-sub {% unless bb_on_offer or bb_badge != blank %}hidden{% endunless %}>
+          <s class="onrepeat-bb__was" data-bb-was>
+            {%- if bb_on_offer -%}
+              {%- render 'money-display', amount: bb_variant.price, style: 'whole' -%}
+            {%- elsif bb_variant.compare_at_price > bb_variant.price -%}
+              {%- render 'money-display', amount: bb_variant.compare_at_price, style: 'whole' -%}
+            {%- endif -%}
+          </s>
+          <span class="onrepeat-bb__off" data-bb-off>{{ bb_badge }}</span>
+          <span class="onrepeat-bb__stock" data-bb-stock hidden></span>
+          <span class="onrepeat-bb__err" data-bb-err hidden></span>
+        </span>
+      </div>
+
+      {%- if product.available -%}
+        <button
+          type="button"
+          class="onrepeat-bb__cta"
+          data-bb-cta
+          data-add="Add to bag"
+          data-adding="Adding"
+          data-added="Added"
+          data-sold-out="{{ 'products.product.sold_out' | t | escape }}"
+          data-state="{% if bb_has_size_rail %}idle{% else %}ready{% endif %}"
+        >{% if bb_has_size_rail %}Select size{% else %}Add to bag{% endif %}</button>
+      {%- else -%}
+        <button type="button" class="onrepeat-bb__cta" data-state="gone" disabled>{{ 'products.product.sold_out' | t }}</button>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      Buy Now, off by default. Paired Add-to-bag / Buy-now is the Indian
+      marketplace signature and reads as marketplace rather than brand, which
+      is why the rebuild drops it — but the merchant can restore it from theme
+      settings without code. When on, it routes through the existing size
+      sheet in buynow mode, the path that is already Razorpay-safe.
+    {%- endcomment -%}
+    {%- if settings.buy_bar_show_buy_now and product.available -%}
+      <button
+        type="button"
+        class="onrepeat-bb__second"
+        data-sleek-open
+        data-bb-gate
+        data-mode="buynow"
+        data-product-title="{{ product.title | escape }}"
+        data-product-price="{{ bb_sheet_price | strip_newlines | escape }}"
+        data-product-handle="{{ product.handle }}"
+        data-sc-chart="{{ bb_sc_key | escape }}"
+        data-product-image="{{ bb_thumb_url }}"
+        data-variants='{{ bb_sheet_variants | strip_newlines | escape }}'
+        data-selected=""
+      >Buy now</button>
+    {%- endif -%}
+  </div>
+
+  <script type="application/json" data-bb-variants>{{ bb_variants_json | strip_newlines | replace: '</', '<\/' }}</script>
+</onrepeat-buy-bar>
+
+{%- comment -%}
+  Rendered OUTSIDE <onrepeat-buy-bar> deliberately. The host is
+  pointer-events:none so taps fall through its padding, and a drawer nested
+  inside it would inherit that and refuse every click.
+{%- endcomment -%}
+{%- render 'size-chart-modal',
+    modal_id: bb_chart_modal_id,
+    product: product,
+    chart_page: bb_chart_page,
+    title: bb_chart_title -%}
+
+<script>
+  (function () {
+    'use strict';
+    if (customElements.get('onrepeat-buy-bar')) return;
+
+    class OnRepeatBuyBar extends HTMLElement {
+      connectedCallback() {
+        this.netEl = this.querySelector('[data-bb-net]');
+        this.subEl = this.querySelector('[data-bb-sub]');
+        this.wasEl = this.querySelector('[data-bb-was]');
+        this.offEl = this.querySelector('[data-bb-off]');
+        this.stockEl = this.querySelector('[data-bb-stock]');
+        this.ctaEl = this.querySelector('[data-bb-cta]');
+        this.sizesEl = this.querySelector('[data-bb-sizes]');
+        this.chips = Array.prototype.slice.call(this.querySelectorAll('[data-bb-chip]'));
+        this.card = this.querySelector('.onrepeat-bb__card');
+        this.selected = null;
+
+        var json = this.querySelector('script[data-bb-variants]');
+        try {
+          this.variants = json ? JSON.parse(json.textContent) : [];
+        } catch (e) {
+          this.variants = [];
+        }
+
+        var n = (name) => parseInt(this.dataset[name], 10) || 0;
+        this.cfg = {
+          min: n('promoMin'), pct: n('promoPct'),
+          t2: n('flatT2'), a2: n('flatA2'), t3: n('flatT3'), a3: n('flatA3'),
+        };
+
+        this.cartForm = document.getElementById(
+          'OnRepeatBuyBarForm-' + this.dataset.sectionId + '-' + this.dataset.productId
+        );
+        this.vidInput = this.cartForm ? this.cartForm.querySelector('[data-bb-vid]') : null;
+
+        this._onChip = (e) => {
+          var chip = e.target.closest('[data-bb-chip]');
+          if (!chip || chip.disabled) return;
+          this.choose(chip.dataset.size);
+        };
+        if (this.sizesEl) this.sizesEl.addEventListener('click', this._onChip);
+
+        // The on-page picker is the other way in. Listen to the radios
+        // directly rather than to the theme's 'variant:change': that event is
+        // emitted by the variant-selects re-render, which on this template
+        // has no product form to re-render against. A plain change event is
+        // what actually fires, and it fires synchronously.
+        this._picker = this.picker;
+        this._onPickerChange = (e) => {
+          var r = e.target;
+          if (!r || r.type !== 'radio' || !r.checked) return;
+          var v = this.byOption(r.value);
+          if (v) this.render(v, true);
+        };
+        if (this._picker) this._picker.addEventListener('change', this._onPickerChange);
+
+        this._onCta = (e) => {
+          var state = this.ctaEl.getAttribute('data-state');
+          if (state === 'gone') return;
+          if (state === 'idle') {
+            e.preventDefault();
+            this.ask();
+            return;
+          }
+          this.submit();
+        };
+        if (this.ctaEl) this.ctaEl.addEventListener('click', this._onCta);
+
+        // Kept as a belt-and-braces path: if a template ever does render a
+        // real product form, the theme's event still keeps the rail honest.
+        this._onVariantChange = (e) => {
+          if (e && e.detail && e.detail.variant) this.render(e.detail.variant, true);
+        };
+        document.addEventListener('variant:change', this._onVariantChange);
+
+        this.publishReserve();
+        if ('ResizeObserver' in window && this.card) {
+          this._ro = new ResizeObserver(() => this.publishReserve());
+          this._ro.observe(this.card);
+        } else {
+          this._onWin = () => this.publishReserve();
+          window.addEventListener('load', this._onWin);
+          window.addEventListener('resize', this._onWin);
+        }
+      }
+
+      disconnectedCallback() {
+        document.removeEventListener('variant:change', this._onVariantChange);
+        if (this._picker) this._picker.removeEventListener('change', this._onPickerChange);
+        if (this.sizesEl) this.sizesEl.removeEventListener('click', this._onChip);
+        if (this.ctaEl) this.ctaEl.removeEventListener('click', this._onCta);
+        if (this._ro) this._ro.disconnect();
+        if (this._onWin) {
+          window.removeEventListener('load', this._onWin);
+          window.removeEventListener('resize', this._onWin);
+        }
+      }
+
+      get picker() {
+        return document.getElementById(this.dataset.picker) || document.querySelector('variant-selects');
+      }
+
+      byOption(size) {
+        return this.variants.filter((v) => v.option_value === size)[0] || null;
+      }
+
+      // Render immediately, then mirror the choice into the on-page picker so
+      // the two controls always show the same size. The rail does not wait on
+      // the picker to report back — on this template nothing would come.
+      choose(size) {
+        var v = this.byOption(size);
+        if (!v || v.available === false) return;
+        this.render(v, true);
+        this.echoToPicker(size);
+      }
+
+      echoToPicker(size) {
+        var picker = this._picker || this.picker;
+        if (!picker) return;
+        var radio = Array.prototype.slice
+          .call(picker.querySelectorAll('input[type="radio"]'))
+          .filter((r) => r.value === size)[0];
+        if (!radio || radio.checked) return;
+        radio.checked = true;
+        // Bubbling change so the theme's own picker UI (and anything else
+        // listening, such as the size gate) updates exactly as if the shopper
+        // had tapped it there.
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      // The size is on screen a few pixels away; a modal would be a worse
+      // answer than pointing at it.
+      ask() {
+        if (!this.sizesEl) return;
+        this.sizesEl.classList.remove('is-asking');
+        void this.sizesEl.offsetWidth;
+        this.sizesEl.classList.add('is-asking');
+        var first = this.chips.filter((c) => !c.disabled)[0];
+        if (first) first.focus();
+        window.setTimeout(() => this.sizesEl.classList.remove('is-asking'), 700);
+      }
+
+      // ── the CTA's visible state ──────────────────────────────────────
+      // 'ready' | 'busy' | 'done' | 'error' | 'gone'. The label always names
+      // what is happening, and the icon carries it for anyone who does not
+      // read the label.
+      setCta(state, label, icon) {
+        if (!this.ctaEl) return;
+        this.ctaEl.setAttribute('data-state', state);
+        var mark = '';
+        if (icon === 'spin') {
+          mark = '<span class="onrepeat-bb__spin" aria-hidden="true"></span>';
+        } else if (icon === 'tick') {
+          mark = '<svg class="onrepeat-bb__tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12.5l5.2 5.2L20 7"/></svg>';
+        }
+        this.ctaEl.innerHTML = mark + '<span>' + label + '</span>';
+      }
+
+      say(msg) {
+        var el = this.querySelector('[data-bb-status]');
+        if (el) el.textContent = msg;
+      }
+
+      showError(msg) {
+        var el = this.querySelector('[data-bb-err]');
+        if (!el) return;
+        if (msg) {
+          el.textContent = msg;
+          el.hidden = false;
+          // The scarcity line and a failure are two claims about the same
+          // size; showing both at once reads as noise and stacks the card.
+          if (this.stockEl) this.stockEl.hidden = true;
+        } else {
+          el.textContent = '';
+          el.hidden = true;
+          // Put the scarcity line back exactly as the last render left it —
+          // otherwise "Only 1 left in L" disappears for good after one add.
+          if (this.stockEl) this.stockEl.hidden = !this._stockVisible;
+        }
+      }
+
+      // Stamp the chosen variant onto our own cart form and submit it, so
+      // AJAX cart, the cart drawer and error handling all stay on the theme's
+      // ProductForm path.
+      submit() {
+        if (this.adding) return;                      // no double-submits
+        if (!this.cartForm || !this.vidInput || !this.selected) return;
+        var v = this.byOption(this.selected);
+        if (!v || v.available === false) return;
+        var btn = this.cartForm.querySelector('[type="submit"][name="add"]');
+        if (!btn) return;
+
+        this.vidInput.value = v.id;
+        this.adding = true;
+        this.showError('');
+        this.card.setAttribute('data-adding', '');
+        this.ctaEl.setAttribute('aria-busy', 'true');
+        this.setCta('busy', this.ctaEl.dataset.adding || 'Adding', 'spin');
+        this.say('Adding ' + this.selected + ' to your bag');
+
+        // The theme dispatches these once the add settles. Bound only for the
+        // life of this submit so another surface's add can never drive our
+        // button.
+        var settle = (ok, msg) => {
+          if (!this.adding) return;
+          this.adding = false;
+          window.clearTimeout(this._addTimer);
+          document.removeEventListener('ajaxProduct:added', onAdded);
+          document.removeEventListener('ajaxProduct:error', onError);
+          this.ctaEl.removeAttribute('aria-busy');
+          this.card.removeAttribute('data-adding');
+
+          if (!ok) {
+            this.setCta('ready', this.ctaEl.dataset.add || 'Add to bag', '');
+            this.showError(msg || 'Could not add that. Please try again.');
+            this.say(msg || 'Could not add that item');
+            return;
+          }
+
+          // Held, not flashed: the drawer is opening over this, and a
+          // confirmation nobody sees is the problem we started with.
+          this.setCta('done', this.ctaEl.dataset.added || 'Added', 'tick');
+          this.say('Added ' + this.selected + ' to your bag');
+          this._doneTimer = window.setTimeout(() => {
+            if (this.adding) return;
+            this.setCta('ready', this.ctaEl.dataset.add || 'Add to bag', '');
+          }, 1100);
+        };
+
+        var onAdded = () => settle(true);
+        var onError = (e) => settle(false, e && e.detail && e.detail.errorMessage);
+        document.addEventListener('ajaxProduct:added', onAdded);
+        document.addEventListener('ajaxProduct:error', onError);
+        // If the network never answers, the button must not stay stuck.
+        this._addTimer = window.setTimeout(() => settle(false, 'That took too long. Please try again.'), 15000);
+
+        btn.click();
+      }
+
+      // The bar's height, for the footer runway reserve.
+      publishReserve() {
+        if (!this.card) return;
+        var h = this.card.offsetHeight;
+        if (h > 0) document.documentElement.style.setProperty('--onrepeat-sticky-reserve', h + 'px');
+      }
+
+      // Whole-rupee INR (mirrors Liquid money-display style 'whole'); US
+      // visitors keep theme.money's converted display, like the rest of the
+      // theme.
+      money(paise) {
+        if (paise == null || isNaN(paise)) return '';
+        if (window.theme && theme.currencyDisplay && theme.currencyDisplay.usd && theme.money) {
+          return theme.money.format(paise);
+        }
+        return '₹' + Math.round(paise / 100).toLocaleString('en-US');
+      }
+
+      moneyNoZeros(paise) {
+        if (window.theme && theme.currencyDisplay && theme.currencyDisplay.usd && theme.money) {
+          return theme.money.format(paise, 'no_zeros');
+        }
+        return '₹' + Math.round(paise / 100).toLocaleString('en-US');
+      }
+
+      render(variant, chosen) {
+        var data = this.variants.filter((v) => v.id === variant.id)[0] || variant;
+        var price = data.price;
+        if (price == null) return;
+        var c = this.cfg;
+
+        if (chosen) this.selected = data.option_value || null;
+
+        // Flat tier first, then the percentage on the remainder — the order
+        // Shopify applies automatic discounts in.
+        var flat = 0;
+        if (c.t3 && price >= c.t3) flat = c.a3;
+        else if (c.t2 && price >= c.t2) flat = c.a2;
+        // Floor, matching Liquid's integer division in the server render.
+        var net = Math.floor(((price - flat) * (100 - c.pct)) / 100);
+        var onOffer = c.min > 0 && c.pct > 0 && price >= c.min;
+
+        if (this.netEl) this.netEl.textContent = this.money(onOffer ? net : price);
+
+        var compare = data.compare_at_price;
+        var showSale = !onOffer && compare && compare > price;
+        if (this.wasEl) this.wasEl.textContent = onOffer ? this.money(price) : (showSale ? this.money(compare) : '');
+        if (this.offEl) {
+          if (onOffer) {
+            this.offEl.textContent = flat > 0
+              ? c.pct + '% + ' + this.moneyNoZeros(flat) + ' off applied'
+              : c.pct + '% off applied';
+          } else if (showSale) {
+            this.offEl.textContent = Math.round(((compare - price) / compare) * 100) + '% off';
+          } else {
+            this.offEl.textContent = '';
+          }
+        }
+
+        // Stock is only ever stated together with the size it belongs to.
+        var qty = data.inventory_quantity;
+        var showStock = this.selected && qty != null && qty > 0 && qty <= 3 && data.available !== false;
+        // Remembered so an error can borrow the row and hand it back.
+        this._stockVisible = !!showStock;
+        if (this.stockEl) {
+          if (showStock) {
+            this.stockEl.textContent = 'Only ' + qty + ' left in ' + this.selected;
+            this.stockEl.hidden = false;
+          } else {
+            this.stockEl.textContent = '';
+            this.stockEl.hidden = true;
+          }
+        }
+        if (this.subEl) this.subEl.hidden = !(onOffer || showSale || showStock);
+
+        this.chips.forEach((chip) => {
+          chip.setAttribute('aria-pressed', String(chip.dataset.size === this.selected));
+        });
+
+        // Hand the chosen size to any sheet trigger in the bar. onrepeat-pdp-size-gate
+        // does this from the variant picker's checked radio, but that picker is
+        // no longer on the page, so the rail is now the only thing that knows.
+        Array.prototype.forEach.call(this.querySelectorAll('[data-sleek-open]'), (t) => {
+          t.dataset.selected = this.selected || '';
+        });
+
+        // An add in flight owns the button until it settles — a variant
+        // re-render must not wipe the spinner out from under it.
+        if (this.ctaEl && !this.ctaEl.disabled && !this.adding) {
+          if (data.available === false) {
+            this.setCta('gone', this.ctaEl.dataset.soldOut || 'Sold out', '');
+          } else if (this.selected) {
+            window.clearTimeout(this._doneTimer);
+            this.setCta('ready', this.ctaEl.dataset.add || 'Add to bag', '');
+          }
+        }
+        // A new size is a new attempt; the previous failure no longer applies.
+        if (chosen) this.showError('');
+      }
+    }
+
+    customElements.define('onrepeat-buy-bar', OnRepeatBuyBar);
+  })();
+</script>

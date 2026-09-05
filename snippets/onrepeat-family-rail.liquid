@@ -1,0 +1,356 @@
+{%- comment -%}
+  OnRepeat — knit-family rail.
+
+  A horizontal row of chips under the collection hero that splits a large,
+  visually uniform range into the families it is actually designed around.
+  Polo is 48 products that are really 8 knits — CANE, CORD, FERN, GRID, HIVE,
+  LEAF, TILE, VANE — in 6 colourways each. Without the rail, browsing that is
+  scrolling; with it, it is eight decisions of six.
+
+  Renders nothing at all unless a collection genuinely has families, so this
+  can sit in the shared collection section without giving every other
+  collection a stray widget. See "WHEN THIS APPEARS" below.
+
+  ─────────────────────────────────────────────────────────────────────────────
+  WHERE THE FAMILIES COME FROM
+
+  `collection.all_tags`, filtered by shape. A family tag is:
+
+    1. a single word            — excludes "KNIT POLO"
+    2. all uppercase            — excludes the colourways (Slate, Olive, Navy,
+                                  Camel, Black, Cream), which are Title Case
+    3. not the category itself  — excludes "POLOS" on the Polo collection, by
+                                  testing containment against the collection
+                                  title both ways ("POLOS" contains "POLO";
+                                  "SHIRTS" contains "SHIRT")
+
+  `all_tags` is used rather than a pass over product titles because it is the
+  one source that stays complete once a shopper has *selected* a family: on
+  /collections/polo/cane, `collection.products` is filtered down to the six
+  CANE pieces, and deriving the list from those would collapse the rail to a
+  single chip the moment it was used.
+
+  ─────────────────────────────────────────────────────────────────────────────
+  WHEN THIS APPEARS
+
+  Two guards, both of which have to pass:
+
+    • at least 2 families that each hold at least 2 products
+    • the collection fits inside the 50-product window Liquid gives a `for`
+      loop, so the counts are whole rather than truncated
+
+  That is what keeps the rail on Polo (8 × 6) and off everything else. T-Shirts
+  is 20 products with 20 distinct one-word names (Trinetra, Petra, AXIS…), so
+  every candidate family holds exactly 1 and the rail suppresses itself.
+  Hoodies (5) and Shirts (4) behave the same way. All Products is 92, past the
+  window, so it suppresses too. No per-collection setting, and no list of
+  handles to keep in sync with the catalogue.
+
+  The first guard is skipped once a family is open, because it cannot be
+  answered from there — see COUNTS. The row has to survive being used.
+
+  ─────────────────────────────────────────────────────────────────────────────
+  WHERE THE CHIPS LINK
+
+  {{ collection.url }}/{{ tag | handleize }} — Shopify's own tag view of a
+  collection, e.g. /collections/polo/cane. Verified against the live store: it
+  returns exactly the six CANE colourways and leaves the storefront filters
+  intact, so a shopper can still narrow by size or availability after choosing
+  a knit. It needs no Search & Discovery setup — the store defines no
+  product-tag filter, so a ?filter.p.tag= link would silently return the whole
+  collection — and each family gets a real, indexable URL.
+
+  ─────────────────────────────────────────────────────────────────────────────
+  COUNTS
+
+  Counted from `collection.products` on the unfiltered view only. Once a
+  family is open, Shopify has narrowed that list to the six pieces in it, so
+  the other families are simply not countable from there — and the whole row
+  drops its numbers rather than showing 6 against the open knit and nothing
+  against the rest. The "All" number is `all_products_count`, which ignores
+  tag filtering, so it stays at 48 throughout.
+
+  "All" is a literal rather than a translation key: the theme defines no
+  `collections.general.all`, and a missing key renders the string
+  "Translation missing: …" in every locale (it is truthy, so `| default:`
+  does not catch it). The family names beside it are untranslated proper
+  nouns, so the row stays consistent.
+
+  ─────────────────────────────────────────────────────────────────────────────
+  THE FALLBACK: CATEGORIES
+
+  Everything above derives families from within one collection, which is why
+  it goes quiet on the collections that need a rail most. All Products is 92
+  pieces past the counting window; T-Shirts is 24 products with 24 distinct
+  names. Those pages had no rail at all — nothing at the top of the page said
+  what else there was to look at.
+
+  So when no families can be found, the rail falls back to the shop's
+  categories, taken from a menu the merchant already maintains. A menu is the
+  right source precisely because it is not derived: it is the merchandising
+  order someone chose, it is edited in the admin rather than here, and it is
+  already what the mobile nav shows.
+
+  Only top-level items that resolve to a real collection are used. That keeps
+  a link to a page, a blog, or a collection handle that no longer exists from
+  becoming a dead chip — the menu is edited by hand and one of those is a
+  matter of time. This store's Shop menu is a live example: every item in it
+  is a hand-typed URL, so `link.type` is `http_link` and `link.object` is nil
+  on all five, and one of the five points at /collections/all-products, which
+  is not a collection that exists.
+
+  So the handle is taken from `link.object` when the merchant made a real
+  collection link, and read out of the URL when they typed one — then looked
+  up in `collections`, which is what actually proves the target is there.
+
+  The chip's label is the MENU's title, not the collection's. "The Core
+  Edition" and "Best Sellers" are what someone chose to call these in the nav;
+  "OnRepeat's Core Edition" and "Summer | Best Sellers by OnRepeat" are their
+  internal names. Counts come from the collection, so they are real totals
+  rather than anything derived from this page.
+
+  Params:
+    collection    (required)
+    fallback_menu (optional) — a link_list. Defaults to the "Categories" menu
+                  (handle `categories`), which exists for this row: Polos,
+                  T-Shirts, Sweatshirts, Joggers, Hoodies, Shirts, in
+                  descending size. Falls through to the mobile Shop menu and
+                  then the main menu only if that one is renamed or removed.
+
+  Usage:
+    {%- render 'onrepeat-family-rail', collection: collection -%}
+    {%- render 'onrepeat-family-rail', collection: collection, fallback_menu: section.settings.category_menu -%}
+{%- endcomment -%}
+
+{%- liquid
+  assign fr_window = 50
+  assign fr_total = collection.all_products_count
+  assign fr_stem = collection.title | upcase | strip
+
+  comment
+    Pass 1 — candidate families, by tag shape. Complete on every view.
+  endcomment
+  assign fr_names = ''
+  if fr_total > 0 and fr_total <= fr_window
+    for fr_tag in collection.all_tags
+      assign fr_word_test = fr_tag | strip | split: ' '
+      if fr_word_test.size > 1
+        continue
+      endif
+
+      assign fr_up = fr_tag | upcase
+      unless fr_tag == fr_up
+        continue
+      endunless
+
+      if fr_stem contains fr_up or fr_up contains fr_stem
+        continue
+      endif
+
+      assign fr_names = fr_names | append: fr_tag | append: '|'
+    endfor
+  endif
+  assign fr_list = fr_names | split: '|'
+
+  comment
+    Is a family currently selected? `current_tags` is nil rather than an empty
+    array away from a tag view, and nil.size is nil — not 0 — so it has to be
+    tested through `first`, which is blank in both cases.
+  endcomment
+  assign fr_active_tag = current_tags | first
+  assign fr_filtered = false
+  if fr_active_tag != blank
+    assign fr_filtered = true
+  endif
+
+  comment
+    Pass 2 — how many candidates actually group more than one product. A family
+    of one is a product name, not a family, and a collection made entirely of
+    those gets no rail at all.
+
+    This can only be asked of an unfiltered view. On /collections/polo/cane,
+    `collection.products` is the six CANE pieces, so every other family counts
+    zero and the guard would tear the rail down at precisely the moment it is
+    most useful — the shopper who picked a knit could not switch to another
+    one without going back. So on a tag view the guard is skipped and the
+    shape rules stand on their own: `all_tags` is unfiltered, so the list is
+    still whole. Counts are suppressed there for the same reason, rather than
+    printing 6 beside the open family and nothing beside the rest.
+  endcomment
+  assign fr_real = 0
+  if fr_filtered
+    assign fr_real = fr_list.size
+  else
+    for fr_name in fr_list
+      assign fr_count = 0
+      for fr_product in collection.products
+        if fr_product.tags contains fr_name
+          assign fr_count = fr_count | plus: 1
+        endif
+      endfor
+      if fr_count > 1
+        assign fr_real = fr_real | plus: 1
+      endif
+    endfor
+  endif
+-%}
+
+{%- comment -%}
+  ── The category fallback ──────────────────────────────────────────────────
+  Resolved before the markup so the two paths can share one <nav>: whichever
+  set of chips this ends up drawing, it is the same row, the same styles and
+  the same docking behaviour. Only the source of the chips differs.
+{%- endcomment -%}
+{%- liquid
+  assign fr_menu = fallback_menu
+  comment
+    "Categories" is the menu made for this row: six garment types, in
+    descending size, every item a real collection link. It is the default
+    rather than something that has to be chosen in the theme editor, because
+    the row is useless empty and a setting nobody sets is a row nobody sees.
+    The two behind it are only there so the rail still finds something if that
+    menu is renamed or deleted.
+  endcomment
+  if fr_menu == blank or fr_menu.links.size == 0
+    assign fr_menu = linklists['categories']
+  endif
+  if fr_menu == blank or fr_menu.links.size == 0
+    assign fr_menu = linklists['main-menu-mobile']
+  endif
+  if fr_menu == blank or fr_menu.links.size == 0
+    assign fr_menu = linklists['main-menu']
+  endif
+
+  assign fr_cats = 0
+-%}
+
+{%- comment -%}
+  The chips are built before it is known whether they will be printed, because
+  the decision depends on how many survive: one category chip is not a
+  category rail, and a menu of pages and blog links would otherwise draw an
+  empty row. Counting in a first pass and rendering in a second would mean the
+  resolution below — object, else URL, then prove it against `collections` —
+  written out twice, where the two copies have to agree forever. `assign`
+  inside `capture` writes to the outer scope, so one pass does both.
+{%- endcomment -%}
+{%- capture fr_cat_chips -%}
+  {%- if fr_real < 2 -%}
+    {%- for fr_link in fr_menu.links -%}
+      {%- liquid
+        assign fr_handle = ''
+        if fr_link.type == 'collection_link' and fr_link.object != blank
+          assign fr_handle = fr_link.object.handle
+        else
+          comment
+            A typed URL. Take the segment after /collections/ and stop at the
+            next slash, so a tag view (/collections/polo/cane) resolves to its
+            collection rather than to nothing. Query and fragment are dropped
+            first — /collections/polo?sort_by=… is still Polo.
+          endcomment
+          assign fr_path = fr_link.url | split: '?' | first | split: '#' | first
+          if fr_path contains '/collections/'
+            assign fr_tail = fr_path | split: '/collections/' | last
+            assign fr_handle = fr_tail | split: '/' | first
+          endif
+        endif
+
+        comment
+          The lookup is the proof of two separate things.
+
+          That the collection exists at all: a handle that is no longer one —
+          /collections/all-products on this store — comes back blank here.
+
+          And that it has anything in it. `all_products_count` is the
+          STOREFRONT count, so a collection whose products are all still
+          drafts reads 0 even though the admin says otherwise. Joggers is
+          exactly that today: six pairs, all unpublished. A chip that lands on
+          an empty collection is worse than no chip, so the count has to be
+          positive too — and the moment those products go live the chip
+          appears on its own, with no menu to edit.
+        endcomment
+        assign fr_cat = blank
+        if fr_handle != blank
+          assign fr_cat = collections[fr_handle]
+        endif
+        assign fr_ok = false
+        if fr_cat != blank and fr_cat.id != blank and fr_cat.all_products_count > 0
+          assign fr_ok = true
+        endif
+
+        assign fr_here = false
+        if fr_ok and fr_cat.handle == collection.handle
+          assign fr_here = true
+        endif
+      -%}
+      {%- if fr_ok -%}
+        {%- assign fr_cats = fr_cats | plus: 1 -%}
+        <a
+          class="onrepeat-rail__chip{% if fr_here %} is-on{% endif %}"
+          href="{{ fr_cat.url }}"
+          {%- if fr_here %} aria-current="true"{% endif -%}
+        >
+          {{- fr_link.title -}}
+          <span class="onrepeat-rail__n">{{ fr_cat.all_products_count }}</span>
+        </a>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if fr_real > 1 -%}
+  {{ 'onrepeat-collection.css' | asset_url | stylesheet_tag }}
+  <nav class="onrepeat-rail" aria-label="{{ collection.title | escape }} — browse by knit">
+    <div class="onrepeat-rail__track">
+      <a
+        class="onrepeat-rail__chip{% unless fr_filtered %} is-on{% endunless %}"
+        href="{{ collection.url }}"
+        {%- unless fr_filtered %} aria-current="true"{% endunless -%}
+      >
+        All
+        <span class="onrepeat-rail__n">{{ fr_total }}</span>
+      </a>
+
+      {%- for fr_name in fr_list -%}
+        {%- liquid
+          assign fr_count = 0
+          unless fr_filtered
+            for fr_product in collection.products
+              if fr_product.tags contains fr_name
+                assign fr_count = fr_count | plus: 1
+              endif
+            endfor
+          endunless
+
+          assign fr_active = false
+          if current_tags contains fr_name
+            assign fr_active = true
+          endif
+        -%}
+        <a
+          class="onrepeat-rail__chip{% if fr_active %} is-on{% endif %}"
+          href="{{ collection.url }}/{{ fr_name | handleize }}"
+          {%- if fr_active %} aria-current="true"{% endif -%}
+        >
+          {{- fr_name | capitalize -}}
+          {%- if fr_count > 0 -%}
+            <span class="onrepeat-rail__n">{{ fr_count }}</span>
+          {%- endif -%}
+        </a>
+      {%- endfor -%}
+    </div>
+  </nav>
+
+{%- elsif fr_cats > 1 -%}
+  {{ 'onrepeat-collection.css' | asset_url | stylesheet_tag }}
+  <nav class="onrepeat-rail" aria-label="Browse categories">
+    {%- comment -%}
+      No "All" chip here. In the family rail "All" means "clear the tag and
+      show me the whole collection I am already in", which is a real place to
+      go back to. Across categories there is no such parent — the chip would
+      either point at whichever collection happens to be open, which is where
+      you already are, or at a hardcoded catalogue URL that is one more thing
+      to keep true. The current category is marked instead.
+    {%- endcomment -%}
+    <div class="onrepeat-rail__track">{{ fr_cat_chips }}</div>
+  </nav>
+{%- endif -%}

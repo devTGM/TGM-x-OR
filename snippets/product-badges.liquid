@@ -1,0 +1,65 @@
+{%- liquid
+  if product.compare_at_price > product.price and show_save_amount
+    if save_type == 'label'
+      assign saved_amount = save_type
+    elsif save_type == 'dollar'
+      assign saved_paise = product.compare_at_price | minus: product.price
+      capture saved_amount
+        render 'money-display', amount: saved_paise
+      endcapture
+    else
+      assign saved_amount = product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round
+      assign saved_amount = saved_amount | append: '%'
+    endif
+  endif
+-%}
+<div class="badges{% if class != blank %} {{ class }}{% endif %} pointer-events-none">
+  {%- comment -%}
+    Merchandising badges are suppressed once a product is sold out. They kept
+    animating "NEW IN" over dead stock and stacked a second pill under the
+    SOLD OUT badge, which is what made the corner read as clutter. When the
+    product is unavailable the badge stack holds exactly one pill.
+  {%- endcomment -%}
+  {%- if settings.rotating_tag_enabled -%}
+  {%- comment -%}
+    Rotating tag replaces the static GSM badge, theme.label pills and the
+    onsale badge — GSM and SAVE % live inside the rotation (custom.badges).
+  {%- endcomment -%}
+  {%- if product.available -%}
+    {%- render 'onrepeat-rotating-tag', product: product, context: 'card' -%}
+  {%- endif -%}
+
+  {%- render 'sold-out-badge', product: product -%}
+  {%- else -%}
+  {%- if product.available -%}
+    {%- render 'onrepeat-gsm-badge', product: product -%}
+  {%- endif -%}
+
+  {%- render 'sold-out-badge', product: product -%}
+
+  {%- if product.metafields.theme.label.value != blank and product.available -%}
+    {%- capture styles -%}
+      {%- if product.metafields.theme.label_color.value != blank -%}
+        --badge-background: {{ product.metafields.theme.label_color.value }}; --badge-foreground: #ffffff;
+      {%- endif -%}
+    {%- endcapture -%}
+    {%- for label in product.metafields.theme.label.value -%}
+      <span class="badge flex items-center gap-1d5 font-medium leading-none rounded-full"{% if styles != blank %} style="{{ styles }}"{% endif %}>
+        {{- label | escape -}}
+      </span>
+    {%- endfor -%}
+  {%- endif -%}
+
+  {%- if saved_amount != blank and product.available -%}
+     <span class="badge badge--onsale flex items-center gap-1d5 font-medium leading-none rounded-full">
+      {%- liquid
+        if save_type == 'label'
+          echo 'products.general.sale' | t
+        else
+          echo 'products.general.save_html' | t: saved_amount: saved_amount
+        endif
+      -%}
+    </span>
+  {%- endif -%}
+  {%- endif -%}
+</div>

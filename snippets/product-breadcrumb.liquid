@@ -1,0 +1,125 @@
+{%- comment -%}
+  ─────────────────────────────────────────────────────────────────────────────
+  Product breadcrumb + product-to-product navigation.
+
+  Renders as the first block inside <product-info>, which puts it directly below
+  the gallery and above the title on mobile, and at the top of the info column
+  on desktop.
+
+  PREVIOUS / NEXT
+  Shopify only exposes collection.previous_product / next_product when the
+  shopper arrived through a collection URL (/collections/x/products/y). Most
+  traffic does not — search, ads, the home page and recommendations all land on
+  the bare /products/y, where `collection` is nil and the arrows would be dead.
+
+  So there are two paths:
+
+    • In collection context, use Shopify's own previous_product / next_product.
+      They already return collection-scoped URLs, so the next page keeps its
+      context and the arrows keep working.
+
+    • Otherwise, resolve the product's garment collection and walk it to find
+      the neighbours, linking `| within:` that collection so context is restored
+      from there on.
+
+  The walk is bounded by Liquid's 50-item cap on an unpaginated collection loop.
+  Every garment collection is under that today (the largest, Polo, is 48). If
+  one ever grows past it the product simply is not found, `bc_seen` stays false,
+  and the arrows are omitted — the breadcrumb degrades instead of linking to the
+  wrong garment.
+  ─────────────────────────────────────────────────────────────────────────────
+{%- endcomment -%}
+
+{%- liquid
+  assign bc_collection = collection
+  assign bc_prev_url = ''
+  assign bc_next_url = ''
+
+  if bc_collection and bc_collection.handle
+    assign bc_prev_url = bc_collection.previous_product
+    assign bc_next_url = bc_collection.next_product
+  else
+    capture bc_handle
+      render 'breadcrumb-collection', product: product
+    endcapture
+    assign bc_handle = bc_handle | strip
+    assign bc_collection = null
+
+    if bc_handle != ''
+      assign bc_collection = collections[bc_handle]
+      assign bc_seen = false
+      assign bc_before = null
+
+      for bc_item in bc_collection.products
+        if bc_seen
+          assign bc_next_url = bc_item.url | within: bc_collection
+          break
+        endif
+        if bc_item.handle == product.handle
+          assign bc_seen = true
+        else
+          assign bc_before = bc_item
+        endif
+      endfor
+
+      if bc_seen and bc_before
+        assign bc_prev_url = bc_before.url | within: bc_collection
+      endif
+    endif
+  endif
+
+  assign bc_all_label = 'general.breadcrumbs.collections' | t
+  assign bc_grid_url = bc_collection.url | default: routes.all_products_collection_url
+  assign bc_grid_title = bc_collection.title | default: bc_all_label
+-%}
+
+<nav class="onrepeat-bc" aria-label="Breadcrumb" {{ block.shopify_attributes }}>
+  <ol class="onrepeat-bc__trail">
+    <li class="onrepeat-bc__crumb">
+      <a href="{{ routes.root_url }}">{{ 'general.breadcrumbs.home' | t }}</a>
+    </li>
+    {%- if bc_collection -%}
+      <li class="onrepeat-bc__crumb">
+        <span class="onrepeat-bc__sep" aria-hidden="true"></span>
+        <a href="{{ bc_collection.url }}">{{ bc_collection.title | escape }}</a>
+      </li>
+    {%- endif -%}
+    <li class="onrepeat-bc__crumb onrepeat-bc__crumb--here">
+      <span class="onrepeat-bc__sep" aria-hidden="true"></span>
+      <span class="onrepeat-bc__here" aria-current="page">{{ product.title | escape }}</span>
+    </li>
+  </ol>
+
+  {%- comment -%}
+    The arrows keep their slot when there is nothing to link to, so the control
+    never changes width and the trail beside it never reflows.
+  {%- endcomment -%}
+  <div class="onrepeat-bc__nav">
+    {%- if bc_prev_url != '' -%}
+      <a class="onrepeat-bc__btn" href="{{ bc_prev_url }}" rel="prev" aria-label="{{ 'general.pagination.previous' | t | escape }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7"/></svg>
+      </a>
+    {%- else -%}
+      <span class="onrepeat-bc__btn" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false"><path d="M15 5l-7 7 7 7"/></svg>
+      </span>
+    {%- endif -%}
+
+    <a class="onrepeat-bc__btn" href="{{ bc_grid_url }}" aria-label="{{ bc_grid_title | escape }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/>
+        <rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>
+      </svg>
+    </a>
+
+    {%- if bc_next_url != '' -%}
+      <a class="onrepeat-bc__btn" href="{{ bc_next_url }}" rel="next" aria-label="{{ 'general.pagination.next' | t | escape }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+    {%- else -%}
+      <span class="onrepeat-bc__btn" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false"><path d="M9 5l7 7-7 7"/></svg>
+      </span>
+    {%- endif -%}
+  </div>
+</nav>

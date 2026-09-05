@@ -1,0 +1,628 @@
+{%- comment -%}
+  OnRepeat GWP — "Rewards With Purchase" LIVE reward ladder for the PDP.
+
+  Rendered by the `liquid_nHzD3G` custom-liquid block on the product templates.
+  Three spend-more-save-more tiers with a real-time progress bar that tracks the
+  cart subtotal: ₹1499 → 5%, ₹3000 → 5% + ₹300, ₹5000 → 5% + ₹700. The 5% and
+  ONE flat tier combine; the two flat tiers never combine with each other. Display
+  only — the actual perks are native automatic order discounts in Admin.
+
+  - Initial state is rendered server-side from the `cart` object (no flash,
+    works without JS).
+  - JS keeps it live: it re-renders on every cart change (theme.pubsub
+    `cartUpdate`, the `cart:updated` DOM event, `ajaxProduct:added`), rendering
+    straight from the cart payload those notifiers already carry. It only falls
+    back to reading /cart.js when it is handed no payload — on first load, where
+    a full-page-cached render can hold someone else's cart state.
+  - Progress is measured against the GROSS subtotal. See the note on `gwp_sub`.
+{%- endcomment -%}
+
+{%- liquid
+  comment
+    Tiers come from theme settings (Rewards, shipping & trust) so the PDP, the
+    cart and the drawer cannot drift apart. They were hardcoded here — and again
+    in this snippet's JS — which meant editing a tier in the theme editor changed
+    the cart but left the PDP quietly advertising the old one.
+  endcomment
+  assign gwp_t1 = settings.reward_tier1_amount | default: 1499 | times: 100
+  assign gwp_t2 = settings.reward_tier2_amount | default: 3000 | times: 100
+  assign gwp_t3 = settings.reward_tier3_amount | default: 5000 | times: 100
+  assign gwp_r1 = settings.reward_tier1_label | default: '5% Off'
+  assign gwp_r2 = settings.reward_tier2_label | default: '5% + ₹300'
+  assign gwp_r3 = settings.reward_tier3_label | default: '5% + ₹700'
+
+  assign gwp_t1_money = gwp_t1 | money_without_trailing_zeros
+  assign gwp_t2_money = gwp_t2 | money_without_trailing_zeros
+  assign gwp_t3_money = gwp_t3 | money_without_trailing_zeros
+
+  comment
+    US context: labels derive from the numeric settings ("5% + $3.57") and every
+    spend figure rounds UP ('ceil') so a displayed target is never sooner than
+    the real unlock. data-gwp-t*/pct/f2/f3 stay INR paise — the verification in
+    this snippet's JS runs against the cart, which is always INR.
+  endcomment
+  assign gwp_usd = false
+  if settings.usd_display_enabled and localization.country.iso_code == 'US'
+    assign gwp_rate_chk = settings.usd_inr_rate | default: 0 | round
+    if gwp_rate_chk > 0
+      assign gwp_usd = true
+      assign gwp_pct = settings.reward_percent | default: 5
+      assign gwp_f2_paise = settings.reward_tier2_flat | default: 300 | times: 100
+      assign gwp_f3_paise = settings.reward_tier3_flat | default: 700 | times: 100
+      assign gwp_r1 = gwp_pct | append: '% Off'
+      capture gwp_f2_usd
+        render 'money-display', amount: gwp_f2_paise, style: 'compact'
+      endcapture
+      capture gwp_f3_usd
+        render 'money-display', amount: gwp_f3_paise, style: 'compact'
+      endcapture
+      assign gwp_r2 = gwp_pct | append: '% + ' | append: gwp_f2_usd
+      assign gwp_r3 = gwp_pct | append: '% + ' | append: gwp_f3_usd
+      capture gwp_t1_money
+        render 'money-display', amount: gwp_t1, style: 'ceil'
+      endcapture
+      capture gwp_t2_money
+        render 'money-display', amount: gwp_t2, style: 'ceil'
+      endcapture
+      capture gwp_t3_money
+        render 'money-display', amount: gwp_t3, style: 'ceil'
+      endcapture
+    endif
+  endif
+
+  comment
+    Gross, i.e. before ANY discount. It must NOT be items_subtotal_price: the ₹300 /
+    ₹700 tiers are PRODUCT-class discounts, so they land in the line-level allocations
+    and pull items_subtotal_price down below the very threshold that granted them —
+    the ladder would re-lock a tier the shopper has already earned. Admin tests the
+    flat minimums against the gross subtotal, and snippets/free-shipping-bar.liquid
+    uses the same base, so the PDP and the cart agree.
+  endcomment
+  assign gwp_sub = cart.original_total_price | default: 0
+
+  comment
+    Guard the divisor. `| default:` only substitutes for nil/false/empty, so a
+    merchant typing 0 into the tier 3 amount — a natural way to say "only two
+    tiers" — passes straight through and every `divided_by: gwp_t3` below raises
+    "Liquid error: divided by 0" three times on every product page. The JS half of
+    this snippet already guards it; the Liquid half did not.
+  endcomment
+  assign gwp_scale = gwp_t3
+  if gwp_scale <= 0
+    assign gwp_scale = gwp_t2
+  endif
+  if gwp_scale <= 0
+    assign gwp_scale = gwp_t1
+  endif
+
+  comment
+    The bar is three EQUAL segments, one per tier, rather than one track scaled
+    to the top tier. Value-proportional put tick 1 at 30% and tick 2 at 60%
+    (1499/5000 and 3000/5000), so the tier labels sitting under those ticks
+    could never be evenly spaced without pointing at the wrong mark. Equal
+    segments make label and tick the same thing, and with these thresholds the
+    marks barely move (30->33.3, 60->66.7).
+
+    Progress WITHIN a segment stays proportional to the rupees still to go, so
+    the fill still tracks real spend — it just does so per tier instead of
+    across the whole ladder. Mirrored exactly by segPct() in the JS below;
+    if you change one, change the other.
+  endcomment
+  assign gwp_seg = 33.3333
+  assign gwp_tick1 = 33.3333
+  assign gwp_tick2 = 66.6667
+  assign gwp_pct = 0
+
+  if gwp_sub >= gwp_t3 and gwp_t3 > 0
+    assign gwp_pct = 100
+  elsif gwp_sub >= gwp_t2 and gwp_t2 > 0
+    assign gwp_span = gwp_t3 | minus: gwp_t2 | times: 1.0
+    assign gwp_pct = 66.6667
+    if gwp_span > 0
+      assign gwp_pct = gwp_sub | minus: gwp_t2 | times: gwp_seg | divided_by: gwp_span | plus: 66.6667
+    endif
+  elsif gwp_sub >= gwp_t1 and gwp_t1 > 0
+    assign gwp_span = gwp_t2 | minus: gwp_t1 | times: 1.0
+    assign gwp_pct = 33.3333
+    if gwp_span > 0
+      assign gwp_pct = gwp_sub | minus: gwp_t1 | times: gwp_seg | divided_by: gwp_span | plus: 33.3333
+    endif
+  else
+    assign gwp_span = gwp_t1 | times: 1.0
+    if gwp_span > 0
+      assign gwp_pct = gwp_sub | times: gwp_seg | divided_by: gwp_span
+    endif
+  endif
+
+  if gwp_pct > 100
+    assign gwp_pct = 100
+  endif
+
+  assign gwp_u1 = false
+  assign gwp_u2 = false
+  assign gwp_u3 = false
+  if gwp_sub >= gwp_t1
+    assign gwp_u1 = true
+  endif
+  if gwp_sub >= gwp_t2
+    assign gwp_u2 = true
+  endif
+  if gwp_sub >= gwp_t3
+    assign gwp_u3 = true
+  endif
+
+  comment
+    Reconcile against the discounts Shopify has ACTUALLY applied, exactly as the
+    cart rail does (see snippets/free-shipping-bar.liquid for the reasoning).
+    These tiers are display-only; the real perks are automatic discounts in
+    Admin, and if one is disabled or expires this ladder would go on promising a
+    reward checkout will not give. Suppress-only: extra savings still verify, and
+    a cart below tier 1 has nothing to check, which is the usual PDP case.
+  endcomment
+  assign gwp_verified = true
+  assign gwp_active = 0
+  if gwp_sub >= gwp_t3
+    assign gwp_active = 3
+  elsif gwp_sub >= gwp_t2
+    assign gwp_active = 2
+  elsif gwp_sub >= gwp_t1
+    assign gwp_active = 1
+  endif
+  if gwp_active > 0
+    assign gwp_actual = cart.original_total_price | minus: cart.total_price
+    assign gwp_flat = 0
+    if gwp_active == 2
+      assign gwp_flat = settings.reward_tier2_flat | default: 300 | times: 100
+    elsif gwp_active == 3
+      assign gwp_flat = settings.reward_tier3_flat | default: 700 | times: 100
+    endif
+    comment
+      Same two component checks as the cart rail — see
+      snippets/free-shipping-bar.liquid for the full reasoning. Named distinctly
+      because gwp_pct is already the progress-bar FILL percentage, computed above
+      and consumed by the bar's width and aria-valuenow.
+    endcomment
+    assign gwp_reward_pct = settings.reward_percent | default: 5
+    if gwp_actual <= 0
+      assign gwp_verified = false
+    else
+      assign gwp_base = gwp_sub | minus: gwp_flat
+      if gwp_base < 0
+        assign gwp_base = 0
+      endif
+      assign gwp_pct_floor = gwp_base | times: gwp_reward_pct | divided_by: 100 | times: 80 | divided_by: 100
+      if gwp_actual < gwp_pct_floor
+        assign gwp_verified = false
+      endif
+
+      if gwp_flat > 0 and gwp_verified
+        assign gwp_den = 100 | minus: gwp_reward_pct
+        if gwp_den <= 0
+          assign gwp_implied = gwp_flat
+        else
+          assign gwp_num = gwp_actual | times: 100
+          assign gwp_sub_part = gwp_sub | times: gwp_reward_pct
+          assign gwp_num = gwp_num | minus: gwp_sub_part
+          assign gwp_implied = gwp_num | divided_by: gwp_den
+        endif
+        assign gwp_flat_floor = gwp_flat | times: 80 | divided_by: 100
+        if gwp_implied < gwp_flat_floor
+          assign gwp_verified = false
+        endif
+      endif
+    endif
+  endif
+
+  assign gwp_target = 0
+  if gwp_sub < gwp_t1
+    assign gwp_target = 1
+    assign gwp_rem = gwp_t1 | minus: gwp_sub
+    assign gwp_reward = gwp_r1
+  elsif gwp_sub < gwp_t2
+    assign gwp_target = 2
+    assign gwp_rem = gwp_t2 | minus: gwp_sub
+    assign gwp_reward = gwp_r2
+  elsif gwp_sub < gwp_t3
+    assign gwp_target = 3
+    assign gwp_rem = gwp_t3 | minus: gwp_sub
+    assign gwp_reward = gwp_r3
+  endif
+
+  if gwp_target > 0
+    if gwp_usd
+      capture gwp_rem_money
+        render 'money-display', amount: gwp_rem, style: 'ceil'
+      endcapture
+    else
+      assign gwp_rem_money = gwp_rem | money_without_trailing_zeros
+    endif
+  endif
+-%}
+
+<style>
+  .sgwp {
+    position: relative;
+    margin: 10px 0;
+    padding: 9px 12px 10px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid rgba(92, 16, 17, 0.12);
+    box-shadow: 0 6px 18px -12px rgba(92, 16, 17, 0.25);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .sgwp__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .sgwp__eye {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #5c1011;
+  }
+  .sgwp__eye svg { width: 13px; height: 13px; color: #B82E56; flex-shrink: 0; }
+  .sgwp__prepaid {
+    flex-shrink: 0;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: #fff;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #7B1E3A, #B82E56);
+    box-shadow: 0 2px 7px rgba(123, 30, 58, 0.3);
+    white-space: nowrap;
+  }
+
+  /* progress bar */
+  .sgwp__bar {
+    position: relative;
+    height: 7px;
+    border-radius: 999px;
+    background: #f0e6e2;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .sgwp__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #B82E56, #5c1011);
+    transition: width 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .sgwp__tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-1px);
+    background: rgba(255, 255, 255, 0.85);
+    z-index: 1;
+  }
+
+  .sgwp__msg {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #5c1011;
+    margin-bottom: 7px;
+    /* Reserved so the card does not jump a line when the message changes
+       length between cart updates. */
+    min-height: 13px;
+    line-height: 1.25;
+  }
+  .sgwp__msg b { font-weight: 800; }
+
+  /* Milestones under the bar. No card, no border, no fill — the bar is the
+     progress indicator and these just name what each of its segments buys. */
+  .sgwp__ms {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    /* Close under the bar: each label belongs to the tick above it. */
+    margin-top: 5px;
+    text-align: center;
+  }
+  .sgwp__m {
+    min-width: 0;
+    transition: opacity 0.25s ease;
+  }
+  .sgwp__spend {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #5c1011;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .sgwp__amt {
+    font-size: 10px;
+    font-weight: 600;
+    color: #a4968f;
+    line-height: 1.3;
+    margin-top: 1px;
+  }
+
+  /* The tick the shopper is working toward. */
+  .sgwp__m.is-target .sgwp__amt { color: #B82E56; }
+
+  .sgwp__m.is-locked { opacity: 0.62; }
+  .sgwp__m.is-locked .sgwp__spend { color: #b6a9a2; }
+
+  .sgwp__check {
+    display: none;
+    margin-inline-end: 3px;
+    color: #B82E56;
+    font-weight: 800;
+  }
+  .sgwp__m.is-unlocked .sgwp__check { display: inline; }
+
+  .sgwp__foot {
+    margin-top: 7px;
+    font-size: 9.5px;
+    font-weight: 500;
+    color: #b0a49d;
+    text-align: center;
+  }
+
+  .sgwp.is-unverified { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sgwp__fill { transition: none; }
+    .sgwp__m { transition: none; }
+  }
+
+  @media (max-width: 380px) {
+    .sgwp { padding: 9px 10px 10px; }
+    .sgwp__spend { font-size: 10px; }
+    .sgwp__amt { font-size: 9.5px; }
+  }
+</style>
+
+{%- comment -%}
+  When the claim cannot be verified the ladder is HIDDEN, not removed. The live
+  updater only ever writes into roots that already exist, so removing it made the
+  suppression sticky for the life of the page: the shopper could take the
+  out-of-scope item out of their cart, drop below tier 1 (where there is nothing
+  to verify and the ladder should simply show the ask again) and still see
+  nothing until a full reload. Hidden means the JS can still find it and bring it
+  back on the next cart change.
+{%- endcomment -%}
+<div class="sgwp{% unless gwp_verified %} is-unverified{% endunless %}" data-sgwp
+     data-gwp-t1="{{ gwp_t1 }}" data-gwp-t2="{{ gwp_t2 }}" data-gwp-t3="{{ gwp_t3 }}"
+     data-gwp-r1="{{ gwp_r1 | escape }}" data-gwp-r2="{{ gwp_r2 | escape }}" data-gwp-r3="{{ gwp_r3 | escape }}"
+     data-gwp-pct="{{ settings.reward_percent | default: 5 }}"
+     data-gwp-f2="{{ settings.reward_tier2_flat | default: 300 | times: 100 }}"
+     data-gwp-f3="{{ settings.reward_tier3_flat | default: 700 | times: 100 }}">
+  <div class="sgwp__head">
+    <span class="sgwp__eye">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/><rect x="2.5" y="7.5" width="19" height="4.5" rx="1"/><path d="M12 7.5V21"/><path d="M12 7.5H7.75a2.25 2.25 0 1 1 0-4.5C11 3 12 7.5 12 7.5Z"/><path d="M12 7.5h4.25a2.25 2.25 0 1 0 0-4.5C13 3 12 7.5 12 7.5Z"/></svg>
+      Rewards
+    </span>
+    {%- unless gwp_usd -%}
+      {%- comment -%} The prepaid incentive is an India COD-vs-prepaid nudge; US cards are prepaid by definition. {%- endcomment -%}
+      <span class="sgwp__prepaid">+₹100 PREPAID</span>
+    {%- endunless -%}
+  </div>
+
+  {%- comment -%}
+    The ask leads, then the bar, then the milestones the bar's ticks mark. The
+    three tier CARDS are gone: they were a second progress indicator restating
+    what the bar already showed, and cost about 70px to do it. The elements keep
+    their data-sgwp-tier hooks, so the live updater's unlocked/target/locked
+    class toggling is untouched.
+  {%- endcomment -%}
+  <div class="sgwp__msg" data-sgwp-msg aria-live="polite">
+    {%- if gwp_target == 0 -%}
+      Max reward unlocked — <b>{{ gwp_r3 }}</b> applied
+    {%- else -%}
+      <b>{{ gwp_rem_money }}</b> more to unlock <b>{{ gwp_reward }}</b>
+    {%- endif -%}
+  </div>
+
+  <div class="sgwp__bar" role="progressbar" aria-label="Rewards progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ gwp_pct }}">
+    <span class="sgwp__fill" data-sgwp-fill style="width: {{ gwp_pct }}%;"></span>
+    <span class="sgwp__tick" style="left: {{ gwp_tick1 }}%;"></span>
+    <span class="sgwp__tick" style="left: {{ gwp_tick2 }}%;"></span>
+  </div>
+
+  <div class="sgwp__ms">
+    <div class="sgwp__m{% if gwp_u1 %} is-unlocked{% endif %}{% if gwp_target == 1 %} is-target{% endif %}" data-sgwp-tier="1">
+      <div class="sgwp__spend"><span class="sgwp__check" aria-hidden="true">✓</span>{{ gwp_t1_money }}</div>
+      <div class="sgwp__amt">{{ gwp_r1 }}</div>
+    </div>
+    <div class="sgwp__m{% if gwp_u2 %} is-unlocked{% endif %}{% if gwp_target == 2 %} is-target{% endif %}{% if gwp_target == 1 %} is-locked{% endif %}" data-sgwp-tier="2">
+      <div class="sgwp__spend"><span class="sgwp__check" aria-hidden="true">✓</span>{{ gwp_t2_money }}</div>
+      <div class="sgwp__amt">{{ gwp_r2 }}</div>
+    </div>
+    <div class="sgwp__m{% if gwp_u3 %} is-unlocked{% endif %}{% if gwp_target == 3 %} is-target{% endif %}{% if gwp_target == 1 or gwp_target == 2 %} is-locked{% endif %}" data-sgwp-tier="3">
+      <div class="sgwp__spend"><span class="sgwp__check" aria-hidden="true">✓</span>{{ gwp_t3_money }}</div>
+      <div class="sgwp__amt">{{ gwp_r3 }}</div>
+    </div>
+  </div>
+
+  <div class="sgwp__foot">Auto-applied at checkout</div>
+</div>
+
+<script>
+  (function () {
+    if (window.__sgwpInit) return;
+    window.__sgwpInit = true;
+
+    function fmt(paise, cur) {
+      // cur comes from the cart AJAX payload, which always says INR — the
+      // display authority is theme.currencyDisplay. These are spend targets,
+      // so USD rounds UP ('ceil'), matching the Liquid render.
+      if (window.theme && theme.currencyDisplay && theme.currencyDisplay.usd && theme.money) {
+        return theme.money.format(Math.max(0, paise), 'ceil');
+      }
+      var rupees = Math.max(0, Math.round(paise / 100));
+      try {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: cur || 'INR', maximumFractionDigits: 0 }).format(rupees);
+      } catch (e) {
+        return '₹' + rupees.toLocaleString('en-IN');
+      }
+    }
+
+    // Mirror of the Liquid reconciliation, so a cart change can lift a server-side
+    // suppression without a reload — and impose one the cached server render missed.
+    function verified(root, cart, tiers, sub) {
+      if (!cart || cart.total_price == null) return true;   // cannot tell; do not punish
+      var active = 0;
+      for (var i = 0; i < tiers.length; i++) if (sub >= tiers[i].t) active = i + 1;
+      if (!active) return true;                             // nothing claimed
+
+      var gross = (cart.original_total_price != null) ? cart.original_total_price : sub;
+      var actual = gross - cart.total_price;
+      if (actual <= 0) return false;
+
+      var pct = parseFloat(root.getAttribute('data-gwp-pct')) || 5;
+      var flat = 0;
+      if (active === 3) flat = parseFloat(root.getAttribute('data-gwp-f3')) || 0;
+      else if (active === 2) flat = parseFloat(root.getAttribute('data-gwp-f2')) || 0;
+
+      if (actual < (gross - flat) * pct / 100 * 0.8) return false;
+      if (flat > 0) {
+        var den = 100 - pct;
+        if (den > 0 && (actual * 100 - gross * pct) / den < flat * 0.8) return false;
+      }
+      return true;
+    }
+
+    // Fill position on a bar of N equal segments: whole segments for every tier
+    // already cleared, plus proportional progress through the one in play. The
+    // exact mirror of the gwp_pct block in the Liquid above — the two used to
+    // disagree by a fraction of a percent and the fill visibly overshot its own
+    // tick on re-render, so they are kept deliberately identical.
+    function segPct(sub, tiers) {
+      var n = tiers.length;
+      var seg = 100 / n;
+      for (var i = 0; i < n; i++) {
+        var lo = i === 0 ? 0 : tiers[i - 1].t;
+        var hi = tiers[i].t;
+        if (sub < hi) {
+          var span = hi - lo;
+          return span > 0 ? i * seg + (sub - lo) / span * seg : i * seg;
+        }
+      }
+      return 100;
+    }
+
+    function renderOne(root, sub, cur, cart) {
+      var tiers = [
+        { t: parseInt(root.getAttribute('data-gwp-t1'), 10), r: root.getAttribute('data-gwp-r1') },
+        { t: parseInt(root.getAttribute('data-gwp-t2'), 10), r: root.getAttribute('data-gwp-r2') },
+        { t: parseInt(root.getAttribute('data-gwp-t3'), 10), r: root.getAttribute('data-gwp-r3') }
+      ];
+      root.classList.toggle('is-unverified', !verified(root, cart, tiers, sub));
+
+      // Three equal segments, one per tier, matching the Liquid above. Read the
+      // tiers from the markup so JS and Liquid can never disagree about them.
+      if (!(tiers[tiers.length - 1].t > 0)) return;
+      var pct = Math.max(0, Math.min(100, segPct(sub, tiers)));
+
+      var fill = root.querySelector('[data-sgwp-fill]');
+      if (fill) fill.style.width = pct.toFixed(2) + '%';
+      var bar = root.querySelector('.sgwp__bar');
+      if (bar) bar.setAttribute('aria-valuenow', String(Math.round(pct)));
+
+      var targetIdx = -1;
+      for (var i = 0; i < tiers.length; i++) {
+        var chip = root.querySelector('[data-sgwp-tier="' + (i + 1) + '"]');
+        if (!chip) continue;
+        var unlocked = sub >= tiers[i].t;
+        chip.classList.toggle('is-unlocked', unlocked);
+        chip.classList.remove('is-target', 'is-locked');
+        if (targetIdx === -1 && !unlocked) targetIdx = i;
+      }
+      for (var j = 0; j < tiers.length; j++) {
+        var c = root.querySelector('[data-sgwp-tier="' + (j + 1) + '"]');
+        if (!c) continue;
+        if (j === targetIdx) c.classList.add('is-target');
+        else if (targetIdx !== -1 && j > targetIdx) c.classList.add('is-locked');
+      }
+
+      var msgEl = root.querySelector('[data-sgwp-msg]');
+      if (msgEl) {
+        if (targetIdx === -1) {
+          msgEl.innerHTML = 'Max reward unlocked — <b>' + tiers[tiers.length - 1].r + '</b> applied';
+        } else {
+          var rem = tiers[targetIdx].t - sub;
+          msgEl.innerHTML = '<b>' + fmt(rem, cur) + '</b> more to unlock <b>' + tiers[targetIdx].r + '</b>';
+        }
+      }
+    }
+
+    function renderAll(cart) {
+      var sub = 0, cur = 'INR';
+      if (cart) {
+        // Gross, matching the Liquid above — see the comment on gwp_sub for why
+        // items_subtotal_price is the wrong base here.
+        sub = (cart.original_total_price != null) ? cart.original_total_price : (cart.total_price || 0);
+        cur = cart.currency || cur;
+      }
+      var roots = document.querySelectorAll('.sgwp[data-sgwp]');
+      for (var i = 0; i < roots.length; i++) renderOne(roots[i], sub, cur, cart);
+    }
+
+    // Pull the cart out of whatever shape the notifier used: theme.pubsub publishes
+    // { cart }, the DOM event carries { detail: { cart } }.
+    function cartFrom(evt) {
+      if (!evt) return null;
+      if (evt.cart) return evt.cart;
+      if (evt.detail && evt.detail.cart) return evt.detail.cart;
+      return null;
+    }
+
+    var t;
+    function refresh(evt) {
+      var cart = cartFrom(evt);
+      if (cart) { renderAll(cart); return; }   // already have the state — don't re-fetch it
+      clearTimeout(t);
+      t = setTimeout(function () {
+        fetch('/cart.js', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (c) { if (c) renderAll(c); })
+          .catch(function () {});
+      }, 120);
+    }
+
+    // 1) theme pub/sub
+    function wirePubsub() {
+      try {
+        if (window.theme && theme.pubsub && typeof theme.pubsub.subscribe === 'function' &&
+            theme.pubsub.PUB_SUB_EVENTS && theme.pubsub.PUB_SUB_EVENTS.cartUpdate) {
+          theme.pubsub.subscribe(theme.pubsub.PUB_SUB_EVENTS.cartUpdate, refresh);
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+    if (!wirePubsub()) {
+      var tries = 0;
+      var iv = setInterval(function () { if (wirePubsub() || ++tries > 20) clearInterval(iv); }, 250);
+    }
+
+    // 2) DOM event used across the theme's cart components
+    document.addEventListener('cart:updated', refresh);
+
+    // 3) add-to-cart fallback. This used to wrap window.fetch globally so it could
+    //    sniff /cart/* URLs, which put a regex on the hot path of every request the
+    //    page makes — cart, search, analytics, third-party apps. Every add path in
+    //    the theme (product form, bundle, VTO, quick-add) dispatches this event and
+    //    also publishes cartUpdate, so listening is enough and costs nothing.
+    document.addEventListener('ajaxProduct:added', function () { refresh(); });
+
+    // initial live sync (corrects any cached server state)
+    refresh();
+  })();
+</script>

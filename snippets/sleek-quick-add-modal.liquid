@@ -1,0 +1,971 @@
+{%- comment -%}
+  Global Sleek Quick Add Modal — rendered ONCE at body level in theme.liquid.
+  This avoids CSS containment issues (transform/overflow on product cards).
+  The form uses is="product-form" so the theme's AJAX cart + drawer logic works natively.
+{%- endcomment -%}
+
+<div id="SleekQuickAdd" class="sleek-qa" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Quick add to cart">
+  <div class="sleek-qa__backdrop"></div>
+  <div class="sleek-qa__sheet">
+    <div class="sleek-qa__handle"><span></span></div>
+
+    {%- comment -%} Header with product image {%- endcomment -%}
+    <div class="sleek-qa__header">
+      <div class="sleek-qa__thumb-wrap">
+        <img class="sleek-qa__thumb" id="sleek-qa-img" src="" alt="" loading="lazy" width="56" height="56">
+      </div>
+      <div class="sleek-qa__info">
+        <h3 class="sleek-qa__title" id="sleek-qa-title"></h3>
+        <div class="sleek-qa__price" id="sleek-qa-price"></div>
+      </div>
+      <button type="button" class="sleek-qa__close" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4.5 4.5l9 9M13.5 4.5l-9 9"/>
+        </svg>
+      </button>
+    </div>
+
+    {%- comment -%} Divider {%- endcomment -%}
+    <div class="sleek-qa__divider"></div>
+
+    {%- comment -%} Main view (variants + add to bag) {%- endcomment -%}
+    <div class="sleek-qa__main" id="sleek-qa-main">
+      <form method="post" action="/cart/add" is="product-form" id="SleekQuickAddForm" data-hide-errors="true">
+        <input type="hidden" name="id" value="">
+
+        <div class="sleek-qa__label-row">
+          <p class="sleek-qa__label">Select Size</p>
+          <button type="button" class="sleek-qa__guide-link" id="sleek-qa-guide-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 3H3v7h18V3zM6 10v4M10 10v4M14 10v4M18 10v4M21 14H3v7h18v-7z"/>
+            </svg>
+            Size Guide
+          </button>
+        </div>
+        <div class="sleek-qa__pills" id="sleek-qa-pills" role="radiogroup" aria-label="Size"></div>
+
+      {%- comment -%} Single ADD TO BAG button {%- endcomment -%}
+      <button type="submit" name="add" class="sleek-qa__add-btn">
+        <span class="sleek-qa__add-text">ADD TO BAG</span>
+        <span class="sleek-qa__add-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
+          </svg>
+        </span>
+        {%- comment -%} Loading state (hidden by default, shown on aria-busy) {%- endcomment -%}
+        <span class="sleek-qa__add-loading" aria-hidden="true">
+          <svg class="sleek-qa__spinner-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 2a10 10 0 0 1 10 10" />
+          </svg>
+          Processing...
+        </span>
+        {%- comment -%} Success checkmark (hidden by default) {%- endcomment -%}
+        <span class="sleek-qa__add-check" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </span>
+      </button>
+      </form>
+    </div>
+
+    {%- comment -%} Size Guide sub-panel (slides in from right) {%- endcomment -%}
+    <div class="sleek-qa__guide" id="sleek-qa-guide" aria-hidden="true">
+      <div class="sleek-qa__guide-header">
+        <button type="button" class="sleek-qa__guide-back" id="sleek-qa-guide-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back
+        </button>
+        <span class="sleek-qa__guide-title">Size Guide</span>
+      </div>
+      <div class="sleek-qa__guide-body" id="sleek-qa-guide-body">
+        <div class="sleek-qa__guide-loading">
+          <div class="sleek-qa__spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ── Sleek Quick Add v2 ─────────────────────────────── */
+  .sleek-qa {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s .35s, opacity .35s ease;
+  }
+  .sleek-qa[aria-hidden="false"] {
+    visibility: visible;
+    opacity: 1;
+    transition-delay: 0s;
+  }
+
+  /* Branded gradient backdrop */
+  .sleek-qa__backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 25% 15%, rgba(107,29,42,.6) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 85%, rgba(139,45,58,.5) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 50%, rgba(60,10,20,.3) 0%, transparent 70%),
+      rgba(0,0,0,.5);
+    -webkit-backdrop-filter: blur(8px) saturate(1.3);
+    backdrop-filter: blur(8px) saturate(1.3);
+    animation: sleekBreathe 8s ease-in-out infinite alternate;
+  }
+  @keyframes sleekBreathe {
+    0% { opacity: 0.85; filter: hue-rotate(0deg); }
+    100% { opacity: 1; filter: hue-rotate(5deg); }
+  }
+
+  /* Bottom sheet */
+  .sleek-qa__sheet {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px; /* Slimmer */
+    max-height: 85vh;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.96); /* Slight glass effect */
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border-radius: 32px 32px 0 0; /* More organic curve */
+    padding: 8px 20px 28px; /* Tighter padding */
+    transform: translateY(100%);
+    transition: transform .4s cubic-bezier(.16,1,.3,1);
+    box-shadow:
+      0 -12px 50px rgba(0,0,0,.15),
+      0 0 0 1px rgba(0,0,0,.04);
+  }
+  .sleek-qa[aria-hidden="false"] .sleek-qa__sheet {
+    transform: translateY(0);
+  }
+
+  /* Drag handle */
+  .sleek-qa__handle {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 14px;
+  }
+  .sleek-qa__handle span {
+    width: 40px;
+    height: 4px;
+    border-radius: 4px;
+    background: #e0e0e0;
+    transition: background .2s;
+  }
+  .sleek-qa:hover .sleek-qa__handle span {
+    background: #ccc;
+  }
+
+  /* Header */
+  .sleek-qa__header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .sleek-qa__thumb-wrap {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px; /* Softer radius */
+    overflow: hidden;
+    background: #f5f5f5;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  }
+  .sleek-qa__thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    animation: sleekFloat 5s ease-in-out infinite; /* Dynamic looping float */
+  }
+  @keyframes sleekFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-4px) scale(1.04); }
+  }
+  .sleek-qa__info {
+    flex: 1;
+    min-width: 0;
+  }
+  .sleek-qa__title {
+    font-size: 1rem; /* Slightly slimmer */
+    font-weight: 600;
+    line-height: 1.3;
+    color: #111;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sleek-qa__price {
+    margin-top: 2px;
+    font-size: .85rem;
+    font-weight: 500;
+    color: #666;
+  }
+  /* Final-price presentation from snippets/onrepeat-sheet-price.liquid */
+  .sleek-qa__price .sleek-qa__net {
+    font-size: .95rem;
+    font-weight: 800;
+    color: #2b1214;
+  }
+  .sleek-qa__price .sleek-qa__was {
+    margin-left: 4px;
+    font-size: .78rem;
+    color: #a4968f;
+  }
+  .sleek-qa__price .sleek-qa__off {
+    margin-left: 4px;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    color: rgb(var(--color-base-button, 92 16 17));
+  }
+  .sleek-qa__close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #666;
+    transition: all .2s ease;
+    line-height: 0;
+  }
+  .sleek-qa__close:hover {
+    background: #eee;
+    color: #000;
+    transform: rotate(90deg);
+  }
+
+  /* Divider */
+  .sleek-qa__divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e5e5e5, transparent);
+    margin-bottom: 18px;
+  }
+
+  /* Main / Guide panels — swap via display so the sheet height tracks
+     the visible panel (avoids the "tiny floating card" bug caused by an
+     absolutely-positioned guide that didn't stretch its parent). */
+  .sleek-qa__main {
+    display: block;
+  }
+  .sleek-qa__guide {
+    display: none;
+    background: #fff;
+    padding: 0;
+  }
+  .sleek-qa__sheet.show-guide .sleek-qa__main {
+    display: none;
+  }
+  .sleek-qa__sheet.show-guide .sleek-qa__guide {
+    display: block;
+    animation: sleekGuideFadeIn .25s ease-out both;
+  }
+  @keyframes sleekGuideFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Label row */
+  .sleek-qa__label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .sleek-qa__label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: #999;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .sleek-qa__guide-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    padding: 4px 0;
+    font-size: .75rem;
+    font-weight: 500;
+    color: rgb(var(--color-base-button, 107 29 42));
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: opacity .2s;
+  }
+  .sleek-qa__guide-link:hover { opacity: .7; }
+  .sleek-qa__guide-link svg { flex-shrink: 0; }
+
+  /* Size Guide panel */
+  .sleek-qa__guide-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0 16px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 16px;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+  }
+  .sleek-qa__guide-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 6px 10px 6px 0;
+    font-size: .82rem;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color .2s;
+  }
+  .sleek-qa__guide-back:hover { color: #000; }
+  .sleek-qa__guide-title {
+    font-size: .95rem;
+    font-weight: 600;
+    color: #111;
+  }
+  .sleek-qa__guide-body {
+    font-size: .88rem;
+    line-height: 1.6;
+    color: #333;
+  }
+  .sleek-qa__guide-body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+    margin: 12px 0;
+  }
+  .sleek-qa__guide-body th,
+  .sleek-qa__guide-body td {
+    padding: 8px 10px;
+    border: 1px solid #eee;
+    text-align: center;
+  }
+  .sleek-qa__guide-body th {
+    background: #f8f8f8;
+    font-weight: 600;
+    color: #111;
+  }
+  .sleek-qa__guide-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .sleek-qa__guide-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+  }
+
+  /* ── Overrides for injected size-chart widget ─────────────────
+     The /pages/size-chart section ships its own .sc-wrap card
+     (white bg, border, max-width 380px) and an .sc-header title.
+     Inside the modal we already have a Size Guide header and a
+     white sheet, so flatten the injected card and hide its dup
+     header to avoid the "card-in-card" look. */
+  .sleek-qa__guide-body .sc-wrap {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+  }
+  .sleek-qa__guide-body .sc-header {
+    display: none;
+  }
+  .sleek-qa__guide-body .sc-tabs {
+    margin: 0 0 16px;
+  }
+  .sleek-qa__guide-body .sc-tab.active {
+    background: rgb(var(--color-base-button, 107 29 42));
+  }
+  .sleek-qa__guide-body .sc-table-wrap {
+    margin-bottom: 8px;
+  }
+  .sleek-qa__guide-body .sc-note {
+    margin-top: 14px;
+  }
+  .sleek-qa__spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #eee;
+    border-top-color: rgb(var(--color-base-button, 107 29 42));
+    border-radius: 50%;
+    animation: sleekSpin .6s linear infinite;
+  }
+  @keyframes sleekSpin { to { transform: rotate(360deg); } }
+
+  /* Variant pills */
+  /* Single line: every size shares the row equally (matches the on-page picker). */
+  .sleek-qa__pills {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .sleek-qa__pill {
+    flex: 1 1 0;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 4px;
+    font-size: .82rem;
+    font-weight: 600;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #444;
+    background: #fff;
+    white-space: nowrap;
+    transition: all .25s cubic-bezier(.16,1,.3,1);
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+  .sleek-qa__pill[aria-checked="true"] {
+    background: #111;
+    color: #fff;
+    border-color: #111;
+    box-shadow: 0 4px 10px rgba(0,0,0,.15);
+  }
+  /* Hover only on devices with a fine pointer (mouse) to avoid
+     mobile sticky-hover making selected pills white-on-white */
+  @media (pointer: fine) {
+    .sleek-qa__pill:hover:not(:disabled):not([aria-checked="true"]) {
+      border-color: #aaa;
+      background: #fff;
+      transform: translateY(-1.5px);
+      box-shadow: 0 4px 10px rgba(0,0,0,.05);
+    }
+  }
+  /* Sold-out / unavailable sizes stay VISIBLE but read clearly as unbuyable:
+     muted grey, struck through in brand maroon (matches the on-page picker).
+     Colours are set directly (not via opacity) because the staggered-entrance
+     animation forces opacity to 1, which would otherwise undo the dimming. */
+  .sleek-qa__pill:disabled {
+    cursor: not-allowed;
+    color: #bbb;
+    background: #fafafa;
+    border-color: #ececec;
+    text-decoration: line-through;
+    text-decoration-color: rgba(92, 16, 17, 0.6);
+    text-decoration-thickness: 1.5px;
+  }
+
+  /* Staggered pill entrance */
+  .sleek-qa__pill {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: sleekPillIn .35s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .sleek-qa__pill:nth-child(1) { animation-delay: .05s; }
+  .sleek-qa__pill:nth-child(2) { animation-delay: .08s; }
+  .sleek-qa__pill:nth-child(3) { animation-delay: .11s; }
+  .sleek-qa__pill:nth-child(4) { animation-delay: .14s; }
+  .sleek-qa__pill:nth-child(5) { animation-delay: .17s; }
+  .sleek-qa__pill:nth-child(6) { animation-delay: .20s; }
+  .sleek-qa__pill:nth-child(7) { animation-delay: .23s; }
+  .sleek-qa__pill:nth-child(8) { animation-delay: .26s; }
+  .sleek-qa__pill:nth-child(9) { animation-delay: .29s; }
+  .sleek-qa__pill[aria-checked="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @keyframes sleekPillIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ADD TO BAG button */
+  .sleek-qa__add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: 999px; /* Modern pill shape */
+    font-size: .85rem;
+    font-weight: 600;
+    letter-spacing: .08em; /* Slightly tighter */
+    cursor: pointer;
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+    border: none;
+    background: rgb(var(--color-base-button, 107 29 42));
+    color: rgb(var(--color-base-button-text, 255 255 255));
+    transition: all .3s cubic-bezier(.16,1,.3,1);
+    box-shadow: 0 6px 20px rgba(107,29,42,.25);
+  }
+  /* Dynamic continuous shimmer effect */
+  .sleek-qa__add-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transform: skewX(-20deg);
+    animation: sleekShimmer 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    pointer-events: none;
+  }
+  @keyframes sleekShimmer {
+    0% { left: -100%; }
+    100% { left: 200%; }
+  }
+  .sleek-qa__add-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(107,29,42,.35);
+  }
+  .sleek-qa__add-btn:active:not(:disabled) {
+    transform: translateY(0) scale(.98);
+    box-shadow: 0 4px 12px rgba(107,29,42,.2);
+  }
+  .sleek-qa__add-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .sleek-qa__add-btn:disabled::before {
+    display: none; /* Turn off shimmer when disabled */
+  }
+  .sleek-qa__add-text {
+    transition: opacity .2s, transform .2s;
+  }
+  .sleek-qa__add-icon {
+    opacity: .7;
+    transition: opacity .2s, transform .2s;
+  }
+  .sleek-qa__add-check {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(.5);
+    transition: opacity .3s, transform .3s cubic-bezier(.16,1,.3,1);
+  }
+
+  /* Success state */
+  .sleek-qa__add-btn.is-success {
+    background: #1a8f4a;
+    box-shadow: 0 4px 16px rgba(26,143,74,.25);
+  }
+  .sleek-qa__add-btn.is-success .sleek-qa__add-text,
+  .sleek-qa__add-btn.is-success .sleek-qa__add-icon {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  .sleek-qa__add-btn.is-success .sleek-qa__add-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Loading / Processing state */
+  .sleek-qa__add-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    transition: opacity .2s ease;
+  }
+  .sleek-qa__spinner-svg {
+    animation: sleekSpin .7s linear infinite;
+  }
+  @keyframes sleekSpin {
+    to { transform: rotate(360deg); }
+  }
+  .sleek-qa__add-btn[aria-busy="true"] .sleek-qa__add-text,
+  .sleek-qa__add-btn[aria-busy="true"] .sleek-qa__add-icon {
+    opacity: 0;
+    transform: scale(.9);
+  }
+  .sleek-qa__add-btn[aria-busy="true"] .sleek-qa__add-loading {
+    opacity: 1;
+  }
+  .sleek-qa__add-btn[aria-busy="true"]::before {
+    display: none; /* Stop shimmer during processing */
+  }
+
+  /* Desktop */
+  @media (min-width: 750px) {
+    .sleek-qa { align-items: center; }
+    .sleek-qa__sheet {
+      border-radius: 32px; /* Smoother radius */
+      max-width: 360px; /* Slimmer */
+      padding: 24px;
+      transform: translateY(20px) scale(.96);
+      opacity: 0;
+      transition: transform .4s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+    }
+    .sleek-qa[aria-hidden="false"] .sleek-qa__sheet {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .sleek-qa__handle { display: none; }
+  }
+</style>
+
+<script>
+  (function() {
+    const modal     = document.getElementById('SleekQuickAdd');
+    const backdrop  = modal.querySelector('.sleek-qa__backdrop');
+    const closeBtn  = modal.querySelector('.sleek-qa__close');
+    const sheet     = modal.querySelector('.sleek-qa__sheet');
+    const titleEl   = document.getElementById('sleek-qa-title');
+    const priceEl   = document.getElementById('sleek-qa-price');
+    const imgEl     = document.getElementById('sleek-qa-img');
+    const pillsEl   = document.getElementById('sleek-qa-pills');
+    const form      = document.getElementById('SleekQuickAddForm');
+    const idInput   = form.querySelector('input[name="id"]');
+    const guideBtn  = document.getElementById('sleek-qa-guide-btn');
+    const guideBack = document.getElementById('sleek-qa-guide-back');
+    const guideBody = document.getElementById('sleek-qa-guide-body');
+    const addBtn   = form.querySelector('button[name="add"]');
+    const addText  = addBtn.querySelector('.sleek-qa__add-text');
+
+    let currentVariants = [];
+    let currentChartKey = '';
+
+    function open(trigger) {
+      const title    = trigger.dataset.productTitle;
+      currentChartKey = trigger.dataset.scChart || '';
+      const price    = trigger.dataset.productPrice;
+      const image    = trigger.dataset.productImage || '';
+      const variants = JSON.parse(trigger.dataset.variants);
+      /* The trigger carries the chosen selection either as a variant id (product
+         cards) or as a size label (the PDP sticky bar reads the checked radio,
+         which is synchronous and never stale). Match against both below. */
+      const selected = (trigger.dataset.selected || '').trim();
+
+      /* 'cart' (add to cart, default) or 'buynow' (add then go to checkout). */
+      modal.dataset.mode = trigger.dataset.mode === 'buynow' ? 'buynow' : 'cart';
+
+      currentVariants = variants;
+      /* Clear any selection carried over from a previous open so a stale size is
+         never shown when this open has no (or a different) match. */
+      idInput.value = '';
+      titleEl.textContent = title;
+      priceEl.innerHTML = price.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
+      /* Product image */
+      if (image) {
+        imgEl.src = image;
+        imgEl.alt = title;
+        imgEl.parentElement.style.display = '';
+      } else {
+        imgEl.parentElement.style.display = 'none';
+      }
+
+      /* Build pills */
+      pillsEl.innerHTML = '';
+      variants.forEach(function(v) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sleek-qa__pill';
+        btn.textContent = v.title;
+        btn.dataset.variantId = v.id;
+        btn.setAttribute('role', 'radio');
+
+        var isSelected = selected !== '' && (String(v.id) === selected || v.title === selected);
+        if (!v.available) {
+          btn.disabled = true;
+          btn.setAttribute('aria-checked', 'false');
+        } else if (isSelected) {
+          btn.setAttribute('aria-checked', 'true');
+          idInput.value = v.id;
+        } else {
+          btn.setAttribute('aria-checked', 'false');
+        }
+
+        btn.addEventListener('click', function() { selectVariant(v.id); });
+        pillsEl.appendChild(btn);
+      });
+
+      /* Reset button state */
+      addBtn.classList.remove('is-success');
+      updateButtons();
+
+      modal.setAttribute('aria-hidden', 'false');
+      if (window.theme && window.theme.scrollLock) {
+        window.theme.scrollLock.acquire();
+        modal.dataset.scrollLockHeld = '1';
+      } else {
+        document.body.style.overflow = 'hidden';
+      }
+
+    }
+
+    function close() {
+      modal.setAttribute('aria-hidden', 'true');
+      sheet.classList.remove('show-guide');
+      modal.dataset.mode = 'cart';
+      if (modal.dataset.scrollLockHeld === '1' && window.theme && window.theme.scrollLock) {
+        window.theme.scrollLock.release();
+        delete modal.dataset.scrollLockHeld;
+      } else {
+        document.body.style.overflow = '';
+      }
+    }
+
+    /* ── Size Guide ──────────────────────────
+       We OWN the rendering here. The size-chart page ships an inline IIFE that
+       writes into a global #sc-body and a global window.scSwitchUnit; running it
+       inside the sheet collides with any other size-chart instance on the page
+       (the variant picker's modal, the sticky bar's guide) so the rows came back
+       empty. Instead we parse scSizes / scCols out of that script, drop the
+       script, and build the rows + cm/in toggle ourselves — the same approach the
+       sticky-size-guide uses, so it works reliably everywhere. */
+    var guideCache = null; // { html, sizes, cols }
+    var guideUnit = 'in';
+
+    function fmtMeasure(v, unit) {
+      var num = Number(v);
+      if (isNaN(num)) return v;
+      return unit === 'in' ? Math.round(num / 2.54) : Math.round(num);
+    }
+
+    function renderGuideRows(sizes, cols, unit) {
+      var tbody = guideBody.querySelector('tbody');
+      if (!tbody) return;
+      tbody.innerHTML = sizes.map(function(row) {
+        var cells = cols.map(function(c) {
+          return '<td>' + (row[c] != null ? fmtMeasure(row[c], unit) : '') + '</td>';
+        }).join('');
+        return '<tr><td><span class="sc-badge">' + (row.size || '') + '</span></td>' + cells + '</tr>';
+      }).join('');
+      cols.forEach(function(c) {
+        var u = guideBody.querySelector('#sc-u-' + c);
+        if (u) u.textContent = unit;
+      });
+    }
+
+    function wireGuideTabs(sizes, cols) {
+      var tabs = guideBody.querySelectorAll('.sc-tab');
+      if (!tabs.length) return;
+      var tabGroup = guideBody.querySelector('.sc-tab-group');
+      if (tabGroup) {
+        var tabsArr = Array.prototype.slice.call(tabs);
+        var inchTab = tabsArr.filter(function(t) { return (t.textContent || '').toLowerCase().indexOf('inch') !== -1; })[0];
+        var cmTab = tabsArr.filter(function(t) { return (t.textContent || '').toLowerCase().indexOf('inch') === -1; })[0];
+        if (inchTab && cmTab) { tabGroup.appendChild(inchTab); tabGroup.appendChild(cmTab); }
+      }
+      tabs.forEach(function(tab) {
+        var isIn = (tab.textContent || '').toLowerCase().indexOf('inch') !== -1;
+        tab.classList.toggle('active', isIn);
+        tab.addEventListener('click', function(e) {
+          e.preventDefault();
+          var unit = (tab.textContent || '').toLowerCase().indexOf('inch') !== -1 ? 'in' : 'cm';
+          if (guideUnit === unit) return;
+          guideUnit = unit;
+          tabs.forEach(function(t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          renderGuideRows(sizes, cols, unit);
+        });
+      });
+    }
+
+    function renderGuide(cache) {
+      guideBody.innerHTML = cache.html;
+      guideUnit = 'in';
+      if (cache.sizes && cache.sizes.length) {
+        wireGuideTabs(cache.sizes, cache.cols);
+        renderGuideRows(cache.sizes, cache.cols, guideUnit);
+      }
+    }
+
+    function openGuide() {
+      sheet.classList.add('show-guide');
+
+      var override = window.OnRepeatSizeChart && window.OnRepeatSizeChart.getChart(currentChartKey);
+      if (override) { window.OnRepeatSizeChart.renderInto(guideBody, override); return; }
+
+      if (guideCache) { renderGuide(guideCache); return; }
+
+      guideBody.innerHTML = '<div class="sleek-qa__guide-loading"><div class="sleek-qa__spinner"></div></div>';
+      fetch('/pages/size-chart?section_id=main-page')
+        .then(function(r) {
+          if (!r.ok) throw new Error('Not found');
+          return r.text();
+        })
+        .then(function(html) {
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          /* Section render endpoint returns:
+             #shopify-section-main-page > .section > .page-width > .page.rte
+             We want the .page.rte body (skips the H1 title). */
+          var content = doc.querySelector('#shopify-section-main-page .page.rte')
+            || doc.querySelector('.page.rte')
+            || doc.querySelector('.rte')
+            || doc.querySelector('main')
+            || doc.body;
+          if (!content) throw new Error('no content');
+
+          var sizes = null;
+          var cols = ['body', 'chest', 'length', 'shoulder', 'sleeve'];
+          var scriptEl = content.querySelector('script');
+          if (scriptEl) {
+            var text = scriptEl.textContent;
+            var sizesMatch = text.match(/var\s+scSizes\s*=\s*(\[[\s\S]*?\])\s*;/);
+            if (sizesMatch) {
+              try {
+                var jsonish = sizesMatch[1]
+                  .replace(/'/g, '"')
+                  .replace(/(\b\w+)\s*:/g, '"$1":')
+                  .replace(/,(\s*[\]}])/g, '$1');
+                sizes = JSON.parse(jsonish);
+              } catch (e) { /* leave sizes null → graceful empty state */ }
+            }
+            var colsMatch = text.match(/var\s+scCols\s*=\s*\[([^\]]*)\]/);
+            if (colsMatch) {
+              cols = colsMatch[1].split(',').map(function(s) { return s.trim().replace(/['"]/g, ''); }).filter(Boolean);
+            }
+            scriptEl.remove(); // never execute the colliding global IIFE
+          }
+
+          cols = cols.filter(function(c) { return c !== 'body'; });
+          content.querySelectorAll('th').forEach(function(th) {
+            if ((th.textContent || '').trim().toLowerCase().indexOf('body') !== -1) th.remove();
+          });
+          content.querySelectorAll('.sc-tab[onclick]').forEach(function(b) { b.removeAttribute('onclick'); });
+
+          var cleanHTML = content.innerHTML.trim();
+          if (cleanHTML.length < 20) {
+            guideBody.innerHTML = '<p style="text-align:center;color:#999;padding:24px 0;">Size guide not available.</p>';
+            return;
+          }
+          guideCache = { html: cleanHTML, sizes: sizes, cols: cols };
+          renderGuide(guideCache);
+        })
+        .catch(function() {
+          guideBody.innerHTML = '<p style="text-align:center;color:#999;padding:20px 0;">Could not load size guide.</p>';
+        });
+    }
+
+    function closeGuide() {
+      sheet.classList.remove('show-guide');
+    }
+
+    guideBtn.addEventListener('click', openGuide);
+    guideBack.addEventListener('click', closeGuide);
+
+    function selectVariant(id) {
+      idInput.value = id;
+      pillsEl.querySelectorAll('.sleek-qa__pill').forEach(function(p) {
+        p.setAttribute('aria-checked', String(parseInt(p.dataset.variantId) === id));
+      });
+      updateButtons();
+    }
+
+    function updateButtons() {
+      var hasSelection = idInput.value !== '';
+      var v = hasSelection ? currentVariants.find(function(v) { return v.id === parseInt(idInput.value); }) : null;
+      var available = v ? v.available : false;
+      addBtn.disabled = !available;
+      if (addText) {
+        if (!hasSelection) {
+          addText.textContent = 'SELECT A SIZE';
+        } else if (!available) {
+          addText.textContent = 'SOLD OUT';
+        } else {
+          addText.textContent = modal.dataset.mode === 'buynow' ? 'BUY NOW' : 'ADD TO BAG';
+        }
+      }
+    }
+
+    function showSuccess() {
+      addBtn.classList.add('is-success');
+      setTimeout(function() {
+        close();
+        setTimeout(function() {
+          addBtn.classList.remove('is-success');
+        }, 400);
+      }, 900);
+    }
+
+    /* Event Listeners */
+    backdrop.addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') close();
+    });
+
+    /* Trigger checkout the same way the cart drawer's "Check out" button does,
+       so Razorpay Magic Checkout (which binds to the cart's name="checkout"
+       button on page load) intercepts it. A direct /checkout navigation would
+       bypass that binding and land on Shopify's native checkout. We click the
+       real button; if it isn't present we fall back to a posted cart form, and
+       only as a last resort navigate to /checkout. */
+    function goToCheckout() {
+      var btn = document.querySelector('form[action$="/cart"] button[name="checkout"], form[action$="/cart"] [name="checkout"], [name="checkout"]');
+      if (btn) { btn.click(); return; }
+      var form = document.createElement('form');
+      form.method = 'post';
+      form.action = '/cart';
+      form.style.display = 'none';
+      var input = document.createElement('input');
+      input.type = 'submit';
+      input.name = 'checkout';
+      form.appendChild(input);
+      document.body.appendChild(form);
+      if (input.click) { input.click(); } else { form.submit(); }
+    }
+
+    /* Listen for cart success. In buy-now mode go straight to checkout via the
+       cart's checkout button (Razorpay Magic Checkout); otherwise show success. */
+    document.addEventListener('ajaxProduct:added', function() {
+      if (modal.dataset.mode === 'buynow' && modal.getAttribute('aria-hidden') === 'false') {
+        goToCheckout();
+        return;
+      }
+      showSuccess();
+    });
+
+    /* Delegate: listen for clicks on any [data-sleek-open] button */
+    document.addEventListener('click', function(e) {
+      var trigger = e.target.closest('[data-sleek-open]');
+      if (trigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        open(trigger);
+      }
+    });
+  })();
+</script>

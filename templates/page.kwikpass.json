@@ -1,0 +1,415 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "images_with_text_overlay_gtYKUU": {
+      "type": "images-with-text-overlay",
+      "blocks": {
+        "subheading_QtiK73": {
+          "type": "subheading",
+          "settings": {
+            "subheading": "THE ONREPEAT",
+            "subheading_size": "subtitle-md",
+            "secondary_color": true
+          }
+        },
+        "heading_4H9gxX": {
+          "type": "heading",
+          "settings": {
+            "heading": "pronounced: <em>शून्य</em>",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "stencil",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_LqJft8": {
+          "type": "text",
+          "settings": {
+            "text": "<p><em><strong>ONREPEAT</strong></em> is a premium apparel brand founded by <strong>Paras Soni</strong> in Bharat in 2024. From its inception, ONREPEAT has been committed to reshaping the apparel narrative in India — merging minimalism with a raw, expressive edge.</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "scribble",
+            "highlighted_scribble": "basic-underline"
+          }
+        }
+      },
+      "block_order": [
+        "subheading_QtiK73",
+        "heading_4H9gxX",
+        "text_LqJft8"
+      ],
+      "disabled": true,
+      "settings": {
+        "transparent_header": true,
+        "image_height": "650px",
+        "content_width": "small",
+        "content_position": "md:items-end md:justify-start",
+        "text_alignment": "left",
+        "image_1": "shopify://shop_images/5S3A6270.jpg",
+        "image_2": "shopify://shop_images/4.png",
+        "image_3": "shopify://shop_images/1_ef08f45a-6097-4fb6-8f63-047aa9a65768.png",
+        "image_4": "shopify://shop_images/5.png",
+        "image_5": "shopify://shop_images/3_3750e95e-6811-495d-9669-9ad56cde48f6.png",
+        "image_height_mobile": "auto",
+        "content_position_mobile": "items-end justify-start",
+        "text_alignment_mobile": "left",
+        "color_text": "#ffffff",
+        "color_highlight": "#e0a580",
+        "gradient_highlight": "",
+        "color_button_text": "#171717",
+        "color_button_background": "#ffffff",
+        "color_button_gradient": "",
+        "color_overlay": "#171717",
+        "overlay_opacity": 100,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": false,
+        "enable_parallax": true
+      }
+    },
+    "main-page": {
+      "type": "main-page",
+      "settings": {
+        "heading_size": "title-xl tracking-heading",
+        "heading_alignment": "text-left",
+        "heading_tag": "h1",
+        "text_size": "text-base",
+        "padding_top": 72,
+        "padding_bottom": 120,
+        "divider": false,
+        "narrow": true,
+        "rounded": false
+      }
+    },
+    "images_with_text_btKzWJ": {
+      "type": "images-with-text",
+      "blocks": {
+        "heading_6zFtMW": {
+          "type": "heading",
+          "settings": {
+            "heading": "Our <em>Journey</em>",
+            "heading_size": "title-md",
+            "heading_tag": "h2",
+            "highlighted_text": "scribble",
+            "highlighted_scribble": "basic-underline"
+          }
+        },
+        "text_nVtrVi": {
+          "type": "text",
+          "settings": {
+            "text": "<p>In <strong>2024</strong>, against the vibrant backdrop of Bharat’s evolving creative landscape, <strong>ONREPEAT</strong> was born — a fashion and lifestyle brand rooted in purpose, expression, and culture.</p><p> Founded by <strong>Paras Soni</strong>, ONREPEAT emerged from a vision to redefine contemporary apparel and lifestyle in India through thoughtful design and artistic identity.</p><p>Spotting a space where authentic self-expression and elevated design could coexist, Paras set out to create more than just a clothing label. </p><p>He envisioned a platform where every silhouette, texture, and graphic tells a story — grounded in nature, emotion, rebellion, and everyday rhythm.</p><p></p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "button_itTETC": {
+          "type": "button",
+          "settings": {
+            "button_label": "Follow me",
+            "button_link": "https://www.instagram.com/rjparas_soni/",
+            "button_style": "primary",
+            "button_size": "md",
+            "button_external": true,
+            "button_icon": true
+          }
+        }
+      },
+      "block_order": [
+        "heading_6zFtMW",
+        "text_nVtrVi",
+        "button_itTETC"
+      ],
+      "disabled": true,
+      "settings": {
+        "image": "shopify://shop_images/logo_pr_15baee91-5518-4708-8337-5719a87bbc5d.png",
+        "image_2": "shopify://shop_images/5S3A4945.jpg",
+        "image_ratio": "portrait",
+        "image_width": "medium",
+        "layout": "image_first",
+        "text_alignment": "left",
+        "text_alignment_mobile": "left",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": false,
+        "enable_parallax": true
+      }
+    },
+    "video_hero_U8h77m": {
+      "type": "video-hero",
+      "blocks": {
+        "slide_4FrtJA": {
+          "type": "slide",
+          "settings": {
+            "heading": "OnRepeat is not empty. OnRepeat is full of possibility.",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "slide_ydy4zm": {
+          "type": "slide",
+          "settings": {
+            "heading": "We don't fill space. We hold it.",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "slide_3w9DUF": {
+          "type": "slide",
+          "settings": {
+            "heading": "The loudest thing in the room is often the quietest.",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "slide_4FrtJA",
+        "slide_ydy4zm",
+        "slide_3w9DUF"
+      ],
+      "disabled": true,
+      "name": "t:sections.video-hero.presets.name",
+      "settings": {
+        "transparent_header": false,
+        "video": "shopify://files/videos/ONREPEAT RAKTPRINT.mp4",
+        "video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+        "description": "",
+        "enable_video_autoplay": true,
+        "enable_video_looping": true,
+        "content_width": "medium",
+        "video_url_mobile": "",
+        "color_text": "#ffffff",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_overlay": "#000000",
+        "overlay_opacity": 40,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": false
+      }
+    },
+    "portfolio_e8VGbn": {
+      "type": "portfolio",
+      "blocks": {
+        "profile_7KQacX": {
+          "type": "profile",
+          "settings": {
+            "image": "shopify://shop_images/sands-of-time-in-water.jpg",
+            "heading": "Time",
+            "text": "<p>We draw from the past, live in the now, and design for what’s next. ONREPEAT threads moments into fabric — each piece a timestamp of cultural reflection, evolution, and personal memory.</p>",
+            "color_text": "#ffffff",
+            "color_background": "#171717"
+          }
+        },
+        "profile_YwbLVt": {
+          "type": "profile",
+          "settings": {
+            "image": "shopify://shop_images/iphone-background-nature.jpg",
+            "heading": "Nature",
+            "text": "<p>Our palette, textures, and flow are rooted in the raw beauty of the natural world. Earth-toned essentials, organic movement, and grounded silhouettes reflect a deep respect for where we come from.</p>",
+            "color_text": "#ffffff",
+            "color_background": "#171717"
+          }
+        },
+        "profile_dfreBE": {
+          "type": "profile",
+          "settings": {
+            "image": "shopify://shop_images/graffiti-on-side-of-building.jpg",
+            "heading": "Art",
+            "text": "<p>ONREPEAT is a canvas. Every graphic, stitch, and silhouette is a story — expressive, abstract, and deeply intentional. We believe fashion is wearable art — one that speaks before words.</p>",
+            "color_text": "#ffffff",
+            "color_background": "#171717"
+          }
+        },
+        "profile_gwj9tc": {
+          "type": "profile",
+          "settings": {
+            "image": "shopify://shop_images/man-stands-on-lit-floor.jpg",
+            "heading": "Future",
+            "text": "<p>We're not just reacting to the now — we're designing what's next. Through experimentation, technology, and bold design, ONREPEAT stands at the edge of future apparel in Bharat and beyond.</p>",
+            "color_text": "#ffffff",
+            "color_background": "#171717"
+          }
+        }
+      },
+      "block_order": [
+        "profile_7KQacX",
+        "profile_YwbLVt",
+        "profile_dfreBE",
+        "profile_gwj9tc"
+      ],
+      "disabled": true,
+      "settings": {
+        "columns": 4,
+        "carousel_on_desktop": false,
+        "layout": "default",
+        "image_ratio": "portrait",
+        "image_ratio_mobile": "portrait",
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "heading": "<strong>The Elements of OnRepeat's Vibe</strong>",
+        "heading_size": "title-md",
+        "heading_alignment": "text-center justify-center",
+        "heading_tag": "h2",
+        "subheading": "Our Core Values",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "scribble",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": false
+      }
+    },
+    "reveal_testimonials_nK8GWL": {
+      "type": "reveal-testimonials",
+      "blocks": {
+        "testimonial_mJnhbF": {
+          "type": "testimonial",
+          "settings": {
+            "icon": "quote",
+            "text": "<p>Excellent OnRepeat🥳….A very good mix of comfort,style & price….it is worth every penny</p>",
+            "author": "Khushbu",
+            "author_info": "",
+            "author_url": "",
+            "image_ratio": "rounded",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "testimonial_CBNnnz": {
+          "type": "testimonial",
+          "settings": {
+            "icon": "quote",
+            "text": "<p>Absolutely loved my experience with ONREPEAT! The packaging was beautiful and personalized, making it feel so special. </p>",
+            "author": "Aishwarya",
+            "author_info": "",
+            "author_url": "",
+            "image_ratio": "rounded",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "testimonial_eBQ7tr": {
+          "type": "testimonial",
+          "settings": {
+            "icon": "quote",
+            "text": "<p>The sweatshirt is incredibly soft, fits perfectly, and the detailing is stunning. I've received so many compliments already! Highly recommend ONREPEAT for anyone looking for quality and style.</p>",
+            "author": "Deepak",
+            "author_info": "",
+            "author_url": "",
+            "image_ratio": "rounded",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "testimonial_C6NYwD": {
+          "type": "testimonial",
+          "settings": {
+            "icon": "quote",
+            "text": "<p>The fabric feels soft and comfortable<br/>great quality tshirt</p>",
+            "author": "Sapna",
+            "author_info": "",
+            "author_url": "",
+            "image_ratio": "rounded",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "testimonial_kb3fcy": {
+          "type": "testimonial",
+          "settings": {
+            "icon": "quote",
+            "text": "<p>Love the art and the texture of the cloth is amazing kudos team to OnRepeat.</p>",
+            "author": "Amitabh",
+            "author_info": "",
+            "author_url": "",
+            "image_ratio": "rounded",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "testimonial_mJnhbF",
+        "testimonial_CBNnnz",
+        "testimonial_eBQ7tr",
+        "testimonial_C6NYwD",
+        "testimonial_kb3fcy"
+      ],
+      "disabled": true,
+      "settings": {
+        "heading": "What people are saying",
+        "heading_size": "title-md",
+        "heading_tag": "h2",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "rounded": false
+      }
+    }
+  },
+  "order": [
+    "images_with_text_overlay_gtYKUU",
+    "main-page",
+    "images_with_text_btKzWJ",
+    "video_hero_U8h77m",
+    "portfolio_e8VGbn",
+    "reveal_testimonials_nK8GWL"
+  ]
+}

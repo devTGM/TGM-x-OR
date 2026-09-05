@@ -1,0 +1,537 @@
+<style>
+  #shopify-section-{{ section.id }} {
+    --gradient-background: {% if section.settings.gradient_background != blank %}{{ section.settings.gradient_background }}{% else %}{{ section.settings.color_background }}{% endif %};
+    --color-background: {{ section.settings.color_background.rgb }};
+    --color-foreground: {{ section.settings.color_text.rgb }};
+  }
+  .onrepeat-currency-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid rgb(var(--color-foreground) / 0.28);
+    border-radius: 999px;
+    background: rgb(var(--color-foreground) / 0.06);
+  }
+  .onrepeat-currency-pill__side {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: rgb(var(--color-foreground) / 0.72);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .onrepeat-currency-pill__side.is-active {
+    background: #5c1011;
+    color: #fff;
+    font-weight: 600;
+    cursor: default;
+  }
+  /* ------------------------------------------------------------------
+     Footer identity band. `position: relative` is load-bearing: .section
+     paints via an absolutely-positioned ::before with no negative z-index
+     (theme.css:4852) that covers static children. It is also
+     pointer-events:none, so hit-testing cannot detect the occlusion — the
+     failure is invisible to elementFromPoint and only shows in a screenshot.
+     The background repaint is belt-and-braces for the same reason.
+     ------------------------------------------------------------------ */
+  .onrepeat-fx {
+    position: relative;
+    background: var(--gradient-background);
+    background-color: rgb(var(--color-background));
+  }
+  .onrepeat-fx__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(20px, 3.4vw, 30px);
+    /* The copyright strip below brings its own top padding, so this end value
+       is intentionally lighter than the start. */
+    padding-block: clamp(30px, 4.8vw, 46px) clamp(16px, 2.4vw, 22px);
+  }
+
+  /* Payment marks */
+  .onrepeat-pay {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(11px, 1.6vw, 15px);
+    width: 100%;
+  }
+  .onrepeat-pay__label {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(var(--color-foreground) / 0.42);
+  }
+  .onrepeat-pay__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .onrepeat-pay__item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 56px;
+    height: 34px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.09);
+  }
+  .onrepeat-pay__item--tight { padding: 6px 9px; }
+  .onrepeat-pay__item--cod {
+    width: auto;
+    min-width: 56px;
+    padding-inline: 9px;
+    color: #1a1a1a;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .onrepeat-pay__item--cod img { width: 17px; height: 17px; flex: none; }
+  .onrepeat-pay__item img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Seller identity */
+  .onrepeat-legal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding-block-start: clamp(20px, 3vw, 26px);
+    border-block-start: 1px solid rgb(var(--color-foreground) / 0.11);
+    text-align: center;
+    text-wrap: balance;
+  }
+  .onrepeat-legal p { margin: 0; }
+  .onrepeat-legal__name {
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--color-foreground) / 0.88);
+  }
+  @media screen and (max-width: 519px) {
+    .onrepeat-pay__item { width: 52px; height: 32px; }
+  }
+  @media screen and (min-width: 990px) {
+    .onrepeat-pay__row { gap: 9px; }
+    .onrepeat-pay__item { width: 60px; height: 36px; }
+    .onrepeat-legal__name { font-size: 13px; }
+  }
+  .onrepeat-currency-pill__side:not(.is-active):hover {
+    color: rgb(var(--color-foreground));
+    background: rgb(var(--color-foreground) / 0.09);
+  }
+  .onrepeat-currency-pill__side:focus-visible {
+    outline: 2px solid rgb(var(--color-foreground));
+    outline-offset: 2px;
+  }
+  .onrepeat-currency-pill__flag {
+    font-size: 15px;
+    line-height: 1;
+  }
+  @media (max-width: 1023px) {
+    /* Stacked layout: the pill reads as a storefront control, not small print —
+       it sits above the copyright line, matching the approved design. */
+    #shopify-section-{{ section.id }} .localization {
+      order: -1;
+    }
+  }
+</style>
+
+{%- comment -%}
+  The identity band lives INSIDE the parallax .section, as the theme intends — one section, one
+  transform, so nothing slides against anything else while the footer reveals on scroll.
+
+  It needs its own .onrepeat-fx wrapper for one reason: .section paints through an absolutely
+  positioned ::before with no negative z-index (theme.css:4852), which covers static children.
+  Anything added here must be positioned to paint above it. That overlay is also
+  pointer-events:none, so elementFromPoint cannot see the occlusion — this bug is invisible to
+  hit-testing and only shows up in a screenshot. .onrepeat-fx and .onrepeat-legal both carry
+  `position: relative` for exactly this. Do not remove it.
+
+  The band is now the brand line alone. The store location, CIN and GSTIN that used to sit under
+  it were removed at the merchant's request; none of that disclosure has left the site, it just
+  no longer appears in the footer. It still lives in:
+
+    templates/page.llms.liquid:40-46          CIN, GSTIN and principal place of business
+    snippets/schema-sitewide.liquid:33-42     both identifiers as Organization JSON-LD
+    templates/product.json:116                the Manufactured & Marketed by block on every PDP
+    the Terms of Service page                 the registered office
+
+  So the MCA and GST registries still resolve THE ONREPEAT CLOTHING™ to SUNYE ATTIRE PRIVATE LIMITED
+  for anyone who checks, and the structured data search engines read is untouched.
+
+  The line reads THE ONREPEAT CLOTHING™ rather than the registered entity name: the shopper knows the
+  brand. ™ not ® — the marks are applied for, not yet registered.
+{%- endcomment -%}
+<div class="section{% if section.settings.divider %} section--divider{% endif %}{% if section.settings.rounded %} section--rounded{% endif %}"{% if section.settings.enable_parallax %} is="footer-parallax"{% endif %}>
+  <div class="onrepeat-fx">
+    <div class="onrepeat-fx__inner page-width{% if section.settings.full_width %} page-width--full{% endif %} w-full">
+      {%- render 'onrepeat-payment-icons', section: section -%}
+
+      {%- if section.settings.show_legal_entity -%}
+        <div class="onrepeat-legal">
+          <p class="onrepeat-legal__name">THE ONREPEAT CLOTHING&trade;</p>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+
+  <div class="footer-copyright page-width{% if section.settings.full_width %} page-width--full{% endif %} w-full flex flex-col items-center justify-between gap-4 lg:gap-0 lg:flex-row relative">
+    <div class="rte credits text-center">
+      {%- liquid
+        if section.settings.show_copyright
+          echo '&copy;&nbsp;'
+          echo 'now' | date: '%Y'
+          echo '&nbsp;'
+          echo shop.name
+          if section.settings.copyright_text != blank
+            echo '&nbsp;'
+            echo section.settings.copyright_text
+          endif
+          echo '.&nbsp;'
+        endif
+      -%}
+      <a href="https://www.softpipersolutions.com" target="_blank" rel="nofollow" class="reversed-link">Powered by Softpiper Solutions</a>
+      {%- if section.settings.show_policy -%}
+        <ul class="flex flex-wrap gap-3 justify-center lg:justify-start">
+          {%- for policy in shop.policies -%}
+            {%- if policy != blank -%}
+              <li>
+                <small>
+                  <a href="{{ policy.url }}" class="block reversed-link">{{ policy.title }}</a>
+                </small>
+              </li>
+            {%- endif -%}
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+
+    {%- liquid
+      if section.settings.enable_language_selector and localization.available_languages.size > 1
+        assign enable_language_selector = true
+      endif
+      if section.settings.enable_country_selector and localization.available_countries.size > 1
+        assign enable_country_selector = true
+      endif
+    -%}
+    {%- if enable_language_selector or enable_country_selector -%}
+      <div class="localization flex items-center justify-center flex-col md:flex-row">
+        {%- if enable_language_selector -%}
+          <div class="grid gap-2">
+            {%- form 'localization', id: 'localization_language_form_footer', class: 'localization__form flex items-center relative', is: 'localization-form' -%}
+              <label class="sr-only" for="LocalizationLanguageFormFooter">
+                {{- 'localization.language_label' | t -}}
+              </label>
+              {%- render 'icon', icon: 'language', size: 'xs', class: 'stroke-1 absolute pointer-events-none' -%}
+              <select class="localization__item cursor-pointer leading-tight w-full" name="locale_code" id="LocalizationLanguageFormFooter">
+                {%- for language in localization.available_languages -%}
+                  <option value="{{ language.iso_code }}"{% if language.iso_code == localization.language.iso_code %} selected{% endif %}>
+                    {{- language.endonym_name | capitalize -}}
+                  </option>
+                {%- endfor -%}
+              </select>
+              {%- render 'icon', icon: 'chevron-down', size: 'xs', class: 'absolute pointer-events-none' -%}
+            {%- endform -%}
+            <noscript>
+              <button class="button button--primary button--small w-full" type="submit" form="localization_language_form_footer">
+                {{- 'localization.update_language' | t -}}
+              </button>
+            </noscript>
+          </div>
+        {%- endif -%}
+        {%- if enable_country_selector and localization.available_countries.size == 2 -%}
+          {%- comment -%}
+            Exactly two markets (India + United States today): a two-sided pill
+            on the REAL localization form. Buttons carry the country_code, the
+            active side is disabled so it cannot resubmit, and the whole thing
+            works with zero JS — the form tag itself provides form_type, utf8
+            and the _method=put override Shopify's /localization route needs.
+            Switching market context is coherent even before USD display is
+            enabled: prices simply follow the market's price list.
+          {%- endcomment -%}
+          {%- form 'localization', id: 'localization_country_form_footer', class: 'onrepeat-currency-pill' -%}
+            <input type="hidden" name="return_to" value="{{ request.path }}">
+            {%- liquid
+              comment
+                The label CANNOT come from country.currency. This store presents
+                only INR, so Shopify reports the United States market's currency
+                as INR too — the pill rendered "🇺🇸 ₹ INR" on both sides, which is
+                the exact confusion this feature exists to remove. The US side is
+                labelled from the display layer instead, and only claims dollars
+                when USD display is actually on; with the feature off it names the
+                region, because that market still charges INR.
+              endcomment
+              assign pill_rate = settings.usd_inr_rate | default: 0 | round
+              assign pill_usd_on = false
+              if settings.usd_display_enabled and pill_rate > 0
+                assign pill_usd_on = true
+              endif
+            -%}
+            {%- for country in localization.available_countries -%}
+              {%- liquid
+                assign is_current = false
+                if country.iso_code == localization.country.iso_code
+                  assign is_current = true
+                endif
+
+                assign pill_label = country.currency.symbol | append: ' ' | append: country.currency.iso_code
+                if country.iso_code == 'US'
+                  if pill_usd_on
+                    assign pill_label = '$ USD'
+                  else
+                    assign pill_label = 'US'
+                  endif
+                elsif country.iso_code == 'IN'
+                  assign pill_label = '₹ INR'
+                endif
+              -%}
+              <button
+                type="{% if is_current %}button{% else %}submit{% endif %}"
+                class="onrepeat-currency-pill__side{% if is_current %} is-active{% endif %}"
+                {% if is_current %}aria-current="true" disabled{% else %}name="country_code" value="{{ country.iso_code }}"{% endif %}
+                aria-label="{% if is_current %}Showing prices for {% else %}Switch to {% endif %}{{ country.name | escape }} ({{ pill_label }})"
+              >
+                {%- if country.iso_code == 'IN' -%}
+                  <span class="onrepeat-currency-pill__flag" aria-hidden="true">&#127470;&#127475;</span>
+                {%- elsif country.iso_code == 'US' -%}
+                  <span class="onrepeat-currency-pill__flag" aria-hidden="true">&#127482;&#127480;</span>
+                {%- endif -%}
+                {{ pill_label }}
+              </button>
+            {%- endfor -%}
+          {%- endform -%}
+        {%- elsif enable_country_selector -%}
+          <div class="grid gap-2">
+            {%- form 'localization', id: 'localization_country_form_footer', class: 'localization__form flex items-center relative', is: 'localization-form' -%}
+              <label class="sr-only" for="LocalizationCountryFormFooter">
+                {{- 'localization.country_label' | t -}}
+              </label>
+              {%- render 'icon', icon: 'currency', size: 'xs', class: 'stroke-1 absolute pointer-events-none' -%}
+              <select class="localization__item cursor-pointer leading-tight w-full" name="country_code" id="LocalizationCountryFormFooter">
+                {%- for country in localization.available_countries -%}
+                  <option value="{{ country.iso_code }}"{% if country.iso_code == localization.country.iso_code %} selected{% endif %}>
+                    {{- country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})
+                  </option>
+                {%- endfor -%}
+              </select>
+              {%- render 'icon', icon: 'chevron-down', size: 'xs', class: 'absolute pointer-events-none' -%}
+            {%- endform -%}
+            <noscript>
+              <button class="button button--primary button--small w-full" type="submit" form="localization_country_form_footer">
+                {{- 'localization.update_country' | t -}}
+              </button>
+            </noscript>
+          </div>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%}
+      Shopify's own payment row is kept for stores on Shopify Payments, but it renders nothing here:
+      shop.enabled_payment_types is only populated for Shopify Payments and this store checks out
+      through Razorpay, so the `unless … == empty` guard has been short-circuiting and the footer has
+      shown no payment marks at all. onrepeat-payment-icons carries the marks that actually apply,
+      including UPI and RuPay, which Shopify's payment_type_svg_tag filter does not ship.
+    {%- endcomment -%}
+    {%- if section.settings.show_payment_icons -%}
+      {%- unless shop.enabled_payment_types == empty -%}
+        <ul class="payment-icons{% if section.settings.monochrome_payment_icons %} payment-icons--gray{% endif %} flex flex-wrap justify-center gap-2 xl:gap-3">
+          {%- for type in shop.enabled_payment_types -%}
+            <li>
+              {{- type | payment_type_svg_tag -}}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endunless -%}
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.footer-copyright.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Payment methods",
+      "info": "Shopify's own payment icons only work on Shopify Payments, so they render nothing on this store. These are real brand artwork bundled with the theme and include UPI, RuPay and COD, which Shopify does not provide. Tick only what Razorpay is actually configured to accept — an icon for a method that fails at checkout is a broken promise."
+    },
+    {
+      "type": "text",
+      "id": "pay_heading",
+      "default": "Payments accepted",
+      "label": "Row label",
+      "info": "Leave blank to hide the label."
+    },
+    { "type": "checkbox", "id": "pay_upi", "default": true, "label": "UPI" },
+    { "type": "checkbox", "id": "pay_visa", "default": true, "label": "Visa" },
+    { "type": "checkbox", "id": "pay_mastercard", "default": true, "label": "Mastercard" },
+    { "type": "checkbox", "id": "pay_rupay", "default": true, "label": "RuPay" },
+    { "type": "checkbox", "id": "pay_amex", "default": true, "label": "American Express" },
+    { "type": "checkbox", "id": "pay_applepay", "default": true, "label": "Apple Pay" },
+    { "type": "checkbox", "id": "pay_paypal", "default": true, "label": "PayPal" },
+    { "type": "checkbox", "id": "pay_cod", "default": true, "label": "Cash on delivery (COD)" },
+    {
+      "type": "header",
+      "content": "Seller identity"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_legal_entity",
+      "default": true,
+      "label": "Show legal entity details",
+      "info": "Shows the brand line THE ONREPEAT CLOTHING™ above the copyright. The store location, CIN and GSTIN that used to sit here have been removed from the footer; they remain on the LLMs page, in the Organization structured data, on every product page and in the Terms of Service."
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer-copyright.settings.header__language_selector.content",
+      "info": "t:sections.footer-copyright.settings.header__language_selector.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_language_selector",
+      "label": "t:sections.footer-copyright.settings.enable_language_selector.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer-copyright.settings.header__country_selector.content",
+      "info": "t:sections.footer-copyright.settings.header__country_selector.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_country_selector",
+      "label": "t:sections.footer-copyright.settings.enable_country_selector.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer-copyright.settings.header__policy.content",
+      "info": "t:sections.footer-copyright.settings.header__policy.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_policy",
+      "label": "t:sections.footer-copyright.settings.show_policy.label",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer-copyright.settings.header__payment_methods.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_payment_icons",
+      "label": "t:sections.footer-copyright.settings.show_payment_icons.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "monochrome_payment_icons",
+      "label": "t:sections.footer-copyright.settings.monochrome_payment_icons.label",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer-copyright.settings.header__additional_content.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_copyright",
+      "label": "t:sections.footer-copyright.settings.show_copyright.label"
+    },
+    {
+      "type": "text",
+      "id": "copyright_text",
+      "label": "t:sections.footer-copyright.settings.copyright_text.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__colors.content",
+      "info": "t:sections.global.settings.header__colors.info"
+    },
+    {
+      "type": "color",
+      "id": "color_text",
+      "label": "t:sections.global.settings.color_text.label",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "color_background",
+      "label": "t:sections.global.settings.color_background.label",
+      "default": "#171717"
+    },
+    {
+      "type": "color_background",
+      "id": "gradient_background",
+      "label": "t:sections.global.settings.gradient_background.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__section.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "divider",
+      "label": "t:sections.global.settings.divider.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "t:sections.global.settings.full_width.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "rounded",
+      "default": false,
+      "label": "t:sections.global.settings.rounded.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_parallax",
+      "label": "t:sections.global.settings.enable_parallax.label",
+      "default": true
+    }
+  ],
+  "enabled_on": {
+    "groups": [
+      "footer"
+    ]
+  }
+}
+{% endschema %}

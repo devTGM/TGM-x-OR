@@ -1,0 +1,559 @@
+{%- comment -%}
+  Virtual Try-On modal.
+  Rendered once, globally, from layout/theme.liquid on product pages only.
+  All interactivity lives in assets/vto.js.
+{%- endcomment -%}
+
+<div id="VtoModal" class="vto-modal" role="dialog" aria-modal="true"
+     aria-label="Virtual Try-On" hidden>
+  <div class="vto-modal__overlay" data-vto-close></div>
+  <div class="vto-modal__container" tabindex="-1">
+
+    {%- comment -%} Drag handle (mobile bottom sheet). Active — not decorative. {%- endcomment -%}
+    <div class="vto-drag-handle" data-vto-drag-handle aria-hidden="true"></div>
+
+    {%- comment -%} Header {%- endcomment -%}
+    <div class="vto-modal__header">
+      <button type="button" class="vto-modal__back" data-vto-back aria-label="Go back" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div class="vto-modal__header-left">
+        <div class="vto-modal__logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/>
+          </svg>
+        </div>
+        <h2 class="vto-modal__title">Virtual Try-On</h2>
+      </div>
+      <button type="button" class="vto-modal__close" data-vto-close
+              aria-label="Close virtual try-on">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    {%- comment -%}
+      The live region used to sit here, inside #VtoModal. minimize() ends with
+      `modal.hidden = true`, and a hidden subtree is out of the accessibility
+      tree entirely — so every announcement made while minimised ("still
+      creating your look", "your look is ready") was written into a node no
+      screen reader could see. The floating pill's own role="status" was
+      covering for that, and the pill is gone. It now lives at the end of this
+      file, as a sibling of the modal, where it is never hidden.
+    {%- endcomment -%}
+
+    {%- comment -%} ─── Screen 1: Upload ──────────────────────── {%- endcomment -%}
+    <div class="vto-screen" data-vto-screen="upload">
+
+      {%- comment -%}
+        Consent gate. Camera and Library stay disabled until this is ticked —
+        assets/vto.js enforces it on the controls AND on the drop zone, so a
+        drag-and-drop cannot walk around the checkbox.
+
+        Deliberately not pre-ticked, and the label names what is being agreed to
+        rather than pointing vaguely at a policy page.
+      {%- endcomment -%}
+      <div class="vto-consent" data-vto-consent-wrap>
+        <input type="checkbox" id="VtoConsent" data-vto-consent>
+        <label for="VtoConsent">
+          <b>I agree to the Privacy Policy</b>
+          It covers how your photo is processed, and that OnRepeat may use your photo and the look it generates for creative purposes. You can opt out any time through <a href="/pages/contact" target="_blank" rel="noopener">Contact&nbsp;us</a>.
+        </label>
+      </div>
+
+      <div class="vto-upload-area" data-vto-dropzone>
+        <div class="vto-upload-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <p class="vto-upload-text">Add your photo</p>
+        <p class="vto-upload-hint">One full-body shot, facing the camera.</p>
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+               class="vto-file-input" data-vto-file-input aria-label="Choose photo" />
+        <div class="vto-upload-actions">
+          <button type="button" class="vto-btn-primary vto-upload-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Library
+          </button>
+          <button type="button" class="vto-btn-ghost vto-camera-btn" data-vto-camera>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+            Camera
+          </button>
+        </div>
+        <p class="vto-upload-lock" data-vto-upload-lock>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Agree above to add a photo
+        </p>
+      </div>
+
+      <div class="vto-privacy-notice">
+        Your photo is sent to Google, or to OpenAI if Google is unavailable, to generate the try-on. Read the full <a href="/policies/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.
+      </div>
+
+      <div class="vto-tips" data-vto-tips>
+        <span class="vto-tip"><span class="vto-tip__icon">✓</span> Stand straight, arms slightly apart</span>
+        <span class="vto-tip"><span class="vto-tip__icon">✓</span> Bright, even lighting</span>
+        <span class="vto-tip"><span class="vto-tip__icon">✓</span> Full body visible</span>
+      </div>
+
+      {%- comment -%} Recent try-ons (populated from sessionStorage) {%- endcomment -%}
+      <div class="vto-recent" data-vto-recent hidden>
+        <div class="vto-recent__label">Recent try-ons</div>
+        <div class="vto-recent__list" data-vto-recent-list></div>
+      </div>
+
+      {%- comment -%} Preview after photo selection {%- endcomment -%}
+      <div class="vto-preview" data-vto-preview hidden>
+        <div class="vto-preview__photo-wrap">
+          <img alt="Your uploaded photo" data-vto-preview-img />
+          <div class="vto-preview__badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Photo ready
+          </div>
+        </div>
+        <div class="vto-preview-actions">
+          <button type="button" class="vto-btn-ghost" data-vto-change-photo>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+            </svg>
+            Change
+          </button>
+          <button type="button" class="vto-btn-primary" data-vto-generate>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Try It On
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {%- comment -%} ─── Screen 2: Fit ────────────────────────────
+      Required. The ease, tone and build have to exist BEFORE the generation
+      request goes out, or the model cannot cut the garment to this body — which
+      is the whole reason this step is not optional and carries no skip.
+
+      The questions, the slider ranges and the answer all come from the size
+      guide's own engine (window.OnRepeatSizeChart) so the modal and the product
+      page cannot disagree about a shopper's size.
+    ─────────────────────────────────────────────── {%- endcomment -%}
+    {%- comment -%} ─── Screen 2a: Confirm saved measurements ───────
+      Shown on every try-on once measurements exist. They used to be reused
+      silently forever, which is wrong in both directions: a shopper whose body
+      has changed had no way to correct it short of clearing site data, and a
+      shopper trying something on for someone else was silently given their own
+      numbers. Neither had any way to know which measurements the render used.
+
+      It stays one tap for the common case — "Yes, use these" is the primary
+      action and is pre-focused — but the numbers are on screen first, and the
+      size they imply for THIS product is spelled out, so the choice is
+      informed rather than a formality.
+    ─────────────────────────────────────────────── {%- endcomment -%}
+    <div class="vto-screen" data-vto-screen="fitconfirm" hidden>
+      <div class="vto-fit vto-fitconfirm">
+        <p class="vto-fit__kicker">Still the same measurements?</p>
+
+        <div class="vto-fitconfirm__card">
+          <dl class="vto-fitconfirm__grid">
+            <div>
+              <dt>Height</dt>
+              <dd data-vto-confirm="height">175<small>cm</small></dd>
+              <span class="vto-fitconfirm__alt" data-vto-confirm="heightAlt">5'9"</span>
+            </div>
+            <div>
+              <dt>Weight</dt>
+              <dd data-vto-confirm="weight">70<small>kg</small></dd>
+            </div>
+            <div>
+              <dt>Build</dt>
+              <dd data-vto-confirm="build">Average</dd>
+            </div>
+          </dl>
+          {%- comment -%}
+            The consequence, not just the inputs. "178cm, 72kg" means nothing to
+            most people; "we'll cut this to an M" is the thing they can actually
+            check. Hidden when the product has no solvable chart.
+          {%- endcomment -%}
+          <p class="vto-fitconfirm__size" data-vto-confirm-size hidden></p>
+        </div>
+
+        <div class="vto-fitconfirm__actions">
+          <button type="button" class="vto-btn-primary" data-vto-confirm-keep>Yes, use these</button>
+          <button type="button" class="vto-btn-ghost" data-vto-confirm-edit>Enter new measurements</button>
+        </div>
+
+        <p class="vto-fit__note">Measurements stay on your device. Change them any time from here.</p>
+      </div>
+    </div>
+
+    <div class="vto-screen" data-vto-screen="fit" hidden>
+      <div class="vto-fit">
+        <div class="vto-fit__dots" data-vto-fit-dots aria-hidden="true">
+          <i class="is-on"></i><i></i><i></i>
+        </div>
+        <p class="vto-fit__kicker" data-vto-fit-kicker>Three questions. Answered once, and every try-on after this one is cut to them.</p>
+
+        <div class="vto-fit__step" data-vto-fit-step="1">
+          <p class="vto-fit__q" id="VtoFitQ1">How tall are you, without shoes?</p>
+          <p class="vto-fit__sub">In centimetres</p>
+          <p class="vto-fit__val">
+            <b data-vto-fit-out="height">175</b><small>cm</small>
+            <span class="vto-fit__alt" data-vto-fit-out="heightAlt">5'9"</span>
+          </p>
+          <input class="vto-fit__range" type="range" min="140" max="210" step="1" value="175"
+                 data-vto-fit-in="height" aria-labelledby="VtoFitQ1">
+        </div>
+
+        <div class="vto-fit__step" data-vto-fit-step="2" hidden>
+          <p class="vto-fit__q" id="VtoFitQ2">And roughly what do you weigh?</p>
+          <p class="vto-fit__sub">In kilograms</p>
+          <p class="vto-fit__val"><b data-vto-fit-out="weight">70</b><small>kg</small></p>
+          <input class="vto-fit__range" type="range" min="35" max="150" step="1" value="70"
+                 data-vto-fit-in="weight" aria-labelledby="VtoFitQ2">
+        </div>
+
+        <div class="vto-fit__step" data-vto-fit-step="3" hidden>
+          <p class="vto-fit__q" id="VtoFitQ3">How would you describe your build?</p>
+          <p class="vto-fit__sub" data-vto-fit-noun>This fine-tunes the chest estimate</p>
+          <p class="vto-fit__val vto-fit__val--word"><b data-vto-fit-out="build">Average</b></p>
+          {%- comment -%}
+            A slider whose values are words, so a screen reader reads the label
+            rather than the index behind it.
+          {%- endcomment -%}
+          <input class="vto-fit__range" type="range" min="0" max="3" step="1" value="1"
+                 data-vto-fit-in="build" aria-labelledby="VtoFitQ3" aria-valuetext="Average">
+        </div>
+
+        <div class="vto-fit__actions">
+          <button type="button" class="vto-btn-ghost" data-vto-fit-back hidden>Back</button>
+          <button type="button" class="vto-btn-primary" data-vto-fit-next>Next</button>
+        </div>
+
+        <p class="vto-fit__note">We use this to size the render, and to tell you which size to pick. It stays on your device.</p>
+      </div>
+    </div>
+
+    {%- comment -%} ─── Screen 3: Loading ─────────────────────── {%- endcomment -%}
+    <div class="vto-screen" data-vto-screen="loading" role="status" aria-live="polite" hidden>
+      <div class="vto-loading">
+        <div class="vto-loading-illustration" aria-hidden="true">
+          <div class="vto-scan-container">
+            <!-- 1. Garment silhouette vector -->
+            <svg class="vto-scan-svg vto-scan-svg--garment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/>
+            </svg>
+            <!-- 2. Avatar silhouette vector -->
+            <svg class="vto-scan-svg vto-scan-svg--avatar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <!-- 3. Glowing laser bar -->
+            <div class="vto-scan-laser"></div>
+          </div>
+        </div>
+
+        <p class="vto-loading-title" data-vto-loading-title>Creating your look</p>
+
+        <div class="vto-steps">
+          <div class="vto-step" data-vto-step="1">
+            <div class="vto-step__dot" aria-hidden="true"></div>
+            <span class="vto-step__label">Analyzing your photo</span>
+          </div>
+          <div class="vto-step" data-vto-step="2">
+            <div class="vto-step__dot" aria-hidden="true"></div>
+            <span class="vto-step__label">Reading the garment</span>
+          </div>
+          <div class="vto-step" data-vto-step="3">
+            <div class="vto-step__dot" aria-hidden="true"></div>
+            <span class="vto-step__label">Generating your look</span>
+          </div>
+        </div>
+
+        <p class="vto-loading-elapsed">
+          <span class="vto-loading-elapsed__time" data-vto-elapsed role="timer" aria-label="Time elapsed">0s</span>
+          <span class="vto-loading-elapsed__sep" aria-hidden="true">·</span>
+          {%- comment -%}
+            Re-measured against gemini-3.1-flash-image at thinkingLevel MINIMAL:
+            14.8s of model time, 17-19s end to end, across live runs on the
+            deployed function. The old "60-90s" was measured against
+            gpt-image-2 (front 46-53s, back 50-79s) and now understates the
+            product badly — a shopper told to expect 90s abandons a 20s wait.
+            The upper bound leaves room for a cold start and for the back view,
+            which runs in parallel so the wait tracks the slower of the two.
+          {%- endcomment -%}
+          <span class="vto-loading-elapsed__note" data-vto-elapsed-note>usually 20&ndash;45s</span>
+        </p>
+
+        {%- comment -%} ─── Recent looks ───────────────────────────
+          Something to watch while the render runs. The images are seeded
+          try-ons generated with the SAME prompt and model the shopper is
+          waiting on, so the strip is an honest sample of what is coming
+          rather than nicer marketing art.
+
+          Deliberately NOT captioned as other customers' try-ons: these are
+          made from the store's own catalogue photography, and claiming
+          otherwise would be a straightforward lie to the shopper. Real
+          customer looks need storage, consent and moderation first.
+
+          The list is rendered as JSON and shuffled on the client. Liquid
+          output is cached per theme version, so shuffling here would hand
+          every shopper the same "random" order.
+        ─────────────────────────────────────────────── {%- endcomment -%}
+        {%- assign gallery_count = 20 -%}
+        <div class="vto-gallery" data-vto-gallery hidden>
+          <p class="vto-gallery__label">Recent looks, made with this try-on</p>
+          <div class="vto-gallery__viewport">
+            <div class="vto-gallery__track" data-vto-gallery-track aria-hidden="true"></div>
+          </div>
+        </div>
+        <script type="application/json" data-vto-gallery-src>
+          [
+            {%- for i in (1..gallery_count) -%}
+              {%- assign padded = i | prepend: '0' | slice: -2, 2 -%}
+              {%- assign file = 'vto-gallery-' | append: padded | append: '-thumb.webp' -%}
+              "{{ file | asset_url }}"{%- unless forloop.last -%},{%- endunless -%}
+            {%- endfor -%}
+          ]
+        </script>
+
+        {%- comment -%}
+          translate="no" keeps browser and app translation engines off this node.
+          It is rewritten every few seconds from JS, and a foreign mutator racing
+          those writes produced garbled overlapping text in testing (including a
+          stray glyph belonging to no string this file contains).
+        {%- endcomment -%}
+        <p class="vto-loading-hint" data-vto-loading-hint translate="no">You can keep browsing — we'll let you know the moment it's ready.</p>
+
+        <div class="vto-loading-actions">
+          <button type="button" class="vto-btn-primary vto-minimize-btn" data-vto-minimize>
+            {%- comment -%}
+              Was a single horizontal line, which next to the label read as a
+              stray hyphen. A chevron down into a bar says "tuck this away".
+            {%- endcomment -%}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="7 9 12 14 17 9"/>
+              <line x1="5" y1="19" x2="19" y2="19"/>
+            </svg>
+            Keep browsing
+          </button>
+          <button type="button" class="vto-btn-ghost vto-cancel-btn" data-vto-cancel>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {%- comment -%} ─── Screen 3: Results ─────────────────────── {%- endcomment -%}
+    {%- comment -%} ─── Screen 3: Results ───────────────────────
+      The buy block is PINNED. It used to sit below a 3:4 image in a scrolling
+      screen, which on a phone put the size rail and Add to Cart entirely below
+      the fold — a shopper reached the end of the flow and saw no way to buy.
+      The image now takes whatever height is left over instead of dictating it.
+
+      Front/Back and the save/share tools sit ON the image as controls rather
+      than as rows above and below it, so they cost the result no height.
+    ─────────────────────────────────────────────── {%- endcomment -%}
+    <div class="vto-screen vto-screen--results" data-vto-screen="results" hidden>
+      <div class="vto-results">
+
+        <div class="vto-results__stage">
+          <div class="vto-results__image" data-vto-result-wrap>
+            <img class="vto-results__after" src="" alt="Virtual try-on result" data-vto-result-img />
+            <div class="vto-results__shimmer" aria-hidden="true"></div>
+          </div>
+
+          <div class="vto-results__controls">
+          <div class="vto-tabs" role="tablist" aria-label="Try-on view">
+            <div class="vto-tabs__indicator" aria-hidden="true"></div>
+            <button type="button" class="vto-tab active" role="tab" data-vto-tab="front" aria-selected="true">Front</button>
+            <button type="button" class="vto-tab" role="tab" data-vto-tab="back" aria-selected="false" data-vto-back-tab>Back</button>
+          </div>
+          </div>
+
+          <div class="vto-results__tools">
+            <button type="button" data-vto-download aria-label="Save this image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </button>
+            <button type="button" data-vto-share aria-label="Share this image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="vto-results__buy">
+        <div class="vto-verdict" data-vto-verdict hidden>
+          <span class="vto-verdict__badge" data-vto-verdict-size>M</span>
+          <span class="vto-verdict__txt">
+            <span class="vto-verdict__lead">
+              Your size
+              <span class="vto-verdict__chip" data-vto-verdict-tone></span>
+            </span>
+            <span class="vto-verdict__why" data-vto-verdict-why></span>
+          </span>
+        </div>
+
+          <div class="vto-buy-bar" data-vto-buy-bar>
+          <div class="vto-size" data-vto-size-wrap>
+            <div class="vto-size__head">
+              <span class="vto-size__label">Size</span>
+            </div>
+            <div class="vto-size__pills" role="radiogroup" aria-label="Select size" data-vto-size-pills></div>
+            {%- comment -%}
+              Once the shopper has answered the fit questions the rail collapses
+              to the one size we are suggesting, and this is the way back to
+              the rest. Rendered here rather than injected by the rail builder
+              so it survives every rebuild of the pills, and hidden until there
+              is actually something collapsed to reveal.
+            {%- endcomment -%}
+            <button type="button" class="vto-size__change" data-vto-size-change hidden>Change size</button>
+          </div>
+          <button type="button" class="vto-btn-primary vto-atc-btn" data-vto-atc>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            <span data-vto-atc-label>Add to Cart</span>
+          </button>
+          </div>
+
+        <div class="vto-reason" data-vto-reason hidden>
+          <p class="vto-reason__q">Thanks &mdash; what was off?</p>
+          <div class="vto-reason__row" role="group" aria-label="What was wrong">
+            <button type="button" data-vto-reason-btn="not_my_face">Not my face</button>
+            <button type="button" data-vto-reason-btn="garment_wrong">Garment wrong</button>
+            <button type="button" data-vto-reason-btn="fit_off">Fit looks off</button>
+            <button type="button" data-vto-reason-btn="poor_quality">Poor quality</button>
+          </div>
+        </div>
+        <p class="vto-feedback__thanks" data-vto-feedback-thanks hidden>Noted. We use this to tune the model, never to identify you.</p>
+
+          <div class="vto-results__foot">
+        <div class="vto-feedback" data-vto-feedback>
+              <span class="vto-feedback__label">Does this look right?</span>
+              <button type="button" class="vto-feedback__btn" data-vto-feedback-btn="up" aria-label="Yes, this looks right" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                </svg>
+              </button>
+              <button type="button" class="vto-feedback__btn" data-vto-feedback-btn="down" aria-label="No, something is off" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
+                </svg>
+              </button>
+            </div>
+            <div class="vto-results__quiet">
+            <button type="button" class="vto-size__chart" data-vto-size-chart hidden>Size guide</button>
+            <button type="button" data-vto-retry>Try another photo</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    {%- comment -%} ─── Screen 4: Error ───────────────────────── {%- endcomment -%}
+    <div class="vto-screen" data-vto-screen="error" role="status" aria-live="assertive" hidden>
+      <div class="vto-error">
+        <div class="vto-error__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <p class="vto-error-title">Something went wrong</p>
+        <p class="vto-error-text" data-vto-error-msg>Please try again.</p>
+        <button type="button" class="vto-btn-primary" data-vto-retry>Try Again</button>
+        <button type="button" class="vto-btn-ghost" data-vto-change-photo>Change Photo</button>
+      </div>
+    </div>
+
+    {%- comment -%} Toast (used by add-to-cart success etc.) {%- endcomment -%}
+    {%- comment -%}
+      Two icons, one shown at a time. The toast used to hard-code the tick, so a
+      failure was announced with a green success check next to it.
+    {%- endcomment -%}
+    <div class="vto-toast" data-vto-toast hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-vto-toast-icon="success">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-vto-toast-icon="error" hidden>
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span data-vto-toast-msg>Added to cart</span>
+      <a href="/cart" class="vto-toast__link" data-vto-toast-link>View cart</a>
+    </div>
+
+  </div>
+
+  {%- comment -%}
+    Size chart sheet — sibling of the modal container so it layers ABOVE it
+    (never behind). Content is fetched from the same /pages/size-chart source
+    the product page's size guide uses. Driven by assets/vto.js.
+  {%- endcomment -%}
+  <div class="vto-sizechart" data-vto-sizechart hidden>
+    <div class="vto-sizechart__overlay" data-vto-sizechart-close></div>
+    <div class="vto-sizechart__sheet" role="dialog" aria-modal="true" aria-label="Size chart">
+      <div class="vto-sizechart__head">
+        <span class="vto-sizechart__title">Size chart</span>
+        <button type="button" class="vto-sizechart__close" data-vto-sizechart-close aria-label="Close size chart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="vto-sizechart__body" data-vto-sizechart-body>
+        <div class="vto-sizechart__loading"><span class="vto-spinner"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{%- comment -%}
+  ── The minimised try-on ──────────────────────────────────────────────────
+  There is no floating pill any more.
+
+  A minimised try-on collapses onto the buy bar's own 48px product thumbnail
+  (rendered by snippets/vto-button.liquid with placement 'tile') and lives
+  there — one object, in a place the shopper already knows, instead of a
+  second identical tile floating over the card and landing on "Size guide".
+
+  Two consequences are deliberate:
+    · On a page with no buy bar there is no indicator at all. The session
+      still runs and still persists; it reappears on the next product page.
+    · The tile's only action is reopening the modal. Cancel, retry and the
+      elapsed counter live on the modal's own loading and error screens.
+{%- endcomment -%}
+
+{%- comment -%}
+  Live region for screen readers. A sibling of #VtoModal, never hidden, so
+  progress announcements still reach a screen reader while the modal is
+  minimised — see the note where this used to sit, inside the dialog.
+{%- endcomment -%}
+<div class="vto-sr-only" aria-live="polite" aria-atomic="true" data-vto-announce></div>

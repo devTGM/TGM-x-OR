@@ -1,0 +1,31 @@
+{%- comment -%}
+  One size in the collection filter, as a tappable chip rather than a checkbox
+  in a list. Matches the size pills on the product page, so a shopper meets the
+  same control in both places.
+
+  The input carries the FULL taxonomy value Shopify expects — only the visible
+  text is shortened — so the filter URL is unchanged and shareable as before.
+
+  @param {object} filter_value - a Shopify filter value
+  @param {string} short_label  - "XS" pulled out of "Extra small (XS)"
+  @param {string} id           - unique input id
+  @param {boolean} disabled    - no products would remain
+
+  Styled by assets/facets-enhance.css (loaded globally from layout/theme.liquid —
+  a {% stylesheet %} block in a snippet is silently never served).
+{%- endcomment -%}
+<li class="facet-sizes__item">
+  <input
+    class="facet-sizes__input sr-only"
+    type="checkbox"
+    name="{{ filter_value.param_name }}"
+    value="{{ filter_value.value | escape }}"
+    id="{{ id | escape }}"
+    {% if filter_value.active %}checked{% endif %}
+    {% if disabled %}disabled{% endif %}
+  >
+  <label class="facet-sizes__chip" for="{{ id | escape }}">
+    <span aria-hidden="true">{{ short_label | escape }}</span>
+    <span class="sr-only">{{ filter_value.label | escape }} ({{ filter_value.count }})</span>
+  </label>
+</li>

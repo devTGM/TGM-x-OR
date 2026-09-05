@@ -1,0 +1,98 @@
+{%- comment -%}
+  Cart line item — price + line-level discount badges.
+  Shared between `sections/main-cart.liquid` and `sections/cart-drawer.liquid`.
+
+  Params:
+    item        (required) — a Shopify cart line item.
+    show_discounts (optional, default true) — draw the per-line discount tags.
+      The drawer passes false: its summary card is the one place money is
+      explained there, and the same ₹300 announced on every line AND in the
+      breakdown reads as a hard sell rather than as generosity. The cart page,
+      which has no such card, keeps them.
+    net (optional) — a per-unit price in paise to show INSTEAD of
+      item.final_price. Shopify's own final_price is after line-level discounts
+      only, so on this store it lands between the MRP and what is actually
+      charged — after the ₹300, before the 5%. The drawer passes the line's
+      share of cart.total_price so the figure beside a garment is the figure the
+      shopper pays for it. Omit it and behaviour is unchanged.
+{%- endcomment -%}
+{%- comment -%}
+  Treat a line as a free gift when it is ACTUALLY free — i.e. the gift discount has
+  zeroed it (however it was added), not merely when it carries the carousel's
+  `_free_gift` property. This keeps the FREE badge in lock-step with the real price.
+{%- endcomment -%}
+{%- comment -%}
+  Deliberately broader than the `is_free_gift` used by the cart sections: this
+  drives the FREE badge and the strike-through only, never whether the row can be
+  edited, so ANY line a discount has zeroed should read as free here. The sections
+  additionally require the `_free_gift` property before locking a row, because
+  locking an ordinary discounted line would trap the shopper.
+{%- endcomment -%}
+{%- assign is_free_gift = false -%}
+{%- if item.final_line_price == 0 and item.original_line_price > 0 -%}
+  {%- assign is_free_gift = true -%}
+{%- endif -%}
+{%- liquid
+  assign cip_now = item.final_price
+  if net != blank and net > 0
+    assign cip_now = net
+  endif
+  assign cip_on_sale = false
+  if item.original_price != cip_now or is_free_gift
+    assign cip_on_sale = true
+  endif
+-%}
+<div class="price{% if cip_on_sale %} price--on-sale{% endif %} text-sm flex flex-wrap gap-1d5">
+  {%- liquid
+    assign md_style = 'exact'
+    if settings.currency_code_enabled
+      assign md_style = 'with_currency'
+    endif
+    capture money_price
+      render 'money-display', amount: item.original_price, style: md_style
+    endcapture
+  -%}
+  {%- if is_free_gift -%}
+    <span class="sr-only">{{ 'products.price.regular_price' | t }}</span>
+    <span class="price__sale inline-flex items-center relative">{{ money_price }}</span>
+    <span class="cart-gift-free badge font-medium leading-none rounded-full">{{ 'cart.gift.free' | t }}</span>
+  {%- elsif cip_on_sale -%}
+    <span class="sr-only">{{ 'products.price.regular_price' | t }}</span>
+    <span class="price__sale inline-flex items-center relative">{{ money_price }}</span>
+    <span class="sr-only">{{ 'products.price.sale_price' | t }}</span>
+    <span class="price__regular whitespace-nowrap">
+      {%- render 'money-display', amount: cip_now, style: md_style -%}
+    </span>
+  {%- else -%}
+    <span class="price__regular whitespace-nowrap">{{ money_price }}</span>
+  {%- endif -%}
+
+  {%- if item.variant.available and item.unit_price_measurement -%}
+    <span class="sr-only">{{ 'products.price.unit_price' | t }}</span>
+    <span class="unit-price flex items-center">
+      {%- liquid
+        capture unit_price_base_unit
+          if item.variant.unit_price_measurement
+            if item.variant.unit_price_measurement.reference_value != 1
+              echo item.variant.unit_price_measurement.reference_value
+            endif
+            echo item.variant.unit_price_measurement.reference_unit
+          endif
+        endcapture
+      -%}
+      ({% render 'money-display', amount: item.variant.unit_price %}
+      <span aria-hidden="true">/</span>
+      <span class="sr-only">&nbsp;{{ 'general.accessibility.unit_price_separator' | t }}&nbsp;</span>
+      {{ unit_price_base_unit }})
+      </span>
+  {%- endif -%}
+</div>
+
+{%- comment -%}
+  Line-level discounts (shared with the order page). Skips free-gift lines,
+  collapses zero-value/freebie allocations into a single "🎁 Freebies Added"
+  chip, and renders real money discounts as compact tags. See line-discounts.liquid.
+{%- endcomment -%}
+{%- unless show_discounts == false -%}
+  {%- render 'line-discounts', item: item -%}
+{%- endunless -%}

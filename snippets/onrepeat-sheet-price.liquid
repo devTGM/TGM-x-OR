@@ -1,0 +1,49 @@
+{%- comment -%}
+  The price line shown in the sleek quick-add sheet's header — the FINAL
+  discounted figure, not the raw MRP (user request 2026-08-06: the sheet
+  said ₹1,549.00 while the pill and offer line said "you pay ₹1,394").
+
+  Same reward maths and >0 guards as the buy bar and the offer line, from
+  the same settings, so every surface states the same numbers: flat tier
+  subtracted first, then the percentage on the remainder. Below the
+  tier-1 minimum this falls back to the theme's plain price render.
+
+  Output is an HTML fragment carried through the trigger's
+  data-product-price attribute (the sheet injects it as HTML); the
+  classes are styled in snippets/sleek-quick-add-modal.liquid.
+
+  Params: product
+{%- endcomment -%}
+{%- liquid
+  assign sp_var = product.selected_or_first_available_variant
+  assign sp_min = settings.reward_tier1_amount | default: 1499 | times: 100
+  assign sp_pct = settings.reward_percent | default: 5
+  assign sp_t2 = settings.reward_tier2_amount | default: 3000 | times: 100
+  assign sp_a2 = settings.reward_tier2_flat | default: 300 | times: 100
+  assign sp_t3 = settings.reward_tier3_amount | default: 5000 | times: 100
+  assign sp_a3 = settings.reward_tier3_flat | default: 700 | times: 100
+
+  assign sp_flat = 0
+  if sp_t3 > 0 and sp_var.price >= sp_t3
+    assign sp_flat = sp_a3
+  elsif sp_t2 > 0 and sp_var.price >= sp_t2
+    assign sp_flat = sp_a2
+  endif
+  assign sp_keep = 100 | minus: sp_pct
+  assign sp_net = sp_var.price | minus: sp_flat | times: sp_keep | divided_by: 100
+
+  assign sp_on_offer = false
+  if sp_min > 0 and sp_pct > 0 and sp_var.price >= sp_min
+    assign sp_on_offer = true
+  endif
+-%}
+{%- if sp_on_offer -%}
+  <span class="sleek-qa__net">{%- render 'money-display', amount: sp_net, style: 'whole' -%}</span>
+  <s class="sleek-qa__was">{%- render 'money-display', amount: sp_var.price, style: 'whole' -%}</s>
+  <span class="sleek-qa__off">
+    {{- sp_pct -}}%
+    {%- if sp_flat > 0 %} + {% render 'money-display', amount: sp_flat, style: 'no_zeros' %}{% endif %} OFF applied
+  </span>
+{%- else -%}
+  {%- render 'product-price', product: product -%}
+{%- endif -%}

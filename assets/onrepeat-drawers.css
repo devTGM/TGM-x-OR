@@ -1,0 +1,130 @@
+/* ============================================================================
+   THE ONREPEAT — mobile drawer/menu close button + scroll containment.
+
+   The theme turns every .drawer into a bottom-sheet on mobile (≤639px) with a
+   drag-handle and swipe-to-close, and *hides* the .drawer__close button using
+   an sr-only clip (theme.css: `html.js .drawer__close { clip: rect(0,0,0,0) }`).
+   Many users don't discover the swipe gesture, so this file restores a compact,
+   tappable close (X) in the top-right corner of the sheet header for ALL
+   drawer-type overlays — cart, search, menu, filters, share, help, pickup,
+   newsletter popup, etc. — while leaving the desktop layout untouched.
+
+   Paired with assets/onrepeat-scroll-lock.js which locks the background page so the
+   swipe-to-close gesture works flawlessly.
+
+   Scoped, additive, mobile-only. Brand maroon #5c1011.
+   ========================================================================== */
+
+/* Secondary measure against scroll-chaining: keep a drawer's own scrolling from
+   bleeding into the page behind it (works on every device, harmless elsewhere). */
+.drawer__scrollable,
+.drawer__content,
+.drawer__panel {
+  overscroll-behavior: contain;
+}
+
+@media screen and (max-width: 639px) {
+  /* Reveal the close button that the theme sr-only-hides on the bottom sheet.
+     `:not(.sr-only)` keeps the age-verifier's intentionally hidden header
+     (a legal gate that must NOT be dismissable) exactly as the theme left it. */
+  html.js .drawer .drawer__header:not(.sr-only) .drawer__close {
+    display: inline-flex !important;
+    position: absolute;
+    inset-inline-end: 0.75rem;
+    inset-inline-start: auto;
+    z-index: 5;
+
+    /* Centred in whatever height the header happens to be, rather than pinned a
+       fixed distance from its top. Pinning was measured against the cart's short
+       header; on the taller sheets — Filters is 81px — it left the button 8.5px
+       above the title's centre line, which is what made it look misplaced. */
+    inset-block: 0;
+    margin-block: auto;
+
+    /* 36px, down from 40. With a 16px icon the old circle was only 40% glyph and
+       read as a big empty ring; 18px in 36px is 50%, which is the proportion a
+       close control usually wants. */
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 0;
+    min-height: 0;
+    margin-inline: 0;
+    padding: 0;
+
+    /* The theme draws a second ring through `.button::after` using
+       --buttons-border-width, which .button--close sets to 1px. Left alone that
+       paints concentrically with the border below — two hairlines, and the
+       reason the edge looked heavy. Zero it and keep one border. */
+    --buttons-border-width: 0;
+
+    /* undo the sr-only clip the theme applies on mobile — but keep overflow
+       hidden so the theme's .btn-fill (a big maroon circle parked ABOVE the
+       button via translateY(-76%)) stays clipped to the round button instead of
+       spilling out the top-right corner. It still animates in on tap. */
+    clip: auto;
+    clip-path: none;
+    overflow: hidden;
+    white-space: normal;
+
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+
+    /* a soft on-brand surface so the X reads clearly on any sheet background */
+    background-color: rgb(255 255 255 / 0.9);
+    border: 1px solid rgb(92 16 17 / 0.14);
+    border-radius: 999px;
+    box-shadow: 0 2px 8px -4px rgb(92 16 17 / 0.25);
+    color: #5c1011;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
+  /* keep the X icon on-brand and crisp */
+  html.js .drawer .drawer__header:not(.sr-only) .drawer__close .btn-text,
+  html.js .drawer .drawer__header:not(.sr-only) .drawer__close .icon {
+    z-index: 1;
+    color: #5c1011;
+  }
+
+  /* `:not(.absolute)` is load-bearing. Several of these buttons hold a second,
+     hidden loader SVG alongside the X — the filter sheet is one
+     (snippets/facets-sticky.liquid) — and the theme takes it out of flow with an
+     `absolute` utility class. Setting `position: relative` on every `.icon` beat
+     that class on specificity and dropped the loader back into the flex row, so
+     the two SVGs sat side by side and the X was pushed half a loader's width off
+     centre: measured at exactly -8.5px against a 17px loader. The cart button
+     never showed it because it carries a single icon. */
+  html.js .drawer .drawer__header:not(.sr-only) .drawer__close .btn-text,
+  html.js .drawer .drawer__header:not(.sr-only) .drawer__close .icon:not(.absolute) {
+    position: relative;
+  }
+  html.js .drawer .drawer__header:not(.sr-only) .drawer__close .icon {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  /* the hover-fill span shouldn't paint a hard block over our round button */
+  html.js .drawer .drawer__header:not(.sr-only) .drawer__close .btn-fill {
+    border-radius: 999px;
+  }
+
+  /* give the header room so the absolute button never overlaps the title/tabs —
+     0.75rem offset + 2.25rem button + 0.75rem breathing room */
+  html.js .drawer .drawer__header:not(.sr-only) {
+    padding-inline-end: 3.75rem;
+  }
+
+  /* The cart drawer used to carry its own copy of the vertical centring plus a
+     larger 2.75rem circle. The centring is now the shared behaviour above, and
+     the size is deliberately uniform: a close control that changes size between
+     the cart and the filter sheet reads as an inconsistency, not a hierarchy.
+
+     Trade-off worth naming: 2.75rem was chosen for the 44px target WCAG 2.5.5
+     (AAA) asks for. 36px is a deliberate step down for the sake of the
+     proportions, and still clears WCAG 2.5.8 (AA), which sets the floor at
+     24px. If the smaller target ever proves fiddly in practice, the fix is to
+     put the size back here rather than to re-pin the position. */
+}

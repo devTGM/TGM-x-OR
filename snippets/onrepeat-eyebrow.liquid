@@ -1,0 +1,73 @@
+{%- comment -%}
+  Eyebrow line above the PDP title (approved final mockup):
+  "KNIT POLO · FLAT KNIT · 100% COTTON".
+
+  Built only from data every product already carries — no new metafields:
+    noun   the garment name, from the KNIT POLO tag when present, else a
+           small product-type map (the store's types are inconsistent:
+           'Polos', 'half sleeve', 'Hoodie'…)
+    facts  up to two fabric truths from custom.tag_2 / tag_1 / tag_4 —
+           the same metafields that feed the card badges — skipping
+           marketing labels (NEW IN, BEST SELLER, brand names) so the
+           line only ever states material facts.
+
+  Renders nothing when there is nothing meaningful to say, so templates
+  without the metafields degrade to the plain title.
+{%- endcomment -%}
+{%- liquid
+  assign eb_noun = ''
+  if product.tags contains 'KNIT POLO'
+    assign eb_noun = 'Knit Polo'
+  else
+    case product.type
+      when 'Polos' or 'Polo'
+        assign eb_noun = 'Knit Polo'
+      when 'half sleeve' or 'full sleeve' or 'sleeve less' or 'T-Shirts'
+        assign eb_noun = 'T-Shirt'
+      when 'Hoodie' or 'Hoodies'
+        assign eb_noun = 'Hoodie'
+      when 'Sweatshirt' or 'Sweatshirts'
+        assign eb_noun = 'Sweatshirt'
+      when 'Shirt' or 'Shirts'
+        assign eb_noun = 'Shirt'
+      else
+        assign eb_noun = product.type | default: ''
+    endcase
+  endif
+
+  assign eb_skip = 'NEW IN,BEST SELLER,BESTSELLER,ZEROWAVE,LIMITED,LIMITED EDITION,SALE,TRENDING' | split: ','
+  assign eb_c1 = product.metafields.custom.tag_2.value | default: ''
+  assign eb_c2 = product.metafields.custom.tag_1.value | default: ''
+  assign eb_c3 = product.metafields.custom.tag_4.value | default: ''
+  assign eb_candidates = eb_c1 | append: '|' | append: eb_c2 | append: '|' | append: eb_c3 | split: '|'
+
+  assign eb_noun_up = eb_noun | strip | upcase
+  assign eb_facts = ''
+  assign eb_count = 0
+  for eb_f in eb_candidates
+    if eb_count >= 2
+      break
+    endif
+    assign eb_f_up = eb_f | strip | upcase
+    if eb_f_up == '' or eb_f_up == eb_noun_up
+      continue
+    endif
+    if eb_skip contains eb_f_up
+      continue
+    endif
+    if eb_facts contains eb_f_up
+      continue
+    endif
+    assign eb_facts = eb_facts | append: ' · ' | append: eb_f_up
+    assign eb_count = eb_count | plus: 1
+  endfor
+
+  if eb_noun_up != ''
+    assign eb_line = eb_noun_up | append: eb_facts
+  else
+    assign eb_line = eb_facts | remove_first: ' · '
+  endif
+-%}
+{%- if eb_line != '' -%}
+  <p class="onrepeat-eyebrow">{{ eb_line | escape }}</p>
+{%- endif -%}

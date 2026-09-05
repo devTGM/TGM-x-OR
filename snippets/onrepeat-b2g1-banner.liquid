@@ -1,0 +1,61 @@
+{%- comment -%}
+  The Buy 2 Get 1 site banner — one slim crimson strip above the header.
+
+  Rendered from layout/theme.liquid, in flow BEFORE the header group, rather
+  than living in the marquee or announcement sections — on this store all
+  three of those bars are switched OFF in the header group, and re-enabling
+  one just to carry this message would resurrect its old content with it
+  ("BLACKOUT Sale Is Live" is still sitting in the marquee blocks). It must
+  not be rendered from inside sections/header.liquid either — that was tried:
+  the theme's sticky machinery puts position: sticky on the whole
+  .header-section, so anything inside is carried down the page with the
+  header and paints over the docked collection rail. Out in the layout the
+  strip shows once at the top and scrolls away, and no sticky offset has to
+  know it exists. A strip that hangs off onrepeat-b2g1-on cannot leak: on the
+  published theme it renders nothing until the merchant ticks the checkbox.
+
+  Static, not scrolling. It carries one message; the marquee engine earns its
+  keep when there are three. It also scrolls away with the page rather than
+  pinning — the offer re-asserts itself on the PDP and in the cart, which are
+  the two places the decision actually happens, so the banner does not need
+  to shadow the shopper down the page.
+
+  Ignores the header's colour scheme on purpose: brand crimson with the gold
+  FREE is the offer's livery on every surface (PDP chip, meter fill), and the
+  banner is the same object at page scale.
+
+  Usage (already wired):
+    {%- render 'onrepeat-b2g1-banner' -%}   ← layout/theme.liquid, before 'header-group'
+{%- endcomment -%}
+
+{%- capture b2g1_banner_on -%}{%- render 'onrepeat-b2g1-on' -%}{%- endcapture -%}
+{%- if b2g1_banner_on != blank -%}
+  <style>
+    .onrepeat-b2g1-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #5c1011;
+      color: #f5efe6;
+      padding: 8px 14px;
+      font-family: var(--font-heading-family);
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      line-height: 1.2;
+      text-align: center;
+    }
+    .onrepeat-b2g1-banner em {
+      font-style: normal;
+      color: #caa15a;
+      font-weight: 700;
+    }
+    .onrepeat-b2g1-banner svg { flex: 0 0 auto; opacity: 0.85; }
+  </style>
+  <div class="onrepeat-b2g1-banner" role="region" aria-label="Offer">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7a3 3 0 1 1 3-3c0 2-3 3-3 3zM12 7a3 3 0 1 0-3-3c0 2 3 3 3 3z"/></svg>
+    <span>Buy 2, get 1 <em>free</em></span>
+  </div>
+{%- endif -%}

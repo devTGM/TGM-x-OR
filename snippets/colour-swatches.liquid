@@ -1,0 +1,265 @@
+{%- comment -%}
+  Renders a row of colourway swatches for a product, built from the
+  `custom.colour_siblings` product-reference metafield (list.product_reference).
+
+  Server-rendered only — no JavaScript is required for the swatches to work.
+
+  Accepts:
+  - product:     {Object}  (required) Product whose siblings should be rendered.
+  - size:        {String}  'small' for product cards, 'large' for the PDP. Default: 'small'.
+  - show_label:  {Boolean} Render a "Colour: <name>" label above the row. Default: false.
+  - display:     {String}  'orb' renders a circular flat-lay crop of that
+                           colourway, zoomed to the fabric and washed with its
+                           mapped colour, with the colour name beneath — the PDP
+                           treatment, deliberately a different visual language
+                           from the square gallery thumbnails so a shopper never
+                           confuses "change the photo" with "change the product".
+                           'image' renders a rectangular photo tile (legacy);
+                           'dot' renders a plain colour disc. Defaults to
+                           'orb' at size 'large' and 'dot' at size 'small'.
+                           Cards stay on dots deliberately — a collection page of
+                           48 cards would otherwise pull 288 extra thumbnails.
+                           A sibling with no photo falls back to a solid colour
+                           tile of the same size, so the row never goes ragged.
+  - max_visible: {Number}  (optional) Cap on visible swatches. Defaults to 6 for
+                           'small' and "all of them" for 'large'. Any siblings
+                           beyond the cap collapse into a "+N" text marker.
+
+  Outputs nothing at all (no wrapper, no heading, no reserved space) when the
+  metafield is missing, empty, or resolves to fewer than 2 products.
+
+  Usage:
+  {% render 'colour-swatches', product: product, size: 'large', show_label: true %}
+{%- endcomment -%}
+
+{%- liquid
+  # ---------------------------------------------------------------------------
+  # COLOUR MAP — the only place colours are defined.
+  #
+  # To add a colourway later, append its name to `cs_names` and its hex to
+  # `cs_hexes` at the SAME position. Nothing below this block needs touching:
+  # the hairline border for pale swatches and the sold-out strike colour are
+  # both derived from the hex via `color_brightness`.
+  #
+  # A colour name that is not in this map still renders — it gets the neutral
+  # fill below and links correctly. Swatches are never dropped.
+  # ---------------------------------------------------------------------------
+  # Positions 1-6 are the knit-polo colourways, named in English. Positions
+  # 7-12 are the jogger lexicon, where the colourway IS the name — KSHEER is
+  # milk, TAMAS is the void — so the Sanskrit word is what the swatch must
+  # resolve, not an English colour behind it.
+  assign cs_names = 'Cream,Black,Camel,Navy,Olive,Slate,KSHEER,DHOOMR,BHASMA,VALUKA,MRIDA,TAMAS' | split: ','
+  assign cs_hexes = '#EFE9DC,#1A1A1A,#B8873F,#2A3350,#6B7A3A,#7B8494,#EFE9DC,#CFCBC5,#8E8B86,#C2A985,#6B4F3A,#1A1A1A' | split: ','
+
+  assign cs_unknown_hex = '#D9D6D1'
+  # Above this brightness a swatch is treated as pale and gets a visible
+  # 1px border so it does not disappear on a white card (Cream = 232).
+  assign cs_light_threshold = 200
+  # Above this brightness the sold-out strike is drawn dark, below it light.
+  assign cs_strike_threshold = 128
+  assign cs_strike_dark = '#1A1A1A'
+  assign cs_strike_light = '#FFFFFF'
+-%}
+
+{%- liquid
+  assign cs_size = size | default: 'small'
+  assign cs_siblings = product.metafields.custom.colour_siblings.value
+  assign cs_count = cs_siblings.size | default: 0
+
+  if cs_size == 'large'
+    assign cs_max = max_visible | default: cs_count
+    assign cs_display = display | default: 'orb'
+  else
+    assign cs_max = max_visible | default: 6
+    assign cs_display = display | default: 'dot'
+  endif
+-%}
+
+{%- if cs_count > 1 -%}
+  {%- liquid
+    # -------------------------------------------------------------------------
+    # Pass 1 — derive each sibling's colour name once, and remember the current
+    # product's name for the label. Names are kept in a '||'-joined string so
+    # pass 2 can look them up positionally (Liquid has no array of structs).
+    # -------------------------------------------------------------------------
+    assign cs_derived = ''
+    assign cs_current_name = ''
+
+    for cs_sibling in cs_siblings
+      # Emptiness is tested with `| size` rather than `== blank` so the snippet
+      # behaves identically on every Liquid version.
+      assign cs_name = ''
+
+      # Preferred source: whichever side of the em dash names a colourway.
+      #
+      # Two title shapes are in play and they put the colour on opposite sides:
+      #
+      #     "VANE Knit Polo — Cream"    colour last
+      #     "KSHEER — Cord Jogger"      colour first
+      #
+      # Reading one fixed side would silently break the other — taking `last` on
+      # a jogger yields "Cord Jogger" for all six, which matches nothing in the
+      # map, so every swatch would render the neutral unknown grey and the label
+      # would read "Colour: Cord Jogger". Both ends are tested against the map
+      # and the one that is a known colourway wins. When neither is (a product
+      # outside the map), it falls back to `last`, which is the older behaviour.
+      if cs_sibling.title contains '—'
+        assign cs_bits = cs_sibling.title | split: '—'
+        assign cs_bit_first = cs_bits | first | strip
+        assign cs_bit_last = cs_bits | last | strip
+        assign cs_name = cs_bit_last
+        assign cs_bit_first_down = cs_bit_first | downcase
+        assign cs_bit_last_down = cs_bit_last | downcase
+        for cs_known in cs_names
+          assign cs_known_down = cs_known | strip | downcase
+          if cs_known_down == cs_bit_last_down
+            assign cs_name = cs_bit_last
+            break
+          endif
+          if cs_known_down == cs_bit_first_down
+            assign cs_name = cs_bit_first
+            break
+          endif
+        endfor
+      endif
+
+      # Fallback: the last tag that matches a known colour name.
+      assign cs_name_size = cs_name | size
+      if cs_name_size == 0
+        for cs_tag in cs_sibling.tags
+          assign cs_tag_down = cs_tag | strip | downcase
+          for cs_known in cs_names
+            assign cs_known_down = cs_known | strip | downcase
+            if cs_known_down == cs_tag_down
+              assign cs_name = cs_known | strip
+            endif
+          endfor
+        endfor
+      endif
+
+      # Last resort: the full title, so the swatch is still rendered and linked.
+      assign cs_name_size = cs_name | size
+      if cs_name_size == 0
+        assign cs_name = cs_sibling.title
+      endif
+
+      assign cs_derived = cs_derived | append: cs_name | append: '||'
+
+      if cs_sibling.id == product.id
+        assign cs_current_name = cs_name
+      endif
+    endfor
+
+    assign cs_derived_list = cs_derived | split: '||'
+    assign cs_current_name_size = cs_current_name | size
+  -%}
+
+  <div class="colour-swatches colour-swatches--{{ cs_size }} colour-swatches--{{ cs_display }}" role="group" aria-label="Colour">
+    {%- if show_label and cs_current_name_size > 0 -%}
+      <div class="colour-swatches__label form__label flex items-center gap-2 w-full">
+        Colour:
+        <span class="font-medium">{{ cs_current_name | escape }}</span>
+      </div>
+    {%- endif -%}
+
+    <div class="colour-swatches__row">
+      {%- for cs_sibling in cs_siblings limit: cs_max -%}
+        {%- liquid
+          assign cs_name = cs_derived_list[forloop.index0]
+
+          # Map the colour name to a fill.
+          assign cs_index = -1
+          assign cs_name_down = cs_name | downcase
+          for cs_known in cs_names
+            assign cs_known_down = cs_known | strip | downcase
+            if cs_known_down == cs_name_down
+              assign cs_index = forloop.index0
+              break
+            endif
+          endfor
+
+          if cs_index >= 0
+            assign cs_fill = cs_hexes[cs_index] | strip
+          else
+            assign cs_fill = cs_unknown_hex
+          endif
+
+          assign cs_brightness = cs_fill | color_brightness | default: 128
+          if cs_brightness > cs_strike_threshold
+            assign cs_strike = cs_strike_dark
+          else
+            assign cs_strike = cs_strike_light
+          endif
+
+          assign cs_item_class = 'colour-swatches__item'
+          assign cs_is_current = false
+          if cs_sibling.id == product.id
+            assign cs_is_current = true
+            assign cs_item_class = cs_item_class | append: ' is-active'
+          endif
+          unless cs_sibling.available
+            assign cs_item_class = cs_item_class | append: ' is-soldout'
+          endunless
+
+          assign cs_dot_class = 'colour-swatches__dot'
+          if cs_brightness > cs_light_threshold
+            assign cs_dot_class = cs_dot_class | append: ' is-light'
+          endif
+
+          capture cs_style
+            echo '--cs-fill:'
+            echo cs_fill | escape
+            echo ';--cs-strike:'
+            echo cs_strike | escape
+            echo ';'
+            if cs_display == 'orb' and cs_sibling.featured_image
+              echo '--cs-img:url('
+              echo cs_sibling.featured_image | image_url: width: 400
+              echo ');'
+            endif
+          endcapture
+
+          # The visual: a photo tile of that colourway on the PDP, a colour disc
+          # on cards. Truthiness (not `!= blank`) is used so the check behaves the
+          # same on every Liquid version. A colourway with no photo yet falls back
+          # to a solid tile of its colour, so the row keeps its shape.
+          capture cs_visual
+            if cs_display == 'orb'
+              # The circle: flat-lay via --cs-img (zoom + wash live in CSS), or a
+              # plain disc of the mapped colour when the sibling has no photo.
+              echo '<span class="colour-swatches__orb" aria-hidden="true"></span>'
+              echo '<span class="colour-swatches__name" aria-hidden="true">'
+              echo cs_name | escape
+              echo '</span>'
+            elsif cs_display == 'image'
+              if cs_sibling.featured_image
+                echo cs_sibling.featured_image | image_url: width: 288 | image_tag: loading: 'lazy', decoding: 'async', widths: '72,108,144,216,288', sizes: '72px', alt: '', class: 'colour-swatches__img'
+              else
+                echo '<span class="colour-swatches__tile" aria-hidden="true"></span>'
+              endif
+            else
+              echo '<span class="'
+              echo cs_dot_class
+              echo '" aria-hidden="true"></span>'
+            endif
+          endcapture
+        -%}
+        {%- if cs_is_current -%}
+          <span class="{{ cs_item_class }}" aria-current="true" style="{{ cs_style }}">
+            {{- cs_visual -}}
+            <span class="sr-only">{{ cs_sibling.title | escape }}</span>
+          </span>
+        {%- else -%}
+          <a class="{{ cs_item_class }}" href="{{ cs_sibling.url }}" style="{{ cs_style }}">
+            {{- cs_visual -}}
+            <span class="sr-only">{{ cs_sibling.title | escape }}</span>
+          </a>
+        {%- endif -%}
+      {%- endfor -%}
+
+      {%- if cs_count > cs_max -%}
+        <span class="colour-swatches__more">+{{ cs_count | minus: cs_max }}</span>
+      {%- endif -%}
+    </div>
+  </div>
+{%- endif -%}

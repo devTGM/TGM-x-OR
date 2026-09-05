@@ -1,0 +1,42 @@
+{%- comment -%}
+  OnRepeat rating badge.
+
+  A compact rating pill pinned to the BOTTOM-RIGHT of the PDP gallery frame,
+  reading e.g. "★ 4.7 · 10 reviews". Same frosted dark-crimson glass language as
+  the model-fit caption pill (which sits bottom-left), with a single warm-gold
+  star as the only accent. Tapping it smooth-scrolls to the reviews section —
+  the pill is wrapped in <onrepeat-review-link> (defined in main-product), which
+  resolves the reviews app section and scrolls with the sticky-header offset.
+
+  Renders nothing unless the product has Shopify Product Reviews metafields with
+  at least one review.
+
+  Params:
+    product         (required)
+    reviews_section (optional) section id of the reviews app, for an exact scroll
+                    target (falls back to robust widget detection if omitted)
+    class           (optional) extra classes
+
+  Usage:
+    {%- render 'onrepeat-rating-badge', product: product, reviews_section: '...' -%}
+{%- endcomment -%}
+
+{%- if product.metafields.reviews.rating.value != blank and product.metafields.reviews.rating_count.value > 0 -%}
+  {%- liquid
+    assign rating_value = product.metafields.reviews.rating.value
+    # Score only — no count (approved final mockup). The count lives in the
+    # reviews accordion this pill scrolls to. Never append anything to it:
+    # a "504+" suffix here once turned 1 review into a fabricated "1504+".
+  -%}
+  <onrepeat-review-link class="onrepeat-review-link onrepeat-rating-link"{% if reviews_section != blank %} data-reviews-section="{{ reviews_section }}"{% endif %}>
+    <span
+      class="onrepeat-rating-pill{% if class != blank %} {{ class }}{% endif %}"
+      aria-label="Rated {{ rating_value }} out of {{ rating_value.scale_max }}. Read reviews."
+    >
+      <svg class="onrepeat-rating-pill__star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+        <path d="M12 2.2l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.18l-5.9 3.17 1.13-6.57L2.45 9.14l6.6-.96L12 2.2z"/>
+      </svg>
+      <span class="onrepeat-rating-pill__val" aria-hidden="true">{{ rating_value }}</span>
+    </span>
+  </onrepeat-review-link>
+{%- endif -%}

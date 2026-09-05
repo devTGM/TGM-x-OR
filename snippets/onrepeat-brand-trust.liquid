@@ -1,0 +1,74 @@
+{%- comment -%}
+  OnRepeat brand-trust card — the "Manufactured & Marketed By" trust panel shown in the
+  PDP "Additional Information" section.
+
+  Premium, on-brand (deep crimson + gold, Inter), fully static (no <canvas>/animation),
+  and accessible (a single real link, not an onclick). Replaces the legacy animated
+  emerald widget.
+
+  Params (all optional — sensible defaults below):
+    title        — brand name           (default: "The OnRepeat Clothing")
+    subtitle     — label above the name  (default: "Manufactured & Marketed By")
+    badge_label  — pill text             (default: "Verified"; pass blank to hide)
+    address      — registered address    (default: the Noida address)
+    country      — country of origin     (default: "India"; pass blank to hide)
+    link_url     — destination           (default: "/pages/about-us")
+
+  Usage: {% render 'onrepeat-brand-trust' %}
+{%- endcomment -%}
+
+{%- liquid
+  assign st_title = title | default: 'The OnRepeat Clothing'
+  assign st_sub = subtitle | default: 'Manufactured & Marketed By'
+  assign st_badge = badge_label | default: 'Verified'
+  assign st_addr = address | default: '005, Tower B, ATS Bouquet, Sector 132, Noida, Uttar Pradesh, 201304'
+  assign st_country = country | default: 'India'
+  assign st_link = link_url | default: '/pages/about-us'
+
+  assign st_aria = st_title
+  if st_badge != blank
+    assign st_aria = st_aria | append: ' — ' | append: st_badge
+  endif
+-%}
+
+{{ 'onrepeat-brand-trust.css' | asset_url | stylesheet_tag }}
+
+<a class="onrepeat-trust" href="{{ st_link }}" aria-label="{{ st_aria | escape }}. View brand details.">
+  {%- comment -%} Visual lives on this inner wrapper, not the <a>, so the theme's
+  `.rte a` link-underline (which hijacks the link's `background`) can't strip the card. {%- endcomment -%}
+  {%- comment -%}
+    One row, not three stacked blocks. The card used to spend a 36px badge and a
+    two-line label on chrome before reaching the two things that matter — who
+    made this, and where they are. Badge, pill and chevron now share the row
+    with the text, and the divider is gone.
+
+    The registered address stays COMPLETE and wraps rather than truncating: it
+    is Legal Metrology information, not decoration.
+  {%- endcomment -%}
+  <span class="onrepeat-trust__card">
+    <span class="onrepeat-trust__badge" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+
+    <span class="onrepeat-trust__body">
+      {%- if st_sub != blank -%}<span class="onrepeat-trust__sub">{{ st_sub }}</span>{%- endif -%}
+      <span class="onrepeat-trust__name">{{ st_title }}</span>
+      <span class="onrepeat-trust__addr">
+        <span class="onrepeat-trust__pin" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4"/></svg>
+        </span>
+        <span class="onrepeat-trust__addr-txt">{{ st_addr }}{%- if st_country != blank %} · <strong>{{ st_country }}</strong>{%- endif -%}</span>
+      </span>
+    </span>
+
+    {%- if st_badge != blank -%}
+      <span class="onrepeat-trust__pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ st_badge }}
+      </span>
+    {%- endif -%}
+
+    <span class="onrepeat-trust__chev" aria-hidden="true">
+      <svg viewBox="0 0 6 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 1l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+  </span>
+</a>

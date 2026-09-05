@@ -1,0 +1,18 @@
+/*
+ * onrepeat-perf.css — Off-screen animation pause (companion to onrepeat-perf.js)
+ * ------------------------------------------------------------
+ * The `onrepeat-anim-paused` class is added by onrepeat-perf.js ONLY while a known
+ * animated container is scrolled out of the viewport. While present, it freezes
+ * that container's animations (and those on its descendants and pseudo-elements)
+ * so they stop compositing work that nobody can see. The class is removed before
+ * the element scrolls back into view, so on-screen appearance is unchanged.
+ *
+ * `!important` is required only to override components that explicitly set
+ * `animation-play-state: running` (e.g. the marquee). It affects nothing else.
+ */
+.onrepeat-anim-paused,
+.onrepeat-anim-paused *,
+.onrepeat-anim-paused *::before,
+.onrepeat-anim-paused *::after {
+  animation-play-state: paused !important;
+}

@@ -1,0 +1,2519 @@
+/* ============================================
+   Virtual Try-On (VTO) — OnRepeat
+   Mobile-first, accessible. Inherits OnRepeat theme tokens
+   (color, font, radius) so the modal feels native.
+   Brand accents stay #5c1011 (badge, focus rings, brand rim).
+   ============================================ */
+
+:root {
+  /* Brand red — used only for accents (AI badge, focus rings, link colors) */
+  --vto-red:        #5c1011;
+  --vto-red-hover:  #7a1a1b;
+  --vto-red-light:  #fef2f2;
+  --vto-red-mid:    #fee2e2;
+
+  /* Inherited from theme; fallbacks match previous values */
+  --vto-text:       rgb(var(--color-base-text, 17 24 39));
+  --vto-text-2:     rgb(var(--color-base-text, 55 65 81) / 0.78);
+  --vto-text-3:     rgb(var(--color-base-text, 107 114 128) / 0.55);
+  --vto-background: rgb(var(--color-base-background, 255 255 255));
+  --vto-white:      rgb(var(--color-base-background, 255 255 255));
+  --vto-surface:    rgb(var(--color-base-text, 249 250 251) / 0.04);
+  --vto-surface-2:  rgb(var(--color-base-text, 243 244 246) / 0.08);
+  --vto-border:     rgb(var(--color-base-text, 229 231 235) / 0.12);
+  --vto-border-2:   rgb(var(--color-base-text, 209 213 219) / 0.22);
+
+  /* Primary button = theme button colors */
+  --vto-btn-bg:     rgb(var(--color-base-button, 92 16 17));
+  --vto-btn-text:   rgb(var(--color-base-button-text, 255 255 255));
+
+  --vto-black:      #000000;
+  --vto-success:    #16a34a;
+  --vto-success-bg: #f0fdf4;
+  --vto-error:      #dc2626;
+  --vto-shadow-sm:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --vto-shadow-md:  0 4px 16px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);
+  --vto-shadow-lg:  0 20px 48px rgba(0,0,0,.18), 0 8px 16px rgba(0,0,0,.10);
+
+  /* Radius — inherit theme card / button / input radii */
+  --vto-radius:        var(--rounded-card, 16px);
+  --vto-radius-button: var(--rounded-button, 10px);
+  --vto-radius-input:  var(--rounded-input, 8px);
+
+  /* Font — inherit theme body font */
+  --vto-font-body:   var(--font-body-family, inherit);
+  --vto-font-button: var(--font-button-family, inherit);
+
+  --vto-ease:       cubic-bezier(0.32, 0.72, 0, 1);
+  --vto-ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+  --vto-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --vto-safe-top:    env(safe-area-inset-top, 0px);
+}
+
+/* ─── Utility ─────────────────────────────────── */
+.vto-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+
+/* ─── Trigger Button ─────────────────────────── */
+.vto-button-wrapper { margin-top: 12px; }
+
+.vto-trigger-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 24px;
+  background: var(--vto-red);
+  color: var(--vto-white);
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+  box-shadow: 0 2px 8px rgba(92,16,17,0.25);
+}
+
+.vto-trigger-btn__icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+.vto-trigger-btn:hover {
+  background: var(--vto-red-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(92,16,17,0.3);
+}
+
+.vto-trigger-btn:active { transform: translateY(0) scale(0.985); box-shadow: none; }
+
+.vto-trigger-btn__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  margin-left: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+.vto-trigger-btn__badge svg { flex-shrink: 0; }
+
+/* ─── Modal Shell ─────────────────────────────── */
+.vto-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  padding-top: calc(20px + var(--vto-safe-top));
+  pointer-events: none;
+}
+
+.vto-modal.vto-modal--open { pointer-events: auto; }
+
+/* `display: flex` above is (0,1,0), the same as theme.css's `[hidden]`, and
+   this file loads after it — so `modal.hidden = true` styled nothing. The
+   dialog stayed laid out with every control inside it still focusable, which
+   put the whole try-on flow in the tab order behind the page after minimising
+   and after closing. Both `.vto-gallery[hidden]` and `.vto-consent[hidden]`
+   below already carry this same guard. */
+.vto-modal[hidden] { display: none !important; }
+
+.vto-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 5, 5, 0.45);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  opacity: 0;
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vto-modal__container {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--vto-radius);
+  box-shadow: var(--vto-shadow-lg), 0 32px 72px -16px rgba(92, 16, 17, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--vto-font-body);
+  color: var(--vto-text);
+  opacity: 0;
+  transform: scale(0.94) translateY(24px);
+  transition: opacity 350ms var(--vto-ease-out), transform 380ms var(--vto-ease-out);
+  /* No persistent will-change here. It only helps during the entrance
+     transition, which WebKit promotes on its own anyway, but it pins the whole
+     subtree to a composited layer for as long as the modal is open — and that
+     layer, stacked under two backdrop-filters, is where the garbled hint text
+     residue appears on iOS. */
+  outline: none;
+}
+
+.vto-modal--open .vto-modal__overlay { opacity: 1; }
+.vto-modal--open .vto-modal__container {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Drag handle */
+.vto-drag-handle {
+  display: none;
+  width: 40px;
+  height: 4px;
+  background: var(--vto-border);
+  border-radius: 99px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.vto-drag-handle:active { cursor: grabbing; }
+
+/* ─── Header ─────────────────────────────────── */
+.vto-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--vto-border);
+  touch-action: none;
+}
+
+.vto-modal__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--vto-text);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  margin-right: 8px;
+  flex-shrink: 0;
+  padding: 0;
+}
+.vto-modal__back:hover {
+  background-color: var(--vto-border);
+}
+.vto-modal__back:active {
+  transform: scale(0.92);
+}
+.vto-modal__back[hidden] {
+  display: none !important;
+}
+.vto-modal__back svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
+.vto-modal__header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vto-modal__logo {
+  width: 32px;
+  height: 32px;
+  background: var(--vto-red-light);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vto-modal__logo svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--vto-red);
+}
+
+.vto-modal__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--vto-text);
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.vto-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--vto-text-3);
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.vto-modal__close svg { width: 18px; height: 18px; }
+.vto-modal__close:hover { background: var(--vto-surface); color: var(--vto-text); }
+.vto-modal__close:focus-visible { outline: 2px solid var(--vto-red); outline-offset: 2px; }
+
+/* ─── Screens ─────────────────────────────────── */
+.vto-screen {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: calc(20px + var(--vto-safe-bottom));
+  overscroll-behavior: contain;
+}
+.vto-screen[hidden] { display: none; }
+
+@keyframes vto-screen-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.vto-screen--enter {
+  animation: vto-screen-in 280ms var(--vto-ease-out) both;
+}
+
+/* ─── Upload Area ─────────────────────────────── */
+.vto-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 24px 28px;
+  background: linear-gradient(135deg, rgba(92, 16, 17, 0.02) 0%, rgba(255, 255, 255, 0.5) 100%);
+  border: 2px dashed rgba(92, 16, 17, 0.18);
+  border-radius: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+}
+
+.vto-upload-area:hover,
+.vto-upload-area.drag-over {
+  border-color: var(--vto-red);
+  background-color: rgba(92, 16, 17, 0.03);
+  box-shadow: inset 0 0 20px rgba(92, 16, 17, 0.04);
+}
+.vto-upload-area.drag-over {
+  background-color: rgba(92, 16, 17, 0.06);
+  box-shadow: inset 0 0 24px rgba(92, 16, 17, 0.08);
+}
+
+.vto-upload-area.is-uploading {
+  pointer-events: none;
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.vto-upload-icon {
+  width: 52px;
+  height: 52px;
+  background: var(--vto-red-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vto-icon-breathe 3s ease-in-out infinite;
+  box-shadow: 0 8px 24px -4px rgba(92, 16, 17, 0.12);
+}
+.vto-upload-icon svg { width: 26px; height: 26px; stroke: var(--vto-red); }
+
+@keyframes vto-icon-breathe {
+  0%, 100% { transform: scale(1) translateY(0); box-shadow: 0 8px 24px -4px rgba(92, 16, 17, 0.12); }
+  50%      { transform: scale(1.06) translateY(-4px); box-shadow: 0 16px 32px -4px rgba(92, 16, 17, 0.2); }
+}
+
+.vto-upload-text { font-size: 15px; font-weight: 600; color: var(--vto-text); margin: 0; }
+.vto-upload-hint { font-size: 12px; color: var(--vto-text-3); margin: 0; }
+
+.vto-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vto-upload-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.vto-privacy-notice {
+  font-size: 11px;
+  color: var(--vto-text-3);
+  text-align: center;
+  margin-top: 14px;
+  line-height: 1.4;
+  padding: 0 16px;
+}
+.vto-privacy-notice a {
+  color: var(--vto-red);
+  text-decoration: underline;
+  font-weight: 500;
+}
+.vto-privacy-notice a:hover {
+  color: #7a1a1b;
+}
+
+/* ─── Tips ─────────────────────────────────── */
+.vto-tips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.vto-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--vto-red);
+  background: rgba(92, 16, 17, 0.04);
+  border: 1px solid rgba(92, 16, 17, 0.08);
+  border-radius: 99px;
+  padding: 5px 12px;
+  box-shadow: 0 2px 6px rgba(92, 16, 17, 0.03);
+  letter-spacing: 0.1px;
+}
+.vto-tip__icon { font-style: normal; color: var(--vto-red); font-size: 10px; font-weight: 700; }
+
+/* ─── Recent try-ons strip ─────────────────────── */
+.vto-recent {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--vto-border);
+}
+.vto-recent[hidden] { display: none; }
+
+.vto-recent__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vto-text-3);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.vto-recent__list {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(92, 16, 17, 0.2) transparent;
+}
+.vto-recent__list::-webkit-scrollbar {
+  height: 4px;
+}
+.vto-recent__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vto-recent__list::-webkit-scrollbar-thumb {
+  background: rgba(92, 16, 17, 0.15);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+.vto-recent__list::-webkit-scrollbar-thumb:hover {
+  background: rgba(92, 16, 17, 0.3);
+}
+
+.vto-recent__card {
+  flex: 0 0 auto;
+  width: 195px;
+  height: 74px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--vto-surface);
+  border: 1px solid var(--vto-border-2);
+  border-radius: var(--vto-radius-button);
+  padding: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, transform 0.2s var(--vto-ease-out), box-shadow 0.2s ease;
+  box-sizing: border-box;
+  scroll-snap-align: start;
+}
+
+.vto-recent__card:hover {
+  border-color: var(--vto-red);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(92, 16, 17, 0.08);
+}
+
+.vto-recent__thumb-btn {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 56px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--vto-border-2);
+  background: var(--vto-surface-2);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  display: block;
+  transition: border-color 0.2s ease;
+}
+
+.vto-recent__thumb-btn:hover {
+  border-color: var(--vto-red);
+}
+
+.vto-recent__thumb-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vto-recent__info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.vto-recent__title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--vto-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.vto-recent__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vto-recent__load-btn {
+  background: var(--vto-red);
+  color: var(--vto-white);
+  border: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  line-height: 1.2;
+}
+
+.vto-recent__load-btn:hover {
+  background: var(--vto-red-hover);
+}
+
+.vto-recent__load-btn:active {
+  transform: scale(0.96);
+}
+
+.vto-recent__view-link {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--vto-text-3);
+  text-decoration: none;
+  border: 1px solid var(--vto-border-2);
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background: var(--vto-surface);
+  display: inline-block;
+  line-height: 1.2;
+}
+
+.vto-recent__view-link:hover {
+  color: var(--vto-text);
+  border-color: var(--vto-text-3);
+  background: var(--vto-surface-2);
+}
+
+/* ─── Preview ─────────────────────────────── */
+.vto-upload-area[hidden],
+.vto-tips[hidden],
+.vto-recent[hidden],
+.vto-preview[hidden] {
+  display: none !important;
+}
+
+.vto-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.vto-preview__photo-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 8px 24px rgba(92, 16, 17, 0.12);
+  overflow: hidden;
+  background: var(--vto-surface);
+}
+
+.vto-preview__photo-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  animation: vto-img-reveal 400ms var(--vto-ease-out) both;
+}
+
+@keyframes vto-img-reveal {
+  from { opacity: 0; transform: scale(0.95); filter: blur(4px); }
+  to   { opacity: 1; transform: scale(1);    filter: blur(0); }
+}
+
+.vto-preview__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(74, 117, 89, 0.08);
+  border: 1px solid rgba(74, 117, 89, 0.3);
+  color: #4a7559;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: 4px 12px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(74, 117, 89, 0.05);
+  margin-top: 4px;
+  animation: vto-badge-in 400ms 200ms var(--vto-ease-out) both;
+}
+.vto-preview__badge svg { width: 12px; height: 12px; stroke: currentColor; }
+
+@keyframes vto-badge-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.vto-preview-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.vto-preview-actions > * { flex: 1; }
+
+/* ─── Shared Buttons ─────────────────────────── */
+.vto-btn-primary,
+.vto-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 20px;
+  border-radius: var(--vto-radius-button);
+  font-family: var(--vto-font-button);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.25s var(--vto-ease-out),
+              box-shadow 0.25s ease, border-color 0.25s ease;
+  white-space: nowrap;
+  min-height: 44px;
+}
+
+.vto-btn-primary svg,
+.vto-btn-ghost svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+.vto-btn-primary {
+  background: var(--vto-btn-bg);
+  color: var(--vto-btn-text);
+  border: none;
+  box-shadow: 0 4px 12px rgba(92, 16, 17, 0.15);
+}
+.vto-btn-primary:hover {
+  filter: brightness(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(92, 16, 17, 0.25);
+}
+.vto-btn-primary:active { transform: scale(0.975); box-shadow: none; }
+.vto-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.vto-btn-primary:focus-visible { outline: 2px solid var(--vto-red); outline-offset: 2px; }
+
+.vto-btn-ghost {
+  background: rgba(92, 16, 17, 0.02);
+  color: var(--vto-text-2);
+  border: 1.5px solid rgba(92, 16, 17, 0.12);
+}
+.vto-btn-ghost:hover {
+  background: rgba(92, 16, 17, 0.05);
+  border-color: rgba(92, 16, 17, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(92, 16, 17, 0.08);
+}
+.vto-btn-ghost:active { transform: scale(0.975); }
+.vto-btn-ghost:focus-visible { outline: 2px solid var(--vto-red); outline-offset: 2px; }
+
+.vto-camera-btn,
+.vto-upload-btn { min-width: 0; }
+
+/* ─── Loading Screen ─────────────────────────── */
+.vto-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 30px 16px 24px;
+}
+
+.vto-loader-ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+
+/* ─── Premium AI Scan Loading Illustration ─── */
+.vto-loading-illustration {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vto-scan-container {
+  position: relative;
+  width: 90px !important;
+  height: 90px !important;
+  border-radius: 24px !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3)) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1.5px solid rgba(92, 16, 17, 0.12) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(92, 16, 17, 0.04), inset 0 0 12px rgba(255, 255, 255, 0.6) !important;
+}
+.vto-scan-svg {
+  position: absolute;
+  width: 38px !important;
+  height: 38px !important;
+  stroke: var(--vto-red);
+  opacity: 0.35;
+  transition: all 0.4s ease;
+}
+.vto-scan-svg--garment {
+  animation: vto-pulse-garment 2.8s ease-in-out infinite;
+}
+.vto-scan-svg--avatar {
+  animation: vto-pulse-avatar 2.8s ease-in-out infinite;
+}
+@keyframes vto-pulse-garment {
+  0%, 100% { opacity: 0.22; transform: translateX(-11px) scale(0.93); }
+  50%      { opacity: 0.65; transform: translateX(-11px) scale(1.05); }
+}
+@keyframes vto-pulse-avatar {
+  0%, 100% { opacity: 0.65; transform: translateX(11px) scale(1.05); }
+  50%      { opacity: 0.22; transform: translateX(11px) scale(0.93); }
+}
+.vto-scan-laser {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--vto-red) 30%, #ff5252 50%, var(--vto-red) 70%, transparent) !important;
+  box-shadow: 0 0 12px #ff3d00, 0 0 24px rgba(255, 61, 0, 0.4) !important;
+  animation: vto-laser-glide 2.4s ease-in-out infinite;
+}
+@keyframes vto-laser-glide {
+  0%, 100% { top: 4%; }
+  50%      { top: 92%; }
+}
+
+.vto-loader-ring__track {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 5px solid var(--vto-border);
+}
+
+.vto-loader-ring__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 5px solid transparent;
+  border-top-color: var(--vto-red);
+  border-right-color: var(--vto-red);
+  animation: vto-ring-spin 1.1s linear infinite;
+  will-change: transform;
+}
+
+@keyframes vto-ring-spin { to { transform: rotate(360deg); } }
+
+.vto-loader-ring__center {
+  position: absolute;
+  inset: 12px;
+  background: var(--vto-red-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vto-pulse-ring 2s ease-in-out infinite;
+}
+.vto-loader-ring__center svg { width: 22px; height: 22px; stroke: var(--vto-red); }
+
+@keyframes vto-pulse-ring {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(0.92); opacity: 0.7; }
+}
+
+.vto-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 280px;
+  margin: 6px auto;
+  align-items: center;
+}
+
+.vto-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0.35;
+  transform: scale(0.96);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+.vto-step.is-active {
+  opacity: 1;
+  transform: scale(1.05);
+}
+.vto-step.is-done {
+  opacity: 0.65;
+  transform: scale(0.98);
+}
+
+.vto-step__dot {
+  display: none !important;
+}
+
+.vto-step::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vto-text-3);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+.vto-step.is-active::before {
+  background: var(--vto-red);
+  opacity: 1;
+  box-shadow: 0 0 8px var(--vto-red), 0 0 16px rgba(92, 16, 17, 0.4);
+  animation: vto-active-pulse 1s ease-in-out infinite;
+}
+.vto-step.is-done::before {
+  content: '✓';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--vto-success);
+  font-size: 11px;
+  font-weight: 700;
+  width: auto;
+  height: auto;
+  opacity: 1;
+}
+
+@keyframes vto-active-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.4); }
+}
+
+.vto-step__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vto-text);
+  letter-spacing: -0.01em;
+  transition: color 0.3s ease;
+}
+.vto-step.is-active .vto-step__label {
+  font-weight: 600;
+  color: var(--vto-text);
+}
+
+.vto-loading-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--vto-text);
+  margin: -6px 0 -4px;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.vto-loading-elapsed {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--vto-text-3);
+  font-variant-numeric: tabular-nums;
+}
+.vto-loading-elapsed__time { font-weight: 700; color: var(--vto-text-2); min-width: 26px; text-align: right; }
+.vto-loading-elapsed__sep  { opacity: 0.5; }
+
+.vto-loading-hint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--vto-text-3);
+  margin: 0;
+  text-align: center;
+  max-width: 280px;
+  /* Sized to the tallest hint (two lines). Without it every text swap reflows
+     the paragraph, and this node sits inside a container carrying will-change
+     plus two stacked backdrop-filter layers — where iOS WebKit can leave the
+     previous glyph run painted underneath the new one. */
+  min-height: 2.6em;
+}
+
+.vto-loading-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+}
+
+/* ==========================================================================
+   Recent looks — the strip that runs while the render does
+   ==========================================================================
+   A slow horizontal drift rather than a carousel with controls: the shopper is
+   waiting, not browsing, so it should be watchable without asking anything of
+   them. The track holds the chosen cards TWICE and translates exactly -50%, so
+   the second copy lands where the first began and the loop is seamless. */
+.vto-gallery {
+  width: 100%;
+  margin-top: 20px;
+  /* .vto-gallery sets display below, which beats the UA [hidden] rule. */
+}
+.vto-gallery[hidden] { display: none !important; }
+.vto-gallery__label {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--vto-text-3);
+}
+.vto-gallery__viewport {
+  position: relative;
+  overflow: hidden;
+  /* Cards drift in and out rather than being chopped at a hard edge. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+.vto-gallery__track {
+  display: flex;
+  gap: 8px;
+  width: max-content;
+  animation: vto-gallery-drift 60s linear infinite;
+}
+.vto-gallery__card {
+  flex: 0 0 auto;
+  width: 74px;
+  aspect-ratio: 3 / 4;
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--vto-surface);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+}
+.vto-gallery__card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@keyframes vto-gallery-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+/* Motion for its own sake is exactly what this setting is for. Stopped, the
+   strip becomes an ordinary scrollable row rather than a frozen half-card. */
+@media (prefers-reduced-motion: reduce) {
+  .vto-gallery__track { animation: none; }
+  .vto-gallery__viewport { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+.vto-minimize-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.vto-minimize-btn svg { width: 18px; height: 18px; }
+
+.vto-cancel-btn {
+  width: auto;
+  padding: 8px 24px;
+  min-height: 38px;
+  font-size: 13px;
+}
+
+/* ─── Spinner ───────────────────────────────────────────────────────
+   Was .vto-pill__spinner. The floating pill it was named for is gone; the
+   size-chart sheet still uses it, so it keeps the styles under a name that
+   describes what it is. */
+.vto-spinner {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2.5px solid var(--vto-border);
+  border-top-color: var(--vto-red);
+  border-right-color: var(--vto-red);
+  animation: vto-ring-spin 1s linear infinite;
+}
+
+/* ─── Results Screen ─────────────────────────── */
+.vto-results {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vto-results__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vto-tabs {
+  position: relative;
+  display: inline-flex;
+  background: var(--vto-surface);
+  border: 1px solid var(--vto-border);
+  border-radius: 10px;
+  padding: 3px;
+  flex: 1;
+}
+
+.vto-tabs__indicator {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  height: calc(100% - 6px);
+  width: calc(50% - 3px);
+  background: var(--vto-white);
+  border-radius: 8px;
+  box-shadow: var(--vto-shadow-sm);
+  transition: transform 250ms var(--vto-ease);
+  pointer-events: none;
+}
+
+.vto-tabs__indicator.on-back { transform: translateX(calc(100% + 0px)); }
+
+.vto-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 9px 16px;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vto-text-3);
+  cursor: pointer;
+  transition: color 200ms ease;
+  min-height: 36px;
+}
+.vto-tab.active { color: var(--vto-text); font-weight: 600; }
+.vto-tab[hidden] { display: none; }
+.vto-tab:focus-visible { outline: 2px solid var(--vto-red); outline-offset: 2px; }
+
+/* If back tab is hidden, front tab fills width */
+.vto-tabs:has([data-vto-back-tab][hidden]) .vto-tabs__indicator { width: calc(100% - 6px); }
+
+/* Result image — single layer. The frame must match what the model returns:
+   gpt-image-2 is pinned to 768x1024 (exactly 3:4), and the prompt asks for a
+   3:4 head-to-mid-thigh composition. This was 1/1 with object-fit:cover, which
+   center-cropped every portrait result into a square and cut off the head or
+   the legs. */
+.vto-results__image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: var(--vto-surface);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: pinch-zoom;
+}
+
+.vto-results__image img {
+  width: 100%;
+  height: 100%;
+  /* `contain`, not `cover`: identical to cover for the exact-3:4 primary
+     output, but it also protects the composition if the gpt-image-1.5
+     fallback kicks in and returns 1024x1536 (2:3). */
+  object-fit: contain;
+  display: block;
+  border-radius: 14px;
+  transition: opacity 350ms ease, filter 500ms ease;
+}
+
+.vto-results__after {
+  position: absolute;
+  inset: 0;
+}
+
+.vto-results__image img.is-loading { opacity: 0; filter: blur(8px); }
+.vto-results__image img.is-loaded  { opacity: 1; filter: blur(0); }
+
+.vto-results__shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.6) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: vto-shimmer 1.5s ease infinite;
+  border-radius: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  z-index: 3;
+}
+.vto-results__image.is-loading .vto-results__shimmer { opacity: 1; }
+
+@keyframes vto-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ─── Buy bar ─────────────────────────── */
+.vto-buy-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px;
+  background: var(--vto-surface);
+  border: 1px solid var(--vto-border);
+  border-radius: 12px;
+}
+.vto-buy-bar[hidden] { display: none; }
+
+.vto-size-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+  flex: 0 0 auto;
+}
+.vto-size-picker[hidden] { display: none; }
+.vto-size-picker__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--vto-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.vto-size-picker__select {
+  padding: 8px 10px;
+  border: 1px solid var(--vto-border);
+  border-radius: var(--vto-radius-input);
+  background: var(--vto-background);
+  font-family: var(--vto-font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vto-text);
+  cursor: pointer;
+  min-height: 36px;
+}
+.vto-size-picker__select:focus-visible { outline: 2px solid var(--vto-red); outline-offset: 1px; }
+
+.vto-atc-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.vto-results__actions {
+  display: flex;
+  gap: 10px;
+}
+.vto-results__actions > * { flex: 1; }
+
+/* ─── Feedback thumbs ─────────────────────────── */
+.vto-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0 4px;
+  font-size: 12px;
+  color: var(--vto-text-3);
+}
+.vto-feedback[data-submitted] { opacity: 0.7; }
+.vto-feedback__label { font-weight: 500; }
+.vto-feedback__btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--vto-surface);
+  border: 1px solid var(--vto-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  color: var(--vto-text-3);
+}
+.vto-feedback__btn svg { width: 14px; height: 14px; }
+.vto-feedback__btn:hover { border-color: var(--vto-red); color: var(--vto-red); }
+.vto-feedback__btn.is-selected { background: var(--vto-red); border-color: var(--vto-red); color: #fff; }
+
+/* ─── Error Screen ─────────────────────────── */
+.vto-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 16px 24px;
+  text-align: center;
+}
+.vto-error__icon {
+  width: 56px;
+  height: 56px;
+  background: var(--vto-red-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vto-shake 600ms 200ms var(--vto-ease-out) both;
+}
+.vto-error__icon svg { width: 26px; height: 26px; stroke: var(--vto-error); }
+@keyframes vto-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.vto-error-title { font-size: 16px; font-weight: 700; color: var(--vto-text); margin: 0; }
+.vto-error-text  { font-size: 13px; color: var(--vto-text-3); margin: 0; max-width: 280px; line-height: 1.5; }
+.vto-error .vto-btn-primary { width: 100%; margin-top: 4px; }
+.vto-error .vto-btn-ghost   { width: 100%; }
+
+/* ─── Camera Capture ─────────────────────────── */
+.vto-camera-container {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  animation: vto-screen-in 300ms var(--vto-ease-out) both;
+}
+.vto-camera-container video { width: 100%; display: block; border-radius: 14px; }
+/* Front camera only. The captured frame is deliberately NOT flipped — that is
+   the true photograph of the person, the one the model should be given and the
+   one that keeps any text in shot readable. Mirroring the preview while saving
+   the real orientation is what every phone camera app does. */
+.vto-camera-container video.is-mirrored { transform: scaleX(-1); }
+
+.vto-camera-flip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+.vto-camera-flip svg { width: 18px; height: 18px; }
+
+.vto-camera-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.vto-camera-actions > * { flex: 1; }
+
+/* ─── Toast ─────────────────────────── */
+.vto-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(20px + var(--vto-safe-bottom));
+  transform: translateX(-50%) translateY(20px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--vto-text);
+  color: var(--vto-white);
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--vto-shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease, transform 300ms var(--vto-ease-out);
+  z-index: 10;
+}
+.vto-toast[hidden] { display: none; }
+.vto-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.vto-toast svg { width: 16px; height: 16px; stroke: #4ade80; }
+/* Failures get a red icon. The success green is otherwise applied to every
+   toast, so an error read as a confirmation. */
+.vto-toast--error svg { stroke: #f87171; }
+.vto-toast__link {
+  color: #fff;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+/* ─── Mobile ───────────────────────────────── */
+@media (max-width: 640px) {
+  .vto-modal {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .vto-modal__container {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    opacity: 1;
+    padding-bottom: var(--vto-safe-bottom);
+  }
+
+  .vto-modal--open .vto-modal__container {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .vto-drag-handle { display: block; }
+
+  .vto-modal__header { padding: 12px 16px 10px; }
+  .vto-modal__title  { font-size: 15px; }
+
+  .vto-screen { padding: 14px; padding-bottom: calc(14px + var(--vto-safe-bottom)); }
+
+  .vto-upload-area { padding: 24px 14px 20px; }
+
+  .vto-upload-actions { flex-direction: column; width: 100%; }
+  .vto-upload-actions > * { width: 100%; }
+
+  .vto-preview__photo-wrap img { max-height: 260px; }
+
+  .vto-results { gap: 12px; }
+  .vto-results__image img { max-height: none; }
+
+  .vto-buy-bar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+  .vto-size-picker { min-width: 0; width: 100%; }
+  .vto-atc-btn { width: 100%; }
+
+  .vto-results__actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .vto-results__actions .vto-btn-ghost {
+    padding: 10px 8px;
+    font-size: 12px;
+    min-height: 44px;
+  }
+
+  .vto-loading { padding: 22px 14px 18px; gap: 20px; }
+}
+
+/* Phones with very small viewports — tighten further */
+@media (max-width: 380px) {
+  .vto-modal__header { padding: 10px 14px 8px; }
+  .vto-screen { padding: 12px; padding-bottom: calc(12px + var(--vto-safe-bottom)); }
+  .vto-results__actions .vto-btn-ghost { font-size: 11px; gap: 4px; }
+}
+
+/* ─── Reduced Motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .vto-modal__container,
+  .vto-modal__overlay,
+  .vto-screen--enter,
+  .vto-upload-icon,
+  .vto-loader-ring__fill,
+  .vto-loader-ring__center,
+  .vto-step__dot::after,
+  .vto-results__shimmer,
+  .vto-error__icon,
+  .vto-preview__photo-wrap img,
+  .vto-preview__badge,
+  .vto-sizechart__overlay,
+  .vto-sizechart__sheet,
+  .vto-spinner,
+  .vto-toast { animation: none; transition: none; }
+
+  .vto-modal--open .vto-modal__container { transform: none; opacity: 1; }
+  .vto-modal--open .vto-modal__overlay   { opacity: 1; }
+  .vto-sizechart.is-open .vto-sizechart__sheet { transform: translateY(0); }
+}
+
+
+/* ==========================================================================
+   The try-on tile — the minimised state, and its only home
+   ==========================================================================
+   The buy bar's own 48px thumbnail IS the minimised try-on. There is no
+   floating copy any more: the previous build kept one as a fallback, and when
+   the fallback misfired the shopper got two identical tiles at once — the live
+   one floating over the buy bar card, on top of "Size guide", while the real
+   thumbnail sat idle. One object, one place.
+
+   The tile shows the garment being tried on, borrows the buy bar's exact label
+   metrics, and carries progress on its own border instead of needing a number.
+
+   Geometry lives in snippets/vto-tile-ring.liquid; --vto-pct is written by
+   assets/vto.js. */
+.vto-tile {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: #efedea;
+  cursor: pointer;
+  /* The ring sits ON the tile's edge, so it must not be clipped. The image and
+     the label carry their own radii instead of relying on the parent to cut
+     them — which is what the buy bar's overflow:hidden was doing. */
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+}
+.vto-tile > img,
+.vto-tile__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 10px;
+}
+.vto-tile__img[hidden] { display: none; }
+.vto-tile__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  /* Nothing is drawn until a run is actually in progress. On a resting buy bar
+     this component is just the thumbnail it has always been. */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.vto-tile__track { fill: none; stroke: rgba(26, 21, 18, 0.14); stroke-width: 2.5; }
+.vto-tile__fill {
+  fill: none;
+  stroke: var(--vto-red);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: var(--vto-pct, 0) 100;
+  transition: stroke-dasharray 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The label. Metrics copied from .onrepeat-bb__thumb span so the two are the same
+   object; the radius is here because the tile no longer clips it. */
+.vto-tile [data-vto-tile-label] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 10px 10px;
+  background: rgba(26, 21, 18, 0.86);
+  color: #fff;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scoped as .vto-tile .vto-tile__dot, and every edge reset explicitly, because
+   the buy bar styles EVERY span inside its thumbnail:
+
+     .onrepeat-bb__thumb span { position:absolute; left:0; right:0; bottom:0;
+                             height:15px; display:flex; background:#1a1512e0 }
+
+   That selector is (0,1,1) and beat the plain (0,1,0) class this used to be,
+   so the dot inherited display:flex — visible at rest, not just when ready —
+   plus a near-black fill and left:0, and rendered as an 11x15 dark blob pinned
+   to the TOP LEFT of the tile. Raising specificity is not enough on its own:
+   left and bottom have to be returned to auto or the dot still stretches. */
+.vto-tile .vto-tile__dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  left: auto;
+  bottom: auto;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--vto-red);
+  border: 2px solid #fff;
+  display: none;
+}
+
+/* ── States, driven by data-vto-tile-state ─────────────────────────────── */
+.vto-tile[data-vto-tile-state] .vto-tile__ring { opacity: 1; }
+
+/* Working: the border fills, and the label eases to the house maroon and back.
+   The STRIP pulses, not the text — 7.5px maroon on near-black is unreadable,
+   and white on both ends of the ease never drops below contrast. */
+@keyframes vto-tile-pulse {
+  0%, 100% { background: rgba(26, 21, 18, 0.86); }
+  50%      { background: var(--vto-red); }
+}
+.vto-tile[data-vto-tile-state="generating"] [data-vto-tile-label] {
+  animation: vto-tile-pulse 1.9s ease-in-out infinite;
+}
+
+/* Ready and failed are closed loops, so they must not be drawn as a dash: at
+   exactly 100 the two round linecaps land on the same point and render as a
+   bump beside a hairline gap. */
+.vto-tile[data-vto-tile-state="ready"] .vto-tile__fill,
+.vto-tile[data-vto-tile-state="error"] .vto-tile__fill { stroke-dasharray: none; }
+.vto-tile[data-vto-tile-state="ready"] [data-vto-tile-label] { background: var(--vto-red); }
+.vto-tile[data-vto-tile-state="ready"] .vto-tile__dot { display: block; }
+/* Amber, not maroon. A failure must not read as the brand accent. */
+.vto-tile[data-vto-tile-state="error"] .vto-tile__fill { stroke: #8a5a12; }
+.vto-tile[data-vto-tile-state="error"] [data-vto-tile-label] { background: #8a5a12; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vto-tile[data-vto-tile-state="generating"] [data-vto-tile-label] { animation: none; }
+  .vto-tile__fill { transition: none; }
+}
+
+/* ── Connection lost mid-render ────────────────────────────────────────────
+   The tile goes still. A label that keeps pulsing and a ring that keeps its
+   full-strength maroon while nothing is being generated is a progress
+   indicator telling a lie; the muted, static tile says "paused" without
+   needing a word at 7.5px. The modal and the live region carry the sentence. */
+.vto-tile[data-vto-tile-offline="true"] [data-vto-tile-label] {
+  animation: none;
+  background: rgba(26, 21, 18, 0.55);
+}
+.vto-tile[data-vto-tile-offline="true"] .vto-tile__fill {
+  stroke: rgba(92, 16, 17, 0.4);
+}
+
+/* ── Carried from another product ──────────────────────────────────────────
+   The shopper started a try-on on one garment and opened a different product
+   page. With no floating copy, THIS page's buy bar hosts that session, so the
+   tile is showing a garment the rest of the card is not about. A white edge
+   and a lift say "carried here", so it reads as a visitor on the card rather
+   than as this product's own thumbnail. Everything else on the bar — price,
+   size rail, Add to Cart — still belongs to the page, so nothing misleads.
+
+   assets/vto.js also rewrites the accessible name to name the other product,
+   which is what actually resolves the ambiguity for a screen reader. */
+.vto-tile[data-vto-tile-carried="true"] {
+  box-shadow: 0 0 0 2px #fff, 0 4px 14px rgba(26, 21, 18, 0.24);
+}
+
+/* No focus rule here on purpose. The tile is a control on the buy bar, and the
+   bar styles its own: `.onrepeat-bb__thumb:focus-visible` in onrepeat-buy-bar.liquid
+   is the same specificity and loads later (inline, in the body), so anything
+   written here would be dead code pretending to be a decision. */
+
+/* ── Collapsing the modal into the tile ────────────────────────────────────
+   minimize() measures the tile and writes --vto-fold-x/y/scale, then adds this
+   class for one transition. Transform and opacity only: a sheet that animates
+   its box would relayout the page behind it on every frame.
+
+   The origin is top-left because the transform is computed from the
+   container's own untransformed box — anything else and the translation would
+   have to compensate for a moving anchor. */
+.vto-modal__container.vto-modal__container--folding {
+  transition:
+    transform 380ms cubic-bezier(0.32, 0, 0.24, 1),
+    opacity 260ms ease 60ms;
+  transform-origin: 0 0;
+  transform: translate(var(--vto-fold-x, 0px), var(--vto-fold-y, 0px)) scale(var(--vto-fold-scale, 0.12));
+  opacity: 0;
+  pointer-events: none;
+  /* The sheet's own blur is dropped for the duration. Scaling a
+     backdrop-filter re-samples it every frame, and stacked under the overlay's
+     blur that is exactly the two-backdrop-filter configuration the note on
+     .vto-modal__container blames for the garbled residue on iOS. Nothing is
+     lost: the container is easing to opacity 0 over 260ms. will-change is
+     safe here for the same reason the note gives — it is scoped to the fold
+     and removed with the class, so no layer is pinned while the modal sits
+     open. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  will-change: transform, opacity;
+}
+/* The overlay must be gone well before the sheet finishes travelling —
+   otherwise the tile it is folding into spends the whole 380ms behind a
+   45%-black blur and the shopper never sees the two meet. Its own 350ms curve
+   from the base rule was too slow for that. */
+.vto-modal--folding .vto-modal__overlay {
+  opacity: 0;
+  transition: opacity 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vto-modal__container.vto-modal__container--folding {
+    transition: opacity 120ms linear;
+    transform: none;
+  }
+}
+
+@keyframes vto-badge-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+
+/* ==========================================================================
+   Size Pills Rendering
+   ========================================================================== */
+.vto-size {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.vto-size__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.vto-size__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--vto-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.vto-size__chart {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--vto-red);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+.vto-size__chart:hover {
+  color: var(--vto-red-hover);
+}
+.vto-size__chart svg {
+  width: 16px;
+  height: 16px;
+}
+.vto-size__pills {
+  display: block;
+  width: 100%;
+}
+.vto-size__pills ul {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  gap: 8px !important;
+  padding: 4px 2px !important;
+  margin: 0 !important;
+  list-style: none !important;
+  scrollbar-width: none !important;
+}
+.vto-size__pills ul::-webkit-scrollbar {
+  display: none !important;
+}
+/* The original rail was a horizontal scroller, and reached for !important to
+   beat the theme's swatch utilities. The results screen lays the same markup
+   out as an even row instead, so these are scoped to everywhere BUT that block
+   — otherwise !important wins and the four sizes huddle in the left third. */
+.vto-size__pills li:not(.vto-results__buy .vto-size__pills li) {
+  flex: 0 0 auto !important;
+  display: inline-block !important;
+}
+.vto-results__buy .vto-size__pills li {
+  flex: 1 1 0 !important;
+  display: block !important;
+}
+.vto-size__pill {
+  min-width: 44px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--vto-border-2);
+  border-radius: var(--vto-radius-button);
+  background: transparent;
+  color: var(--vto-text);
+  font-family: var(--vto-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.vto-size__pill:hover:not(.is-sold-out) {
+  border-color: var(--vto-red);
+  background: rgba(92, 16, 17, 0.04);
+}
+.vto-size__pill.is-active {
+  border-color: var(--vto-red);
+  background: var(--vto-red);
+  color: var(--vto-white);
+}
+.vto-size__pill.is-sold-out {
+  opacity: 0.45;
+  cursor: not-allowed;
+  position: relative;
+  text-decoration: line-through;
+}
+
+/* Swatches & label-swatch premium tactile overrides inside VTO modal */
+.vto-modal label.label-swatch {
+  transition: transform 0.2s var(--vto-ease-out), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.vto-modal label.label-swatch:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px rgba(92, 16, 17, 0.08);
+}
+.vto-modal label.label-swatch:active {
+  transform: scale(0.94);
+  box-shadow: none;
+}
+.vto-modal input[type="radio"]:checked + label.label-swatch {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(92, 16, 17, 0.15);
+}
+
+/* The size radios are visually hidden and the label is the only thing on
+   screen, so without this a keyboard shopper tabbing into the size rail has no
+   idea where they are — the theme styles :checked for these but never :focus.
+   Kept to :focus-visible so a pointer tap does not leave a ring behind. */
+.vto-modal input[type="radio"]:focus-visible + label.label-swatch {
+  outline: 2px solid var(--vto-red);
+  outline-offset: 2px;
+}
+/* Add to bag was pressed with no size chosen. The toast says so; this is what
+   the shopper sees when they look back at the rail. Cleared the moment they
+   pick one. */
+.vto-size--needed label.label-swatch {
+  outline: 1.5px solid var(--vto-red);
+  outline-offset: 2px;
+}
+.vto-size--needed {
+  animation: vto-size-nudge 0.4s var(--vto-ease-out);
+}
+@keyframes vto-size-nudge {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vto-size--needed { animation: none; }
+}
+
+/* Sold-out sizes stay legible but plainly unavailable, rather than looking
+   identical to an in-stock one until the tap does nothing. */
+.vto-modal input[type="radio"]:disabled + label.label-swatch {
+  opacity: 0.4;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+.vto-modal input[type="radio"]:disabled + label.label-swatch:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   Size Chart Overlay Sheet Modal
+   ========================================================================== */
+.vto-sizechart {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.vto-sizechart[hidden] {
+  display: none;
+}
+.vto-sizechart__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 5, 5, 0.45);
+  backdrop-filter: blur(0px) saturate(100%);
+  -webkit-backdrop-filter: blur(0px) saturate(100%);
+  opacity: 0;
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), 
+              backdrop-filter 350ms cubic-bezier(0.16, 1, 0.3, 1),
+              -webkit-backdrop-filter 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vto-sizechart.is-open .vto-sizechart__overlay {
+  opacity: 1;
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+}
+.vto-sizechart__sheet {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: var(--vto-background);
+  border-radius: var(--vto-radius) var(--vto-radius) 0 0;
+  box-shadow: var(--vto-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow: hidden;
+  z-index: 2;
+}
+.vto-sizechart.is-open .vto-sizechart__sheet {
+  transform: translateY(0);
+}
+.vto-sizechart__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--vto-border);
+}
+.vto-sizechart__title {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.vto-sizechart__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--vto-text-3);
+  display: flex;
+}
+.vto-sizechart__close:hover {
+  color: var(--vto-text);
+}
+.vto-sizechart__close svg {
+  width: 20px;
+  height: 20px;
+}
+.vto-sizechart__body {
+  padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.vto-sizechart__loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+.vto-sizechart__empty {
+  text-align: center;
+  color: var(--vto-text-3);
+  padding: 40px 0;
+}
+.vto-sizechart__loading .vto-spinner {
+  width: 24px;
+  height: 24px;
+}
+
+/* CSS-Driven unit switching for size guides */
+.vto-unit-cm .vto-val-in {
+  display: none !important;
+}
+.vto-unit-in .vto-val-cm {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Consent gate — Camera and Library are inert until this is ticked
+   ========================================================================== */
+.vto-consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 13px;
+  margin-bottom: 12px;
+  border: 1px solid var(--vto-red);
+  background: var(--vto-red-light);
+  border-radius: var(--vto-radius-input);
+}
+/* Painted here rather than left to the browser or the theme.
+   The theme sets `appearance: none` on every checkbox and draws its own with
+   custom properties this block does not inherit, so the control rendered as an
+   invisible 18px gap — a consent gate whose checkbox cannot be seen is not a
+   consent gate. Everything below is stated outright for that reason. */
+.vto-consent input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1.5px solid var(--vto-red);
+  border-radius: 5px;
+  background: var(--vto-background);
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+.vto-consent input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0.6);
+  opacity: 0;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.vto-consent input[type="checkbox"]:checked {
+  background: var(--vto-red);
+  border-color: var(--vto-red);
+}
+.vto-consent input[type="checkbox"]:checked::after {
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+.vto-consent input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--vto-red);
+  outline-offset: 2px;
+}
+.vto-consent.is-agreed input[type="checkbox"] {
+  border-color: var(--vto-success);
+  background: var(--vto-success);
+}
+.vto-consent label {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vto-text-2);
+  cursor: pointer;
+}
+.vto-consent label b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--vto-red);
+  margin-bottom: 1px;
+}
+.vto-consent label a { color: var(--vto-text-2); }
+/* Hidden outright once agreed — see applyConsentGate(). [hidden] is a UA
+   display:none and .vto-consent sets display:flex, which would beat it. */
+.vto-consent[hidden] { display: none !important; }
+
+/* Ticked but still on screen (the moment between the tick and the next open). */
+.vto-consent.is-agreed {
+  border-color: rgba(22, 163, 74, 0.34);
+  background: var(--vto-success-bg);
+}
+.vto-consent.is-agreed label b { color: var(--vto-success); }
+
+/* The gate itself. pointer-events on the wrapper rather than only `disabled`
+   on the buttons, because the drop zone is a div and a drag-and-drop would
+   otherwise walk straight around the checkbox. */
+.vto-upload-area.is-locked { opacity: 0.5; }
+.vto-upload-area.is-locked .vto-upload-actions,
+.vto-upload-area.is-locked .vto-file-input { pointer-events: none; }
+.vto-upload-lock {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--vto-text-3);
+}
+.vto-upload-area.is-locked .vto-upload-lock { display: flex; }
+.vto-upload-lock svg { width: 13px; height: 13px; }
+
+/* ==========================================================================
+   Fit step — the same three questions the size guide asks
+   ========================================================================== */
+.vto-fit { padding: 4px 0 8px; display: grid; gap: 14px; }
+.vto-fit__dots { display: flex; gap: 6px; justify-content: center; }
+.vto-fit__dots i {
+  width: 24px; height: 3px; border-radius: 99px;
+  background: var(--vto-border-2);
+  transition: background 0.2s ease;
+}
+.vto-fit__dots i.is-on { background: var(--vto-red); }
+.vto-fit__kicker { font-size: 12px; color: var(--vto-text-3); text-align: center; margin: 0; }
+.vto-fit__step { display: grid; gap: 10px; }
+.vto-fit__step[hidden] { display: none; }
+.vto-fit__q {
+  font-size: 18px; font-weight: 600; letter-spacing: -0.02em;
+  text-align: center; margin: 0; line-height: 1.25;
+}
+.vto-fit__sub { font-size: 12.5px; color: var(--vto-text-3); text-align: center; margin: -6px 0 0; }
+.vto-fit__val {
+  display: flex; align-items: baseline; justify-content: center; gap: 5px;
+  margin: 0; font-variant-numeric: tabular-nums;
+}
+.vto-fit__val b { font-size: 44px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+.vto-fit__val--word b { font-size: 26px; }
+.vto-fit__val small { font-size: 14px; color: var(--vto-text-3); }
+.vto-fit__alt { font-size: 13px; color: var(--vto-text-3); margin-left: 7px; }
+.vto-fit__range { width: 100%; accent-color: var(--vto-red); height: 28px; cursor: pointer; }
+.vto-fit__actions { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+.vto-fit__actions > :only-child { grid-column: 1 / -1; }
+.vto-fit__note { font-size: 11px; color: var(--vto-text-3); text-align: center; margin: 0; line-height: 1.5; }
+
+/* ==========================================================================
+   Confirm saved measurements
+   ==========================================================================
+   Shown before every try-on once measurements exist. The numbers lead, because
+   the shopper is being asked to check them; the actions follow. Stacked rather
+   than side by side so "Yes, use these" is unmistakably the primary — offering
+   a re-measure as an equal-weight button next to it would make the common path
+   feel like a decision. */
+.vto-fitconfirm__card {
+  border: 1px solid var(--vto-border-2);
+  border-radius: 14px;
+  padding: 16px 14px;
+  background: var(--vto-surface);
+}
+.vto-fitconfirm__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0;
+  text-align: center;
+}
+/* Grid children default to min-width:auto, so a long build label ("Broad and
+   muscular") would push the row wider than the card instead of wrapping. */
+.vto-fitconfirm__grid > div { min-width: 0; }
+.vto-fitconfirm__grid dt {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vto-text-3);
+  margin: 0 0 4px;
+}
+.vto-fitconfirm__grid dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.vto-fitconfirm__grid dd small { font-size: 12px; font-weight: 400; color: var(--vto-text-3); margin-left: 1px; }
+.vto-fitconfirm__alt { display: block; font-size: 11px; color: var(--vto-text-3); margin-top: 2px; }
+.vto-fitconfirm__size {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--vto-border-2);
+  font-size: 13px;
+  text-align: center;
+  color: var(--vto-text-2);
+}
+.vto-fitconfirm__size[hidden] { display: none !important; }
+.vto-fitconfirm__actions { display: grid; gap: 8px; }
+.vto-fitconfirm__actions > * { width: 100%; }
+
+/* ==========================================================================
+   Size verdict on the result
+   ========================================================================== */
+.vto-verdict { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 12px; }
+.vto-verdict[hidden] { display: none; }
+.vto-verdict__badge {
+  flex: 0 0 auto; min-width: 46px; height: 46px; padding: 0 8px;
+  border-radius: 12px; background: var(--vto-red); color: #fff;
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 700; letter-spacing: -0.02em; line-height: 1;
+}
+.vto-verdict__txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.vto-verdict__lead {
+  font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
+  font-weight: 600; color: var(--vto-text-3);
+}
+.vto-verdict__chip {
+  display: none; font-size: 10.5px; font-weight: 600; letter-spacing: 0;
+  text-transform: none; padding: 2px 7px; border-radius: 99px;
+  background: rgba(22, 163, 74, 0.10); color: var(--vto-success);
+  margin-left: 5px; vertical-align: 1px;
+}
+.vto-verdict__chip:not(:empty) { display: inline-block; }
+.vto-verdict__why { font-size: 12px; line-height: 1.5; color: var(--vto-text-2); }
+.vto-verdict__why b { color: var(--vto-text); font-weight: 600; }
+
+/* ==========================================================================
+   Rating — two icons, then four reasons on a thumbs-down
+   ========================================================================== */
+.vto-feedback__btn[aria-pressed="true"] {
+  border-color: var(--vto-success);
+  background: var(--vto-success-bg);
+  color: var(--vto-success);
+}
+.vto-feedback__btn[data-vto-feedback-btn="down"][aria-pressed="true"] {
+  border-color: var(--vto-red);
+  background: var(--vto-red-light);
+  color: var(--vto-red);
+}
+.vto-reason { display: grid; gap: 8px; padding-top: 6px; }
+.vto-reason[hidden] { display: none; }
+.vto-reason__q { font-size: 12px; color: var(--vto-text-2); text-align: center; margin: 0; }
+.vto-reason__row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.vto-reason__row button {
+  border: 1px solid var(--vto-border-2);
+  background: var(--vto-white);
+  border-radius: 99px;
+  font: inherit; font-size: 12px;
+  padding: 7px 12px;
+  color: var(--vto-text-2);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.vto-reason__row button:hover { border-color: rgba(17, 24, 39, 0.34); }
+.vto-reason__row button.is-on {
+  border-color: var(--vto-red);
+  background: var(--vto-red-light);
+  color: var(--vto-red);
+  font-weight: 600;
+}
+.vto-feedback__thanks {
+  font-size: 11.5px; color: var(--vto-success);
+  text-align: center; font-weight: 600; margin: 6px 0 0;
+}
+.vto-feedback__thanks[hidden] { display: none; }
+
+/* Pressed a locked control: point at the reason rather than doing nothing. */
+.vto-consent.is-nudge { animation: vto-consent-nudge 0.4s var(--vto-ease-out); }
+@keyframes vto-consent-nudge {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+@media (prefers-reduced-motion: reduce) { .vto-consent.is-nudge { animation: none; } }
+
+/* [hidden] is a UA `display: none`, and any author rule that sets display beats
+   it — .vto-btn-ghost is inline-flex, so the fit step's Back button stayed on
+   screen at step one however many times the JS set hidden. Same trap the
+   modal's own back chevron already guards against. */
+.vto-fit__actions button[hidden] { display: none !important; }
+.vto-verdict[hidden],
+.vto-reason[hidden],
+.vto-feedback__thanks[hidden] { display: none !important; }
+
+/* ==========================================================================
+   Result screen — the buy block is pinned, the image takes what is left
+   ==========================================================================
+   Previously .vto-results was an ordinary scrolling column with a 3:4 image at
+   the top. On a phone that put the size rail and Add to Cart entirely below the
+   fold: the shopper reached the end of the flow and saw no way to buy. The
+   image now flexes into the leftover space instead of dictating it.
+   ========================================================================== */
+/* Set by showScreen() for the results screen only. Without a definite height
+   here flexbox has nothing to distribute, the stage collapses to zero and the
+   image disappears — the container is content-sized everywhere else on purpose,
+   since an upload card has no business being 88vh tall. */
+.vto-modal__container.is-filled { height: 88vh; }
+
+.vto-screen--results {
+  padding: 0;
+  overflow: hidden;          /* the buy block is pinned; nothing scrolls past it */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.vto-screen--results .vto-results {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.vto-results__stage {
+  position: relative;
+  flex: 1 1 auto;
+  /* Flex children default to min-height:auto, which would let the image push
+     the buy block back off the bottom — the whole bug this section fixes. */
+  min-height: 0;
+  overflow: hidden;
+  background: var(--vto-surface);
+}
+.vto-screen--results .vto-results__image {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  aspect-ratio: auto;        /* height comes from the stage, not from the ratio */
+  border-radius: 0;
+}
+.vto-screen--results .vto-results__image img { border-radius: 0; }
+
+/* Front / Back, sitting on the image rather than costing it a row above. */
+.vto-screen--results .vto-results__controls {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2;
+  margin: 0;
+}
+.vto-screen--results .vto-tabs {
+  background: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+}
+
+.vto-results__tools {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+}
+.vto-results__tools button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--vto-text-2);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.vto-results__tools button:hover { background: var(--vto-surface-2); color: var(--vto-text); }
+.vto-results__tools svg { width: 16px; height: 16px; }
+
+.vto-results__buy {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 10px;
+  padding: 13px 16px calc(14px + var(--vto-safe-bottom));
+  border-top: 1px solid var(--vto-border);
+  background: var(--vto-background);
+}
+.vto-results__buy .vto-buy-bar { margin: 0; }
+.vto-results__buy .vto-verdict { margin-bottom: 0; }
+
+/* Save / share / start-over used to be three equal ghost buttons competing with
+   Add to Cart. Two of them are now on the image; what is left is one quiet row. */
+.vto-results__quiet {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+.vto-results__quiet button {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--vto-text-3);
+  padding: 6px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.vto-results__quiet button:hover { background: var(--vto-surface); color: var(--vto-text-2); }
+.vto-results__quiet button[hidden] { display: none !important; }
+
+/* A floor, so a long verdict can never squeeze the image out of existence. The
+   buy block scrolls within itself before that happens. */
+.vto-results__stage { min-height: 180px; }
+/* overflow-x is pinned deliberately. Setting only overflow-y:auto leaves the
+   other axis at `visible`, which CSS then promotes to `auto` — so the buy block
+   silently became sideways-scrollable, and one stray horizontal swipe slid the
+   size badge and Add to Cart out of view behind the modal edge. Vertical
+   scrolling is wanted here; horizontal never is. */
+.vto-results__buy { max-height: 62%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+
+/* ==========================================================================
+   Buy block, compacted — the image needs the height more than the chrome does
+   ==========================================================================
+   The rail arrived as a bordered card with its own "SIZE" heading, sitting
+   above a full-width button, above two more rows. On a 760px phone that block
+   ran to ~306px and squeezed a 3:4 portrait into a landscape letterbox. The
+   card, the heading and one of the rows are gone; the verdict directly above
+   already says the word "size".
+   ========================================================================== */
+.vto-results__buy .vto-buy-bar {
+  flex-direction: column;
+  gap: 9px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+.vto-results__buy .vto-size { display: grid; gap: 0; }
+.vto-results__buy .vto-size__head { display: none; }
+
+/* The rail styles itself rather than borrowing the product page's swatch
+   classes. Those depend on markup this modal does not build, so the labels were
+   rendering as bare letters with no box around them. */
+/* The rail spans the block. Without these the <ul> shrink-wraps its content and
+   the four sizes huddle in the left third of the row. */
+.vto-results__buy .vto-size__pills { display: block; width: 100%; }
+.vto-results__buy .vto-size__pills ul {
+  display: flex !important;
+  width: 100%;
+  gap: 6px !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 2px !important;
+  flex-wrap: nowrap !important;
+  overflow-x: visible !important;   /* an even row does not need to scroll */
+}
+.vto-results__buy .vto-size__pills li { flex: 1 1 0; min-width: 0; display: block; }
+
+/* ── The suggested size, on its own ──────────────────────────────────────
+   Once the fit questions are answered the rail carries ONE size: the one we
+   suggested and the one that is selected. A row of every size the piece comes
+   in is a question, and the shopper has just answered it — the sentence above
+   says which size their measurements work out to, and offering five more
+   underneath re-opens the decision at the moment we finished making it.
+
+   The other sizes are display:none rather than removed, so they stay in the
+   DOM for the size guide's handoff to click and come straight back when
+   "Change size" is tapped. display:none also takes them out of the
+   accessibility tree, so the radiogroup honestly reports one option rather
+   than announcing five and showing one.
+
+   assets/vto.js decides when this applies (syncSizeRail), and only ever when
+   the selected size IS the suggestion — collapsing a rail whose selection
+   differs would hide the shopper's own choice behind our advice. */
+/* !important because the rail builder writes `li.style.display = 'inline-block'`
+   inline on every pill, and an inline style outranks any stylesheet rule. It is
+   the same reason the ul rules above carry it. */
+.vto-results__buy .vto-size__pills--one li:not(.is-selected) { display: none !important; }
+
+/* The collapsed row: the chosen size, then the way back to the others.
+   The chip keeps its natural width rather than spanning the row — stretched to
+   full width a single size stops reading as a chosen chip and starts reading
+   as an empty input, which is the opposite of "this is decided". */
+.vto-results__buy .vto-size--one {
+  display: flex !important;
+  /* The base .vto-size is a flex COLUMN. Overriding only `display` left the
+     direction behind, which stacked the chip above the link and centred both. */
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+/* Everything in the expanded rail is sized to share the row evenly — the li is
+   `flex: 1 1 0` and the label `width: 100%`. Carrying that into a one-item row
+   made the chip stretch across the rail and overlap the link beside it, so all
+   three are handed back to their content width here. */
+.vto-results__buy .vto-size--one .vto-size__pills { flex: 0 0 auto; width: auto !important; }
+.vto-results__buy .vto-size--one .vto-size__pills ul { width: auto; padding: 0 !important; }
+.vto-results__buy .vto-size--one .vto-size__pills li {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+.vto-results__buy .vto-size--one .vto-size__pills label {
+  width: auto !important;
+  min-width: 64px;
+  min-height: 40px;
+  padding: 8px 20px;
+}
+.vto-results__buy .vto-size--one .vto-size__change { width: auto; margin: 0; }
+
+/* No dot when there is one pill. It means "this is the one we suggested",
+   which says nothing when it is also the only thing on screen — and a mark
+   with nothing to distinguish it from is just a speck. */
+.vto-results__buy .vto-size--one .vto-size__pills li.is-recommended::after {
+  display: none;
+}
+
+.vto-size__change {
+  display: block;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font-family: var(--vto-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--vto-text-muted, #6b6560);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.vto-size__change:hover { color: var(--vto-text); }
+.vto-size__change:focus-visible {
+  outline: 2px solid var(--vto-red, #5c1011);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.vto-size__change[hidden] { display: none; }
+.vto-results__buy .vto-size__pills input[type="radio"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+.vto-results__buy .vto-size__pills label {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 4px;
+  border: 1px solid var(--vto-border-2);
+  border-radius: 9px;
+  background: var(--vto-background);
+  font-family: var(--vto-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vto-text);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.vto-results__buy .vto-size__pills label:hover { border-color: rgba(17, 24, 39, 0.34); }
+.vto-results__buy .vto-size__pills input:checked + label {
+  border-color: var(--vto-red);
+  background: var(--vto-red-light);
+  color: var(--vto-red);
+  box-shadow: inset 0 0 0 1px var(--vto-red);
+  transform: none;
+}
+.vto-results__buy .vto-size__pills input:focus-visible + label {
+  outline: 2px solid var(--vto-red);
+  outline-offset: 2px;
+}
+/* Sold out has to read as unavailable, not as a second kind of selected. The
+   theme's swatch classes tint these, so the colours are stated outright. */
+.vto-results__buy .vto-size__pills input:disabled + label,
+.vto-results__buy .vto-size__pills input:disabled + label:hover {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: not-allowed;
+  background: var(--vto-surface);
+  border-color: var(--vto-border-2);
+  color: var(--vto-text-3);
+  box-shadow: none;
+  transform: none;
+}
+
+/* The recommended size carries a dot, so the rail says which one the verdict
+   is talking about without repeating the letter. */
+.vto-results__buy .vto-size__pills li { position: relative; }
+.vto-results__buy .vto-size__pills li.is-recommended::after {
+  content: "";
+  position: absolute;
+  top: -3px; right: -3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--vto-success);
+  border: 2px solid var(--vto-background);
+  pointer-events: none;
+}
+
+/* Rating and the quiet links share a row instead of taking two. */
+.vto-results__buy .vto-feedback { padding: 2px 0 0; gap: 8px; }
+/* Four things share this row: the "Does this look right?" label, two rating
+   buttons, and two quiet links. Both groups were flex:0 0 auto — unable to
+   shrink — and only stacked below 359px. They need ~369px of the 356px this row
+   gets on a 390px phone, so the row overflowed on every common width (360, 390,
+   393, 412, 430); only a 320px phone was ever narrow enough to trigger the
+   stack. Wrapping instead of guessing a breakpoint holds at any width and
+   survives a copy change. */
+.vto-results__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+}
+.vto-results__foot .vto-feedback { flex: 0 1 auto; min-width: 0; }
+.vto-results__foot .vto-results__quiet { flex: 0 1 auto; min-width: 0; flex-wrap: wrap; justify-content: center; }
+
+/* Camera and Library side by side, as the reviewed design has them — stacked
+   full-width they read as two competing primary actions. */
+.vto-upload-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.vto-upload-actions > * { width: 100%; min-width: 0; }
+@media (max-width: 359px) {
+  .vto-upload-actions { grid-template-columns: 1fr; }
+}

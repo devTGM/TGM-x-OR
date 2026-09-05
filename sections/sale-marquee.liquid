@@ -1,0 +1,467 @@
+{%- comment -%}
+  Sale marquee — a permanent, always-present promotional ticker that sits at the very
+  top of the header group on every page. It is intentionally built as a `topbar-section`
+  so it reuses the theme's native header architecture (the `--topbar-height` variable and
+  the `.topbar-section + .header-section` corner transitions) and the native marquee engine
+  (`<marquee-element>` + `.marquee.animate` + the `scrolling-left/right` keyframes), which
+  already handle seamless cloning, speed, out-of-view pausing, hover/focus pausing,
+  `prefers-reduced-motion` and RTL. No global JS/CSS changes are required.
+{%- endcomment -%}
+
+{%- liquid
+  assign block_count = section.blocks.size
+
+  comment
+    Buy 2 Get 1 leads the ticker while the offer is live. Injected by code
+    from the same master switch as the PDP strip and the cart meter, rather
+    than added as a block, so one checkbox turns every surface on and off
+    together and no message is left running after the discount ends. The
+    merchant's own messages are untouched and follow it.
+  endcomment
+  capture sm_b2g1
+    render 'onrepeat-b2g1-on'
+  endcapture
+  assign marquee_items = block_count
+  if sm_b2g1 != blank
+    assign marquee_items = marquee_items | plus: 1
+  endif
+
+  assign direction = section.settings.direction
+
+  assign with_gradient_highlight = false
+  if section.settings.gradient_highlight != blank and section.settings.gradient_highlight != 'rgba(0,0,0,0)'
+    assign with_gradient_highlight = true
+  endif
+
+  if section.settings.text_font == 'heading'
+    assign font_family = 'var(--font-heading-family)'
+  else
+    assign font_family = 'var(--font-body-family)'
+  endif
+-%}
+
+<style>
+  :root {
+    --topbar-height: {{ section.settings.height_mobile }}px;
+  }
+
+  @media screen and (min-width: 1024px) {
+    :root {
+      --topbar-height: {{ section.settings.height }}px;
+    }
+  }
+
+  #shopify-section-{{ section.id }} {
+    --section-grid-gap: {{ section.settings.grid_horizontal }}px;
+    --marquee-font-size: {{ section.settings.text_size }}px;
+    {%- render 'section-variables', section: section -%}
+  }
+
+  @media screen and (min-width: 1024px) {
+    #shopify-section-{{ section.id }} {
+      --marquee-font-size: {{ section.settings.text_size_desktop }}px;
+    }
+  }
+
+  /* Pin the bar to the top of the viewport so it stays visible while scrolling on every
+     page. It remains in normal flow (sticky → no layout shift); the sticky header below
+     is offset by --topbar-height so the two stack instead of overlapping. z-index sits
+     just above the header (20) but below drawers/overlays/modals (30+). */
+  #shopify-section-{{ section.id }}.topbar-section {
+    background-image: var(--gradient-background, none);
+    {% if section.settings.divider_bottom %}border-block-end: 1px solid rgb(var(--color-foreground) / 0.14);{% endif %}
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 21;
+  }
+
+  /* Stack the always-sticky header directly beneath the pinned bar (covers the standard
+     sticky header and the transparent header once it pins on the homepage). Falls back to
+     no offset if the bar is ever removed (--topbar-height defaults to 0px in theme.css). */
+  .header-section.header-sticky {
+    inset-block-start: var(--topbar-height, 0px);
+  }
+
+  .header-transparent.header-scrolled .header {
+    inset-block-start: var(--topbar-height, 0px);
+  }
+
+  #shopify-section-{{ section.id }} .sale-marquee {
+    /* Soft edge fade so messages dissolve in/out instead of hard-cutting at the edges */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+  }
+
+  #shopify-section-{{ section.id }} .sale-marquee__link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  #shopify-section-{{ section.id }} .scrolling-text__item.with-text {
+    font-family: {{ font_family }};
+    font-size: var(--marquee-font-size);
+    font-weight: {{ section.settings.font_weight }};
+    letter-spacing: {{ section.settings.letter_spacing | divided_by: 1000.0 }}em;
+    {% if section.settings.uppercase %}text-transform: uppercase;{% endif %}
+    line-height: 1;
+    gap: var(--sp-2);
+  }
+
+  /* Compact, on-brand separator dots (the theme default ring is too large for a topbar) */
+  #shopify-section-{{ section.id }} .marquee.with-dot .scrolling-text__item:first-child::before,
+  #shopify-section-{{ section.id }} .scrolling-text__item.with-text + .scrolling-text__item.with-text::before {
+    width: var(--sp-1d5);
+    height: var(--sp-1d5);
+    border: 0;
+    background-color: currentColor;
+    opacity: 0.5;
+  }
+
+  #shopify-section-{{ section.id }} .sale-marquee__icon {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+  }
+
+  #shopify-section-{{ section.id }} .sale-marquee__icon .icon {
+    width: 1.15em;
+    height: 1.15em;
+  }
+
+  /* Make the highlighted percentage pop immediately (independent of the scroll-in animation) */
+  #shopify-section-{{ section.id }} .highlighted-text[data-style='text'] {
+    color: rgb(var(--color-highlight));
+    font-weight: 800;
+  }
+
+  /* Keyboard accessibility (WCAG 2.4.7 + 2.2.2): the whole bar is a link, so give it a
+     pointer cursor, a visible focus ring, and pause the scroll while it is focused so a
+     keyboard user can read the target. Hover-pause, out-of-view pause and reduced-motion
+     are already handled by the native engine. */
+  #shopify-section-{{ section.id }} .sale-marquee__link {
+    cursor: pointer;
+  }
+
+  #shopify-section-{{ section.id }} .sale-marquee__link:focus-visible {
+    outline: 2px solid rgb(var(--color-highlight));
+    outline-offset: -3px;
+    border-radius: 3px;
+  }
+
+  #shopify-section-{{ section.id }} .sale-marquee:focus-within .marquee {
+    animation-play-state: paused;
+  }
+
+  /* Static, motion-free fallback for reduced-motion users: show the first message, centered */
+  @media (prefers-reduced-motion: reduce) {
+    #shopify-section-{{ section.id }} .sale-marquee__marquee {
+      justify-content: center;
+    }
+    #shopify-section-{{ section.id }} .scrolling-text__item:not(:first-child) {
+      display: none;
+    }
+    #shopify-section-{{ section.id }} .scrolling-text__item.with-text::before {
+      display: none;
+    }
+  }
+</style>
+
+{%- if marquee_items > 0 -%}
+  <div class="sale-marquee relative h-full w-full overflow-hidden">
+    {%- capture marquee_inner -%}
+      <div class="marquee{% if section.settings.separator and marquee_items > 1 %} with-dot{% endif %} flex items-center flex-auto whitespace-nowrap">
+        {%- if sm_b2g1 != blank -%}
+          <div class="scrolling-text__item with-text flex items-center flex-auto">
+            <span class="sale-marquee__icon" aria-hidden="true">
+              {%- render 'icon-announcement', icon: 'gift', size: 'xs', class: 'stroke-1' -%}
+            </span>
+            {%- render 'highlighted-text', content: 'BUY 2, GET 1 <em>FREE</em>', style: 'text' -%}
+          </div>
+        {%- endif -%}
+        {%- for block in section.blocks -%}
+          <div class="scrolling-text__item with-text flex items-center flex-auto" {{ block.shopify_attributes }}>
+            {%- if block.settings.icon != 'none' and block.settings.icon != blank -%}
+              <span class="sale-marquee__icon" aria-hidden="true">
+                {%- render 'icon-announcement', icon: block.settings.icon, size: 'xs', class: 'stroke-1' -%}
+              </span>
+            {%- endif -%}
+            {%- render 'highlighted-text', content: block.settings.text, style: block.settings.highlighted_text, scribble: block.settings.highlighted_scribble, gradient: with_gradient_highlight -%}
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- endcapture -%}
+
+    {%- if section.settings.link != blank -%}
+      <a class="sale-marquee__link block h-full" href="{{ section.settings.link }}"{% if section.settings.link_label != blank %} aria-label="{{ section.settings.link_label | escape }}"{% endif %}>
+        <marquee-element class="sale-marquee__marquee scrolling-text scrolling-text--{{ direction }} flex items-center h-full" data-speed="{{ section.settings.speed }}" data-direction="{{ direction }}">
+          {{- marquee_inner -}}
+        </marquee-element>
+      </a>
+    {%- else -%}
+      <marquee-element class="sale-marquee__marquee scrolling-text scrolling-text--{{ direction }} flex items-center h-full" data-speed="{{ section.settings.speed }}" data-direction="{{ direction }}">
+        {{- marquee_inner -}}
+      </marquee-element>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Sale marquee",
+  "class": "topbar-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Marquee"
+    },
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "Scroll direction",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "unit": "x",
+      "label": "Speed",
+      "info": "Higher is faster. A relaxed pace reads as more premium.",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "grid_horizontal",
+      "min": 30,
+      "max": 160,
+      "step": 2,
+      "unit": "px",
+      "label": "Gap between messages",
+      "default": 64
+    },
+    {
+      "type": "checkbox",
+      "id": "separator",
+      "label": "Show separator dots between messages",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "select",
+      "id": "text_font",
+      "label": "Font",
+      "options": [
+        { "value": "body", "label": "Body" },
+        { "value": "heading", "label": "Heading" }
+      ],
+      "default": "heading"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "min": 10,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (desktop)",
+      "default": 14
+    },
+    {
+      "type": "checkbox",
+      "id": "uppercase",
+      "label": "Uppercase",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "letter_spacing",
+      "min": -20,
+      "max": 200,
+      "step": 5,
+      "label": "Letter spacing (1/1000 em)",
+      "default": 80
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Font weight",
+      "options": [
+        { "value": "400", "label": "Regular" },
+        { "value": "500", "label": "Medium" },
+        { "value": "600", "label": "Semibold" },
+        { "value": "700", "label": "Bold" }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "header",
+      "content": "Bar size"
+    },
+    {
+      "type": "range",
+      "id": "height",
+      "min": 32,
+      "max": 72,
+      "step": 2,
+      "unit": "px",
+      "label": "Height (desktop)",
+      "default": 44
+    },
+    {
+      "type": "range",
+      "id": "height_mobile",
+      "min": 28,
+      "max": 64,
+      "step": 2,
+      "unit": "px",
+      "label": "Height (mobile)",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_text",
+      "label": "Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "color_background",
+      "label": "Background",
+      "default": "#5c1011"
+    },
+    {
+      "type": "color_background",
+      "id": "gradient_background",
+      "label": "Background gradient"
+    },
+    {
+      "type": "color",
+      "id": "color_highlight",
+      "label": "Highlight",
+      "info": "Used to colour text wrapped with the highlight style (e.g. the discount).",
+      "default": "#ffd9a0"
+    },
+    {
+      "type": "color_background",
+      "id": "gradient_highlight",
+      "label": "Highlight gradient"
+    },
+    {
+      "type": "header",
+      "content": "Link"
+    },
+    {
+      "type": "url",
+      "id": "link",
+      "label": "Link (entire bar)"
+    },
+    {
+      "type": "text",
+      "id": "link_label",
+      "label": "Link accessibility label",
+      "info": "Read by screen readers, e.g. \"Shop the sale\"."
+    },
+    {
+      "type": "header",
+      "content": "Section"
+    },
+    {
+      "type": "checkbox",
+      "id": "divider_bottom",
+      "label": "Show divider under the bar",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "announcement",
+      "name": "Message",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "default": "none",
+          "options": [
+            { "value": "none", "label": "None" },
+            { "value": "lightning", "label": "Lightning" },
+            { "value": "sale", "label": "Sale" },
+            { "value": "tag", "label": "Tag" },
+            { "value": "tags", "label": "Tags" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "truck", "label": "Truck" },
+            { "value": "star", "label": "Star" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "award", "label": "Award" },
+            { "value": "rocket", "label": "Rocket" },
+            { "value": "shield", "label": "Shield" },
+            { "value": "lock", "label": "Lock" },
+            { "value": "plane", "label": "Plane" }
+          ]
+        },
+        {
+          "type": "inline_richtext",
+          "id": "text",
+          "label": "Text",
+          "info": "Wrap part of the text in italic (the <em> tag) to apply the highlight style.",
+          "default": "Welcome to our store"
+        },
+        {
+          "type": "select",
+          "id": "highlighted_text",
+          "label": "Highlight style",
+          "default": "none",
+          "options": [
+            { "value": "none", "label": "None" },
+            { "value": "text", "label": "Text colour" },
+            { "value": "full_text", "label": "Full highlight" },
+            { "value": "half_text", "label": "Half highlight" },
+            { "value": "underline", "label": "Underline" },
+            { "value": "scribble", "label": "Scribble" }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "highlighted_scribble",
+          "label": "Scribble",
+          "default": "circle",
+          "options": [
+            { "value": "circle", "label": "Circle" },
+            { "value": "basic-underline", "label": "Basic underline" },
+            { "value": "sketch-underline", "label": "Sketch underline" },
+            { "value": "squiggle-underline", "label": "Squiggle underline" },
+            { "value": "squiggle-underline-2", "label": "Squiggle underline 2" }
+          ]
+        }
+      ]
+    }
+  ],
+  "max_blocks": 8,
+  "enabled_on": {
+    "groups": ["header"]
+  }
+}
+{% endschema %}

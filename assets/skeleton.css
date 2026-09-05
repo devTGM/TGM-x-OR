@@ -1,0 +1,97 @@
+/* ═══════════════════════════════════════════════════════════
+   Skeleton loading — premium shimmer effect
+   Only activates on elements with [data-skeleton] attribute
+   until images/content finish loading.
+   ═══════════════════════════════════════════════════════════ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(var(--color-foreground), 0.04);
+  border-radius: var(--rounded-sm, 6px);
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--color-foreground), 0.04) 40%,
+    rgba(var(--color-foreground), 0.08) 50%,
+    rgba(var(--color-foreground), 0.04) 60%,
+    transparent 100%
+  );
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+
+@keyframes skeletonShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ── Skeleton variants ─────────────────────────── */
+.skeleton--text {
+  height: 0.875rem;
+  width: 60%;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton--text-sm {
+  height: 0.625rem;
+  width: 40%;
+}
+
+.skeleton--image {
+  aspect-ratio: 3 / 4;
+  width: 100%;
+}
+
+.skeleton--price {
+  height: 0.875rem;
+  width: 5rem;
+}
+
+.skeleton--swatch {
+  height: 1.625rem;
+  width: 1.625rem;
+  border-radius: 9999px;
+}
+
+/* ── Product card skeleton ────────────────────── */
+.product-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.product-card-skeleton__image {
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  border-radius: clamp(0.625rem, 1.053vw, 1.25rem);
+}
+
+.product-card-skeleton__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0 0.25rem;
+}
+
+/* ── Lazy image skeleton integration ─────────── */
+/* Show skeleton bg until image loads */
+[is="lazy-image"]:not([loaded]) {
+  background: rgba(var(--color-foreground), 0.03);
+}
+
+/* ── Respect motion preferences ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+    opacity: 0.5;
+    transform: none;
+  }
+}

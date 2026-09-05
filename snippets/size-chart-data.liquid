@@ -1,0 +1,268 @@
+{%- comment -%}
+  ─────────────────────────────────────────────────────────────────────────────
+  Size-chart registry — chart definitions
+  ─────────────────────────────────────────────────────────────────────────────
+  The store ships ONE global size chart from /pages/size-chart that every PDP
+  size-guide surface (sticky size guide, sleek quick-add sheet, VTO sheet and the
+  variant-picker modal) renders. This island defines product-specific charts that
+  override it; which product gets which chart is resolved by
+  snippets/size-chart-key.liquid (matched by handle / tag / product type).
+
+  Each chart:
+    • title / sub / note — header copy (sub & title are hidden in the sticky and
+      sleek sheets, shown in the VTO and variant-picker modals).
+    • unit     — the unit the values are written in ("in" or "cm"). Charts are
+                 authored in whichever unit their spec sheet was written in, and
+                 the Inches/Centimeters toggle derives the other. Author in the
+                 unit that survives the round trip: in→cm rounds to whole
+                 centimetres, so a chart whose cm figures carry a half (106.5)
+                 must be authored in cm or those halves are lost. cm→in rounds
+                 to the half inch, which is the precision these tables are cut
+                 to, so authoring in cm is lossless in both directions.
+    • display  — the unit shown first ("in" or "cm").
+    • cols     — columns in display order: { key, label }.
+    • rows     — one object per size; keys match the col keys plus "size".
+    • fit      — one line describing how the garment is cut. Shown above the
+                 table and reused in the finder's explanation.
+    • solve    — which measurement "Find my size" works from: { key, metric,
+                 noun }. Absent means chest, which is every top. A bottom sets
+                 { "key": "waist", "metric": "waist", "noun": "waist" } so the
+                 ladder reads the waist column, the body model switches to the
+                 waist regression, and the copy says "waist" instead of "chest".
+    • stretch  — how much an elasticated band gives beyond its relaxed
+                 measurement, in the chart's own unit. Its presence is what tells the finder this is an
+                 elastic waist, where the relaxed band is MEANT to sit under the
+                 body. Omit on anything woven to a fixed measurement.
+    • ease     — HOW MUCH ROOM the garment is cut with, in the chart's own unit:
+                 garment chest minus the wearer's chest, at the intended fit.
+                 This is the number "Find my size" solves against, so it encodes
+                 the design intent of the category:
+                   polo    +2  regular fit, meant to sit close
+                   tee     +5  oversized, drop shoulder
+                   shirt   +5  relaxed cuban cut
+                   hoodie +16  see below
+                   jogger  -5  see below (cm, like the rest of that chart)
+
+                 The jogger's ease is NEGATIVE and that is not a typo. Every
+                 chart above is woven to a fixed measurement, so the garment
+                 must be bigger than the body. A jogger's waist is elastic: the
+                 relaxed band is cut UNDER the body and the elastic closes the
+                 gap. -5 asks for a band about five centimetres (two inches)
+                 under the wearer's waist, which grips without digging and
+                 leaves most of the 4-6 inches of stretch unused.
+
+                 Note the unit: ease is read in the chart's OWN unit, and this
+                 chart is authored in centimetres. Writing -2 here would ask for
+                 2 cm, not 2 inches, and hand a 175 cm / 70 kg shopper an XL.
+                 Get this wrong and the finder confidently recommends the wrong
+                 size, so it belongs next to the measurements it describes —
+                 not buried in JS.
+
+                 The hoodie's +16 looks wrong beside the others and is not. Its
+                 chest column sits a constant +11" over the t-shirt at EVERY
+                 size (51/53/55… against 40/42/44…), so 5 + 11 = 16 is simply
+                 the tee's ease carried across that offset. The effect is that
+                 the finder returns the same letter a shopper wears in our tees
+                 — which is the intent, since the two ladders grade in lockstep.
+                 Using the tee's +5 here would return XS to every shopper under
+                 about 110 kg, because XS is already 51" around.
+    • faqs     — optional per-chart overrides; anything omitted falls back to
+                 "defaults.faqs" below.
+
+  Half-inch values (9.5, 10.5 …) are preserved — the client renders this data
+  directly instead of going through the global pipeline, which rounds inches to
+  whole numbers. The polo chart depends on this: 16.5 / 17.5 shoulder and 8.5
+  sleeve would all be rounded away on the global page.
+
+  "defaults" holds everything that is the same for every category: the build
+  ladder the finder offers and the standing FAQ copy. Both are merchant-editable
+  here rather than in assets/theme.js, because they are copy, not logic.
+
+  Note the build offsets are in INCHES and are applied to the estimated chest.
+  They are deliberately small: the estimate already carries the shopper's weight,
+  so build is a nudge for how that weight is distributed, not a second guess at
+  the same thing.
+
+  To add a category: add a chart here, then add a matching rule in
+  snippets/size-chart-key.liquid.
+  ─────────────────────────────────────────────────────────────────────────────
+{%- endcomment -%}
+<script type="application/json" id="OnRepeatSizeChartRegistry">
+{
+  "defaults": {
+    "builds": [
+      { "label": "Lean",    "offset": -1, "waist": -2, "hint": "Slim through the chest and waist" },
+      { "label": "Average", "offset": 0,  "waist": 0,  "hint": "Neither slim nor broad" },
+      { "label": "Broad",   "offset": 1,  "waist": 1,  "hint": "Wide shoulders, solid build" },
+      { "label": "Heavier", "offset": 2,  "waist": 3,  "hint": "Carries weight around the middle" }
+    ],
+    "faqs": [
+      {
+        "q": "What if I'm between two sizes?",
+        "a": "Size up for a relaxed fit, or down for a snug one. Our polos are cut close to the body; our t-shirts are deliberately oversized, so they already have room built in."
+      },
+      {
+        "q": "Are these body or garment measurements?",
+        "a": "Garment. Every number in the table is the finished piece laid flat and measured — chest is measured across and doubled. That is why they read larger than your own chest."
+      },
+      {
+        "q": "How accurate is \"Find my size\"?",
+        "a": "It estimates your chest from your height, weight and build, then matches it against how this particular style is cut. It gets most people right, but it cannot see you — if you already own something that fits the way you like, comparing it to the table will always beat the estimate."
+      },
+      {
+        "q": "Can I exchange if the fit is wrong?",
+        "a": "Yes. Sizes can be exchanged within 7 days of delivery, unworn and with tags on. Reach us on WhatsApp or at support@theonrepeat.co and we'll arrange the pickup."
+      },
+      {
+        "q": "Will it shrink in the wash?",
+        "a": "Our cottons are pre-shrunk, so expect very little movement. Cold machine wash inside out and dry in the shade to keep it that way."
+      }
+    ]
+  },
+  "charts": {
+    "shirt-cuban-no-yoke": {
+      "title": "Shirt Size Chart",
+      "sub": "Cuban collar · without back yoke",
+      "note": "Measurements are of the garment, not the body.<br>For best fit, compare to a shirt you already own.",
+      "fit": "Relaxed cuban cut — meant to fall away from the body, not follow it.",
+      "ease": 5,
+      "unit": "in",
+      "display": "in",
+      "cols": [
+        { "key": "chest", "label": "Chest" },
+        { "key": "length", "label": "Length" },
+        { "key": "sleeve", "label": "Sleeves" }
+      ],
+      "rows": [
+        { "size": "XS",  "chest": 40, "length": 26, "sleeve": 9 },
+        { "size": "S",   "chest": 42, "length": 27, "sleeve": 9.5 },
+        { "size": "M",   "chest": 44, "length": 28, "sleeve": 10 },
+        { "size": "L",   "chest": 46, "length": 29, "sleeve": 10.5 },
+        { "size": "XL",  "chest": 48, "length": 30, "sleeve": 11 },
+        { "size": "XXL", "chest": 50, "length": 31, "sleeve": 11.5 }
+      ]
+    },
+    "tshirt-roundneck": {
+      "title": "T-Shirt Size Chart",
+      "sub": "Round neck",
+      "note": "Measurements are of the garment, not the body.<br>For best fit, compare to a t-shirt you already own.",
+      "fit": "Oversized, drop shoulder — the shoulder seam is meant to sit down your arm.",
+      "ease": 5,
+      "unit": "in",
+      "display": "in",
+      "cols": [
+        { "key": "chest", "label": "Chest" },
+        { "key": "shoulder", "label": "Shoulder" },
+        { "key": "length", "label": "Length" },
+        { "key": "sleeve", "label": "Sleeves" }
+      ],
+      "rows": [
+        { "size": "XS",  "chest": 40, "shoulder": 20,   "length": 26, "sleeve": 9 },
+        { "size": "S",   "chest": 42, "shoulder": 20.5, "length": 27, "sleeve": 9.5 },
+        { "size": "M",   "chest": 44, "shoulder": 21,   "length": 28, "sleeve": 10 },
+        { "size": "L",   "chest": 46, "shoulder": 22,   "length": 29, "sleeve": 10.5 },
+        { "size": "XL",  "chest": 48, "shoulder": 23,   "length": 30, "sleeve": 11 },
+        { "size": "XXL", "chest": 50, "shoulder": 24,   "length": 31, "sleeve": 11.5 }
+      ],
+      "faqs": [
+        {
+          "q": "These are oversized — should I size down?",
+          "a": "No. The room is already in the pattern, and the table and \"Find my size\" both account for it. Sizing down from what we suggest gives you a regular-fit t-shirt with a shoulder seam in the wrong place."
+        }
+      ]
+    },
+    "polo-knit": {
+      "title": "Polo Size Chart",
+      "sub": "Knit polo · classic collar",
+      "note": "Measurements are of the garment, not the body.<br>For best fit, compare to a polo you already own.",
+      "fit": "Regular fit — cut close to the body, not oversized.",
+      "ease": 2,
+      "unit": "in",
+      "display": "in",
+      "cols": [
+        { "key": "chest", "label": "Chest" },
+        { "key": "length", "label": "Length" },
+        { "key": "shoulder", "label": "Shoulder" },
+        { "key": "sleeve", "label": "Sleeve" }
+      ],
+      "rows": [
+        { "size": "M",  "chest": 39, "length": 27, "shoulder": 16.5, "sleeve": 8.5 },
+        { "size": "L",  "chest": 41, "length": 27, "shoulder": 17,   "sleeve": 9 },
+        { "size": "XL", "chest": 43, "length": 28, "shoulder": 17.5, "sleeve": 9 }
+      ],
+      "faqs": [
+        {
+          "q": "Why does this polo start at M?",
+          "a": "It is knit in three sizes only. Because a polo is cut close, M on a slimmer frame reads as a relaxed fit rather than a loose one — it still wears well, it just isn't fitted."
+        }
+      ]
+    },
+    "hoodie-sweatshirt": {
+      "title": "Hoodie & Sweatshirt Size Chart",
+      "sub": "350 GSM cotton fleece · oversized pullover",
+      "noun": "style",
+      "note": "Measurements are of the garment, not the body.<br>For best fit, compare to a hoodie you already own.",
+      "fit": "Oversized and boxy — cut wide and short, so it sits square on the body rather than following it.",
+      "ease": 16,
+      "unit": "in",
+      "display": "in",
+      "cols": [
+        { "key": "chest", "label": "Chest" },
+        { "key": "shoulder", "label": "Shoulder" },
+        { "key": "length", "label": "Length" }
+      ],
+      "rows": [
+        { "size": "XS",  "chest": 51, "shoulder": 25.25, "length": 23.75 },
+        { "size": "S",   "chest": 53, "shoulder": 26,    "length": 24.5 },
+        { "size": "M",   "chest": 55, "shoulder": 26.5,  "length": 25.5 },
+        { "size": "L",   "chest": 57, "shoulder": 27,    "length": 26.25 },
+        { "size": "XL",  "chest": 59, "shoulder": 27.5,  "length": 27 },
+        { "size": "XXL", "chest": 61, "shoulder": 28,    "length": 27.75 }
+      ],
+      "faqs": [
+        {
+          "q": "These run much wider than your t-shirts — is that right?",
+          "a": "Yes. At the same letter a hoodie is cut 11 inches fuller in the chest than the equivalent t-shirt, and a little shorter, which is what gives it the square, boxy shape. It is not a t-shirt with a hood on it."
+        },
+        {
+          "q": "So do I take my usual OnRepeat size?",
+          "a": "Yes. The extra width is built into the pattern at every size, so the letter you wear in our t-shirts is the letter to take here — \"Find my size\" works it out the same way."
+        }
+      ]
+    },
+    "jogger-corduroy": {
+      "title": "Jogger Size Chart",
+      "sub": "Cord Jogger · relaxed straight leg",
+      "note": "Elastic waist stretches approx. 4\u20136 inches beyond the relaxed measurement.<br>All measurements are of the garment, not the body. Allow 0.5 inch tolerance.",
+      "fit": "Relaxed straight \u2014 wide through the thigh, straight to an open hem.",
+      "ease": -5,
+      "stretch": 10,
+      "solve": { "key": "waist", "metric": "waist", "noun": "waist" },
+      "unit": "cm",
+      "display": "in",
+      "cols": [
+        { "key": "length", "label": "Length" },
+        { "key": "waist", "label": "Waist (relaxed)" },
+        { "key": "hip", "label": "Hip" },
+        { "key": "inseam", "label": "Inseam" }
+      ],
+      "rows": [
+        { "size": "M",   "length": 104,   "waist": 76,   "hip": 104,   "inseam": 76 },
+        { "size": "L",   "length": 106.5, "waist": 79,   "hip": 109,   "inseam": 77.5 },
+        { "size": "XL",  "length": 109,   "waist": 82.5, "hip": 114.5, "inseam": 79 },
+        { "size": "XXL", "length": 112,   "waist": 86.5, "hip": 119.5, "inseam": 80 }
+      ],
+      "faqs": [
+        {
+          "q": "The waist looks smaller than mine \u2014 is that right?",
+          "a": "Yes. The number in the table is the band lying flat and relaxed, not stretched. It is cut to sit under your waist on purpose; the elastic opens roughly 4\u20136 inches beyond it, and the drawcord takes up whatever is left."
+        },
+        {
+          "q": "How accurate is \"Find my size\" on a bottom?",
+          "a": "Less accurate than on our tops, and worth saying plainly. It estimates your waist from height, weight and build, and waist tracks those far more loosely than chest does \u2014 two people at the same height and weight can be several inches apart. Use it as a starting point, then check the table against a pair of trousers that already fits you."
+        }
+      ]
+    }
+  }
+}
+</script>

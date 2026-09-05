@@ -1,0 +1,507 @@
+/* ============================================================================
+   Size guide — tabs, "Find my size" and FAQs
+   ============================================================================
+   Styles the markup built by window.OnRepeatSizeChart (assets/theme.js). That
+   renderer is shared by all four size-guide surfaces — the variant-picker
+   modal, the sticky size guide, the sleek quick-add sheet and the VTO sheet —
+   so everything here has to survive being dropped into any of them.
+
+   Three things follow from that:
+
+   1. The wrapper keeps its original .sc-* class names. The quick-add and VTO
+      sheets already carry overrides (.sleek-qa__guide-body .sc-wrap and friends)
+      that flatten the card so it does not read as a card inside a card.
+      Renaming those classes would silently break that, so they stay.
+
+   2. EVERY rule here is scoped under .sg — including the ones targeting the new
+      .sg-* elements. That is not stylistic. ensureStyles() injects a
+      `.sc-wrap *, .sc-wrap *::before, .sc-wrap *::after { margin: 0; padding: 0 }`
+      reset into <head> when a chart opens, which is later in the cascade than
+      this file and matches every descendant of the wrapper — new elements
+      included. A bare `.sg-finder { padding: … }` here loses that tie and the
+      whole component renders flat. `.sg .sg-finder` outranks it and wins
+      regardless of order.
+
+   3. The sheets' own overrides are more specific still (two classes plus a
+      descendant), which is what we want: they keep the last word inside their
+      own sheet.
+
+   Palette is the brand's: crimson #5c1011 on cream #f6f2ea, hairlines #e4dccc.
+   ========================================================================= */
+
+.sg {
+  --sg-ink: #5c1011;
+  --sg-cream: #f6f2ea;
+  --sg-line: #e4dccc;
+  --sg-body: #6c635c;
+  --sg-muted: #8a8078;
+  --sg-text: #2b2320;
+}
+
+/* ── Tab bar ──────────────────────────────────────────────────────────────
+   Underline tabs rather than pills: the unit switcher below is already a pill
+   group, and two pill groups stacked read as one broken control. */
+
+.sg .sg-tabs {
+  display: flex;
+  gap: 1.625rem;
+  border-bottom: 1px solid #ece5da;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sg .sg-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sg .sg-tab {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0 0 0.6875rem;
+  margin: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #9a9088;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.18s ease;
+}
+
+.sg .sg-tab:hover {
+  color: var(--sg-text);
+}
+
+.sg .sg-tab.is-on {
+  color: var(--sg-ink);
+}
+
+.sg .sg-tab.is-on::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sg-ink);
+}
+
+.sg .sg-panel[hidden] {
+  display: none;
+}
+
+/* ── Chart panel ─────────────────────────────────────────────────────────── */
+
+.sg .sg-lead {
+  margin: 0 0 0.9375rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--sg-body);
+}
+
+/* Unit switcher: the base .sc-tab.active is black; brand it. */
+
+.sg .sc-tabs {
+  justify-content: flex-start;
+  margin-bottom: 0.9375rem;
+}
+
+.sg .sc-tab-group {
+  background: var(--sg-cream);
+  border-color: var(--sg-line);
+}
+
+.sg .sc-tab.active {
+  background: var(--sg-ink);
+  color: #fff;
+}
+
+.sg table.sc th {
+  color: var(--sg-ink);
+  background: #faf7f2;
+}
+
+.sg .sc-badge {
+  background: var(--sg-cream);
+  color: var(--sg-ink);
+}
+
+/* ── Finder ──────────────────────────────────────────────────────────────── */
+
+.sg .sg-finder {
+  background: var(--sg-cream);
+  border: 1px solid var(--sg-line);
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+}
+
+.sg .sg-steps {
+  display: flex;
+  gap: 0.3125rem;
+  margin: 0 0 1rem;
+}
+
+.sg .sg-steps[hidden] {
+  display: none;
+}
+
+.sg .sg-dot {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: #e2d8ca;
+  transition: background 0.24s ease;
+}
+
+.sg .sg-dot.is-on {
+  background: var(--sg-ink);
+}
+
+.sg .sg-kicker {
+  margin: 0 0 1rem;
+  font-size: 0.78125rem;
+  line-height: 1.5;
+  color: #7a706a;
+}
+
+.sg .sg-kicker[hidden] {
+  display: none;
+}
+
+.sg .sg-step[hidden] {
+  display: none;
+}
+
+.sg .sg-q {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--sg-text);
+}
+
+.sg .sg-qsub {
+  margin: 0 0 1.125rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #9a9088;
+}
+
+.sg .sg-val {
+  display: flex;
+  align-items: baseline;
+  gap: 0.1875rem;
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--sg-ink);
+}
+
+.sg .sg-val--word {
+  font-size: 1.625rem;
+}
+
+.sg .sg-val small {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #9a9088;
+}
+
+/* The feet-and-inches echo: shoppers here think in one unit or the other, and
+   showing both removes a conversion the slider would otherwise demand. */
+
+.sg .sg-alt-unit {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sg-muted);
+}
+
+.sg .sg-hint {
+  margin: 0.4375rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--sg-muted);
+  min-height: 1.125rem;
+}
+
+/* ── Range ────────────────────────────────────────────────────────────────
+   The input itself is a 44px-tall transparent strip and the 8px track is
+   painted on the track pseudo-element instead. Styling the input as the track
+   is the usual shortcut, but it makes the element's box 8px tall while the
+   thumb is drawn 26px — so on a phone most taps at the thumb land outside the
+   control entirely and nothing happens. 44px is the standard minimum touch
+   target, and here it costs nothing visually.
+
+   Track and thumb are declared separately per engine: the WebKit and Firefox
+   pseudo-elements cannot share a rule, because one unknown selector in a list
+   invalidates the whole block. */
+
+.sg .sg-range {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  outline-offset: 2px;
+  cursor: pointer;
+}
+
+.sg .sg-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 99px;
+  background: #e6ddd0;
+}
+
+.sg .sg-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px; /* centres the 26px thumb on the 8px track */
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--sg-ink);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 22%);
+  cursor: grab;
+}
+
+.sg .sg-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.sg .sg-range::-moz-range-track {
+  height: 8px;
+  border-radius: 99px;
+  background: #e6ddd0;
+}
+
+.sg .sg-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--sg-ink);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 22%);
+  cursor: grab;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.sg .sg-btns {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.sg .sg-btn {
+  flex: 1;
+  min-height: 46px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--sg-ink);
+  border-radius: 0.6875rem;
+  font: inherit;
+  font-size: 0.78125rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+}
+
+.sg .sg-btn--p {
+  background: var(--sg-ink);
+  color: #fff;
+}
+
+.sg .sg-btn--s {
+  background: transparent;
+  color: var(--sg-ink);
+}
+
+@media (hover: hover) {
+  .sg .sg-btn--p:hover {
+    opacity: 0.88;
+  }
+
+  .sg .sg-btn--s:hover {
+    background: rgb(92 16 17 / 6%);
+  }
+}
+
+/* theme.css clears outlines on *:focus and *:focus-visible and leaves each
+   component to opt back in. This one never did — which did not matter while
+   the result screen was informational, and matters now that its primary
+   button adds to the bag. */
+.sg .sg-btn:focus-visible,
+.sg .sg-tab:focus-visible {
+  outline: 2px solid var(--sg-ink);
+  outline-offset: 2px;
+}
+
+.sg .sg-btn[aria-busy="true"] {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* ── Result ──────────────────────────────────────────────────────────────── */
+
+.sg .sg-res {
+  text-align: center;
+  padding: 0.25rem 0 0.125rem;
+}
+
+.sg .sg-res-lead {
+  margin: 0;
+  font-size: 0.78125rem;
+  line-height: 1.5;
+  color: #7a706a;
+}
+
+.sg .sg-big {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 3.125rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--sg-ink);
+}
+
+.sg .sg-why {
+  margin: 0 auto 1.125rem;
+  max-width: 20rem;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--sg-muted);
+}
+
+.sg .sg-why b {
+  font-weight: 600;
+  color: var(--sg-ink);
+}
+
+.sg .sg-caveat {
+  margin: -0.625rem auto 1.125rem;
+  max-width: 20rem;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--sg-body);
+}
+
+/* The refusal line. Only ever written when the recommended size cannot be
+   added — a sold-out rung, or a page with no size control the guide can reach.
+   Hidden until then, so the resting result screen is the recommendation and
+   nothing else.
+
+   (The row of per-size chips that used to sit here is gone. It answered a
+   question the shopper asked once with six answers, and competed with the big
+   letter above it for which size was actually being recommended.) */
+.sg .sg-note {
+  margin: 0 0 0.875rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5625rem;
+  background: rgb(92 16 17 / 6%);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--sg-ink);
+}
+
+.sg .sg-note[hidden] {
+  display: none;
+}
+
+.sg .sg-fine {
+  margin: 1rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: #a89b8d;
+}
+
+/* ── FAQs ─────────────────────────────────────────────────────────────────
+   <details>/<summary>, so it works before any script runs and stays keyboard
+   operable for free. */
+
+.sg .sg-acc {
+  border-top: 1px solid #f0eae1;
+}
+
+.sg .sg-acc-item {
+  border-bottom: 1px solid #f0eae1;
+}
+
+.sg .sg-acc-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9375rem 0.125rem;
+  font-size: 0.84375rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #3a322d;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sg .sg-acc-q::-webkit-details-marker {
+  display: none;
+}
+
+/* The +/− is drawn rather than typed so it stays optically centred and can
+   rotate into the open state. */
+
+.sg .sg-acc-mark {
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+}
+
+.sg .sg-acc-mark::before,
+.sg .sg-acc-mark::after {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--sg-ink);
+  transform: translateY(-50%);
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.sg .sg-acc-mark::after {
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.sg .sg-acc-item[open] .sg-acc-mark::after {
+  transform: translateY(-50%) rotate(0deg);
+  opacity: 0;
+}
+
+.sg .sg-acc-a {
+  padding: 0 0.125rem 0.9375rem;
+  font-size: 0.78125rem;
+  line-height: 1.7;
+  color: var(--sg-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg .sg-tab,
+  .sg .sg-dot,
+  .sg .sg-btn,
+  .sg .sg-acc-mark::before,
+  .sg .sg-acc-mark::after {
+    transition-duration: 0.01s;
+  }
+}

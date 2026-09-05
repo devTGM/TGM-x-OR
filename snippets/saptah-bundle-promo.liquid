@@ -1,0 +1,788 @@
+{%- comment -%}
+  =====================================================
+  Saptah Stack Pack Expanding Hover Pill Widget
+  =====================================================
+  This widget promotes the "Saptah Stack Pack" (5 t-shirts bundle)
+  on the PDP of Wave, Drift, Axis, Viber, and Crew.
+  It floats on the middle right edge. Hovering (or tapping) expands
+  the compact pill into a detailed bundle card.
+{%- endcomment -%}
+
+{%- liquid
+  assign target_handles = "wave,drift,axis,viber,crew" | split: ","
+  assign is_target_product = false
+
+  for handle in target_handles
+    if product.handle == handle
+      assign is_target_product = true
+      break
+    endif
+  endfor
+-%}
+
+{%- if is_target_product -%}
+  {%- liquid
+    # Live prices, not hardcoded paise: in the US market every product is 3x,
+    # so a hardcoded bundle price would advertise the wrong figure (and negative
+    # savings). The pack product is the source of truth; 400000 is only the
+    # fallback for a broken handle.
+    assign p_pack = all_products['saptah-stack-pack']
+    assign bundle_price = p_pack.price | default: 400000
+    assign total_original = 0
+    assign valid_products_count = 0
+    
+    assign p_wave = all_products['wave']
+    assign p_drift = all_products['drift']
+    assign p_axis = all_products['axis']
+    assign p_viber = all_products['viber']
+    assign p_crew = all_products['crew']
+  -%}
+
+  <style>
+    /* Main Widget Container - Fixed middle right */
+    .saptah-widget-container {
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      pointer-events: none; /* Let clicks pass through empty spaces around it */
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+    }
+
+    /* Hide widget container when buy buttons are visible or modal/drawer is open */
+    .saptah-widget-container.is-hidden {
+      transform: translateY(-50%) translateX(110%);
+      opacity: 0;
+    }
+
+    html.has-modal-open .saptah-widget-container,
+    html.has-modal-opening .saptah-widget-container,
+    body.has-modal-open .saptah-widget-container,
+    body.has-modal-opening .saptah-widget-container {
+      transform: translateY(-50%) translateX(110%) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Compact Trigger Pill State */
+    .saptah-trigger-pill {
+      background: linear-gradient(135deg, rgba(16, 4, 8, 0.95) 0%, rgba(32, 8, 16, 0.95) 50%, rgba(16, 4, 8, 0.95) 100%);
+      border: 1.5px solid rgba(184, 46, 86, 0.35);
+      border-right: none;
+      border-radius: 30px 0 0 30px;
+      padding: 10px 14px 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: -6px 6px 24px rgba(123, 30, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, padding 0.4s cubic-bezier(0.16, 1, 0.3, 1), gap 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+      cursor: pointer;
+      pointer-events: auto; /* Active for interactions */
+      transform-origin: right center;
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+
+
+    .saptah-trigger-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #B82E56, #7B1E3A);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFF0F4;
+      box-shadow: 0 0 10px rgba(184, 46, 86, 0.4);
+      flex-shrink: 0;
+      transition: transform 0.3s ease;
+    }
+
+
+
+    .saptah-trigger-icon svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .saptah-trigger-details {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      max-width: 150px;
+      opacity: 1;
+    }
+
+    .saptah-trigger-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #FFF0F4;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      line-height: 1.1;
+      text-shadow: 0 0 12px rgba(220, 60, 90, 0.4);
+    }
+
+    .saptah-trigger-subtitle {
+      font-size: 9px;
+      font-weight: 700;
+      color: #FFD6E0;
+      line-height: 1;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .saptah-trigger-dot {
+      width: 5px;
+      height: 5px;
+      background-color: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #22c55e;
+      animation: saptah-dot-blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes saptah-dot-blink {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.8); opacity: 0.4; }
+    }
+
+    .saptah-trigger-chevron {
+      color: rgba(255, 240, 244, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, color 0.2s, max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      max-width: 20px;
+      opacity: 1;
+    }
+
+    .saptah-trigger-chevron svg {
+      width: 6px;
+      height: 10px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+
+
+    /* Expanded Content Card State */
+    .saptah-expanded-card {
+      position: absolute;
+      right: 16px;
+      width: 340px;
+      background: linear-gradient(135deg, rgba(16, 4, 8, 0.98) 0%, rgba(32, 8, 16, 0.98) 50%, rgba(16, 4, 8, 0.98) 100%);
+      border: 1.5px solid rgba(184, 46, 86, 0.45);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: -8px 8px 32px rgba(123, 30, 58, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      pointer-events: auto;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      transform: translateX(120%);
+      opacity: 0;
+    }
+
+    /* Transparent hover bridge to prevent losing hover when cursor moves over the gap to the screen edge */
+    .saptah-expanded-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -20px;
+      width: 20px;
+      height: 100%;
+      background: transparent;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* Shimmer sweep for the expanded card */
+    .saptah-expanded-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 65%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 220, 230, 0.03) 40%,
+        rgba(255, 220, 230, 0.08) 50%,
+        rgba(255, 220, 230, 0.03) 60%,
+        transparent 100%
+      );
+      animation: saptah-card-shimmer 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes saptah-card-shimmer {
+      0% { left: -100%; }
+      35%, 100% { left: 150%; }
+    }
+
+    /* Expanded Hover Logic - Scoped only to desktop pointer devices */
+    @media (hover: hover) {
+      .saptah-trigger-pill:hover {
+        background: linear-gradient(135deg, rgba(24, 6, 12, 0.98) 0%, rgba(44, 10, 22, 0.98) 50%, rgba(24, 6, 12, 0.98) 100%);
+        border-color: rgba(184, 46, 86, 0.55);
+        transform: translateX(-4px);
+      }
+      .saptah-trigger-pill:hover .saptah-trigger-icon {
+        transform: scale(1.08) rotate(-8deg);
+      }
+      .saptah-trigger-pill:hover .saptah-trigger-chevron {
+        transform: translateX(-2px);
+        color: #FFF0F4;
+      }
+    }
+
+    /* Expanded Trigger and Card State via JS Class (Mobile & Click triggers) */
+    .saptah-widget-container.is-expanded .saptah-expanded-card {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    .saptah-widget-container.is-expanded .saptah-trigger-pill {
+      transform: translateX(120%) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Collapsed Glowing State (used when buy buttons are visible) */
+    .saptah-widget-container.is-collapsed-glowing .saptah-trigger-details {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      pointer-events: none;
+    }
+
+    .saptah-widget-container.is-collapsed-glowing .saptah-trigger-chevron {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      pointer-events: none;
+    }
+
+    .saptah-widget-container.is-collapsed-glowing .saptah-trigger-pill {
+      padding: 8px 8px 8px 12px;
+      gap: 0;
+      border-color: rgba(184, 46, 86, 0.85);
+      box-shadow: 0 0 15px rgba(184, 46, 86, 0.6), -4px 4px 15px rgba(184, 46, 86, 0.4);
+      animation: saptah-glowing-pulse 1.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes saptah-glowing-pulse {
+      0% {
+        box-shadow: 0 0 8px rgba(184, 46, 86, 0.4), -4px 4px 12px rgba(123, 30, 58, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        border-color: rgba(184, 46, 86, 0.5);
+      }
+      100% {
+        box-shadow: 0 0 20px rgba(184, 46, 86, 0.95), -6px 6px 20px rgba(184, 46, 86, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 46, 110, 1);
+        transform: scale(1.05);
+      }
+    }
+
+    /* Card Layout Components */
+    .saptah-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      z-index: 2;
+      position: relative;
+    }
+
+    .saptah-card-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .saptah-card-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #FFF0F4;
+      line-height: 1.2;
+      margin: 0;
+      text-shadow: 0 0 15px rgba(220, 60, 90, 0.4);
+    }
+
+    .saptah-card-subtitle {
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(255, 240, 244, 0.65);
+    }
+
+    .saptah-card-close {
+      background: none;
+      border: none;
+      color: rgba(255, 240, 244, 0.4);
+      font-size: 20px;
+      font-weight: 400;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+      transition: color 0.2s;
+    }
+
+    .saptah-card-close:hover {
+      color: #FFF0F4;
+    }
+
+    /* Grid of 5 T-shirts */
+    .saptah-tees-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin: 12px 0 14px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .saptah-tee-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    }
+
+    .saptah-tee-item:hover {
+      transform: translateY(-3px) scale(1.05);
+    }
+
+    .saptah-tee-image-wrap {
+      width: 100%;
+      aspect-ratio: 3/4;
+      border-radius: 6px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      position: relative;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .saptah-tee-item:hover .saptah-tee-image-wrap {
+      border-color: rgba(184, 46, 86, 0.5);
+      box-shadow: 0 4px 10px rgba(184, 46, 86, 0.25);
+    }
+
+    .saptah-tee-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+
+    .saptah-tee-item:hover .saptah-tee-img {
+      transform: scale(1.06);
+    }
+
+    .saptah-tee-name {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(255, 240, 244, 0.5);
+      text-transform: uppercase;
+      margin-top: 5px;
+      letter-spacing: 0.3px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      transition: color 0.2s;
+    }
+
+    .saptah-tee-item:hover .saptah-tee-name {
+      color: #FFF0F4;
+    }
+
+    /* Active item styling */
+    .saptah-tee-item.is-current .saptah-tee-image-wrap {
+      border-color: #B82E56;
+      box-shadow: 0 0 8px rgba(184, 46, 86, 0.4);
+    }
+    
+    .saptah-tee-item.is-current .saptah-tee-name {
+      color: #B82E56;
+      font-weight: 800;
+    }
+
+    /* Expanded Card Footer */
+    .saptah-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px dashed rgba(255, 240, 244, 0.15);
+      padding-top: 12px;
+      margin-top: 4px;
+      z-index: 2;
+      position: relative;
+      gap: 12px;
+    }
+
+    .saptah-card-price-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .saptah-card-original {
+      font-size: 11px;
+      color: rgba(255, 240, 244, 0.4);
+      text-decoration: line-through;
+      text-decoration-color: rgba(184, 46, 86, 0.6);
+      text-decoration-thickness: 1.5px;
+      line-height: 1;
+    }
+
+    .saptah-card-bundle {
+      font-size: 17px;
+      font-weight: 900;
+      color: #FFF0F4;
+      line-height: 1;
+      letter-spacing: -0.2px;
+      text-shadow: 0 2px 8px rgba(184, 46, 86, 0.3);
+    }
+
+    .saptah-card-savings {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #FFF5F5;
+      background: #7B1E3A;
+      border-radius: 4px;
+      padding: 2px 4px;
+      align-self: flex-start;
+      margin-top: 2px;
+      letter-spacing: 0.1px;
+    }
+
+    /* CTA Button inside Card */
+    .saptah-card-cta {
+      flex: 1;
+      max-width: 140px;
+      background: linear-gradient(90deg, #7B1E3A 0%, #B82E56 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 10px rgba(123, 30, 58, 0.25);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+    }
+
+    .saptah-card-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 14px rgba(184, 46, 86, 0.4);
+      background: linear-gradient(90deg, #8C2242 0%, #C93963 100%);
+    }
+
+    .saptah-card-cta svg {
+      width: 11px;
+      height: 11px;
+      fill: currentColor;
+      transition: transform 0.2s;
+    }
+
+    .saptah-card-cta:hover svg {
+      transform: translateX(2px);
+    }
+
+    /* Small Screen Adjustments */
+    @media (max-width: 480px) {
+      .saptah-expanded-card {
+        right: 12px;
+        width: 295px;
+        padding: 12px 14px;
+      }
+      .saptah-card-title {
+        font-size: 13.5px;
+      }
+      .saptah-card-subtitle {
+        font-size: 9px;
+      }
+      .saptah-card-bundle {
+        font-size: 15px;
+      }
+      .saptah-card-cta {
+        padding: 8px 10px;
+        font-size: 10px;
+        max-width: 120px;
+      }
+    }
+  </style>
+
+  <div class="saptah-widget-container" id="SaptahPromoWidget">
+    
+    <!-- Collapsed Trigger Pill -->
+    <div class="saptah-trigger-pill" id="SaptahTrigger">
+      <div class="saptah-trigger-icon">
+        <svg viewBox="0 0 24 24">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+      </div>
+      
+      <div class="saptah-trigger-details">
+        <span class="saptah-trigger-title">सप्ताह Stack Pack</span>
+        <span class="saptah-trigger-subtitle">
+          <span class="saptah-trigger-dot"></span>
+          5 Tees for ₹4,000
+        </span>
+      </div>
+
+      <div class="saptah-trigger-chevron">
+        <svg viewBox="0 0 6 10">
+          <path d="M5 9L1 5l4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Expanded Details Card -->
+    <div class="saptah-expanded-card" id="SaptahCard">
+      <div class="saptah-card-header">
+        <div class="saptah-card-title-group">
+          <h4 class="saptah-card-title">सप्ताह Stack Pack</h4>
+          <span class="saptah-card-subtitle">Unlock the 5-Tee daily rotation</span>
+        </div>
+        <button class="saptah-card-close" id="SaptahClose" aria-label="Close widget">&times;</button>
+      </div>
+
+      <div class="saptah-tees-grid">
+        {%- comment -%} Render Wave {%- endcomment -%}
+        {%- if p_wave != blank -%}
+          {%- assign total_original = total_original | plus: p_wave.price -%}
+          {%- assign valid_products_count = valid_products_count | plus: 1 -%}
+          <a href="{{ p_wave.url }}" class="saptah-tee-item{% if product.handle == 'wave' %} is-current{% endif %}" title="View {{ p_wave.title }}">
+            <div class="saptah-tee-image-wrap">
+              <img class="saptah-tee-img" src="{{ p_wave.featured_image | image_url: width: 80, height: 106, crop: 'center' }}" alt="{{ p_wave.title }}" loading="lazy" width="80" height="106">
+            </div>
+            <span class="saptah-tee-name">Wave</span>
+          </a>
+        {%- endif -%}
+
+        {%- comment -%} Render Drift {%- endcomment -%}
+        {%- if p_drift != blank -%}
+          {%- assign total_original = total_original | plus: p_drift.price -%}
+          {%- assign valid_products_count = valid_products_count | plus: 1 -%}
+          <a href="{{ p_drift.url }}" class="saptah-tee-item{% if product.handle == 'drift' %} is-current{% endif %}" title="View {{ p_drift.title }}">
+            <div class="saptah-tee-image-wrap">
+              <img class="saptah-tee-img" src="{{ p_drift.featured_image | image_url: width: 80, height: 106, crop: 'center' }}" alt="{{ p_drift.title }}" loading="lazy" width="80" height="106">
+            </div>
+            <span class="saptah-tee-name">Drift</span>
+          </a>
+        {%- endif -%}
+
+        {%- comment -%} Render Axis {%- endcomment -%}
+        {%- if p_axis != blank -%}
+          {%- assign total_original = total_original | plus: p_axis.price -%}
+          {%- assign valid_products_count = valid_products_count | plus: 1 -%}
+          <a href="{{ p_axis.url }}" class="saptah-tee-item{% if product.handle == 'axis' %} is-current{% endif %}" title="View {{ p_axis.title }}">
+            <div class="saptah-tee-image-wrap">
+              <img class="saptah-tee-img" src="{{ p_axis.featured_image | image_url: width: 80, height: 106, crop: 'center' }}" alt="{{ p_axis.title }}" loading="lazy" width="80" height="106">
+            </div>
+            <span class="saptah-tee-name">Axis</span>
+          </a>
+        {%- endif -%}
+
+        {%- comment -%} Render Viber {%- endcomment -%}
+        {%- if p_viber != blank -%}
+          {%- assign total_original = total_original | plus: p_viber.price -%}
+          {%- assign valid_products_count = valid_products_count | plus: 1 -%}
+          <a href="{{ p_viber.url }}" class="saptah-tee-item{% if product.handle == 'viber' %} is-current{% endif %}" title="View {{ p_viber.title }}">
+            <div class="saptah-tee-image-wrap">
+              <img class="saptah-tee-img" src="{{ p_viber.featured_image | image_url: width: 80, height: 106, crop: 'center' }}" alt="{{ p_viber.title }}" loading="lazy" width="80" height="106">
+            </div>
+            <span class="saptah-tee-name">Viber</span>
+          </a>
+        {%- endif -%}
+
+        {%- comment -%} Render Crew {%- endcomment -%}
+        {%- if p_crew != blank -%}
+          {%- assign total_original = total_original | plus: p_crew.price -%}
+          {%- assign valid_products_count = valid_products_count | plus: 1 -%}
+          <a href="{{ p_crew.url }}" class="saptah-tee-item{% if product.handle == 'crew' %} is-current{% endif %}" title="View {{ p_crew.title }}">
+            <div class="saptah-tee-image-wrap">
+              <img class="saptah-tee-img" src="{{ p_crew.featured_image | image_url: width: 80, height: 106, crop: 'center' }}" alt="{{ p_crew.title }}" loading="lazy" width="80" height="106">
+            </div>
+            <span class="saptah-tee-name">Crew</span>
+          </a>
+        {%- endif -%}
+      </div>
+
+      {%- liquid
+        # total_original accumulated from the five live product prices above;
+        # the old hardcoded 600000 here silently overwrote it and broke the
+        # moment any price (or the market) changed. Fall back only when every
+        # lookup failed.
+        if total_original <= 0
+          assign total_original = 600000
+        endif
+        assign savings = total_original | minus: bundle_price
+
+        assign md_style = 'exact'
+        if settings.currency_code_enabled
+          assign md_style = 'with_currency'
+        endif
+        capture formatted_price
+          render 'money-display', amount: bundle_price, style: md_style
+        endcapture
+        capture formatted_original
+          render 'money-display', amount: total_original, style: md_style
+        endcapture
+        capture formatted_savings
+          render 'money-display', amount: savings, style: md_style
+        endcapture
+      -%}
+
+      <div class="saptah-card-footer">
+        <div class="saptah-card-price-info">
+          <span class="saptah-card-original">{{ formatted_original }}</span>
+          <span class="saptah-card-bundle">{{ formatted_price }}</span>
+          {%- if savings > 0 -%}
+            <span class="saptah-card-savings">Save {{ formatted_savings }}</span>
+          {%- endif -%}
+        </div>
+        <a href="/products/saptah-stack-pack" class="saptah-card-cta">
+          <span>Get the Pack</span>
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      const widget = document.getElementById('SaptahPromoWidget');
+      if (!widget) return;
+
+      // Move widget to document.body to escape transformed parent containing blocks
+      const oldWidget = document.querySelector('body > #SaptahPromoWidget');
+      if (oldWidget) {
+        oldWidget.remove();
+      }
+      document.body.appendChild(widget);
+
+      const trigger = document.getElementById('SaptahTrigger');
+      const closeBtn = document.getElementById('SaptahClose');
+      if (!trigger || !closeBtn) return;
+
+      // Desktop Hover Logic with Debounce
+      let hoverTimeout;
+      let isClosedByClick = false;
+
+      if (window.matchMedia('(hover: hover)').matches) {
+        widget.addEventListener('mouseenter', function() {
+          if (isClosedByClick) return;
+          clearTimeout(hoverTimeout);
+          widget.classList.add('is-expanded');
+        });
+
+        widget.addEventListener('mouseleave', function() {
+          isClosedByClick = false; // Reset flag when mouse exits widget area completely
+          clearTimeout(hoverTimeout);
+          hoverTimeout = setTimeout(function() {
+            widget.classList.remove('is-expanded');
+          }, 300);
+        });
+      }
+
+      // Handle mobile clicks / taps explicitly
+      trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        widget.classList.add('is-expanded');
+      });
+
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        isClosedByClick = true; // Set flag to prevent hover from re-triggering immediately
+        widget.classList.remove('is-expanded');
+      });
+
+      // Dismiss widget if clicking outside of it on touch/mobile
+      document.addEventListener('click', function(e) {
+        if (widget.classList.contains('is-expanded')) {
+          if (!widget.contains(e.target)) {
+            widget.classList.remove('is-expanded');
+          }
+        }
+      });
+
+      // Hide widget when the main Buy buttons are visible to avoid overlapping
+      if (window.IntersectionObserver) {
+        const targetSelectors = [
+          '.product-form-wrapper',
+          '.product-form',
+          '.product-form__buttons',
+          '.product-form__submit',
+          '.onrepeat-buy-area'
+        ];
+        
+        let buyButton = null;
+        for (let sel of targetSelectors) {
+          const el = document.querySelector(sel);
+          if (el) {
+            buyButton = el;
+            break;
+          }
+        }
+
+        if (buyButton) {
+          const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+             if (entry.isIntersecting) {
+                widget.classList.add('is-collapsed-glowing');
+                widget.classList.remove('is-expanded');
+              } else {
+                widget.classList.remove('is-collapsed-glowing');
+              }
+            });
+          }, {
+            root: null,
+            rootMargin: '80px 0px 80px 0px', // Trigger before it directly overlaps
+            threshold: 0
+          });
+          observer.observe(buyButton);
+        }
+      }
+    })();
+  </script>
+{%- endif -%}

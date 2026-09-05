@@ -1,0 +1,398 @@
+{%- comment -%}
+  Virtual Try-On button.
+  Accepts:
+  - product: {Object} product object
+  - block: {Object} block object (only when placement is 'block')
+  - placement: {String} 'sticky' (default), 'block', 'tile' or 'gallery'
+  - stacked: {Boolean} gallery placement only — true when the rating pill is
+             also rendering, so the try-on pill lifts clear of it
+
+  Placement:
+    'sticky'  — rendered inside the permanent sticky buy bar in
+                sections/main-product.liquid.
+    'block'   — the original theme-editor block. No product template references
+                it any more, but the markup is kept so the block can be dropped
+                back into a template without rebuilding the data attributes.
+    'tile'    — the buy bar's 48px thumbnail, which IS the minimised try-on.
+    'gallery' — a glass pill in the PDP gallery's bottom-right corner, directly
+                above the rating pill. The try-on's first-contact surface: it
+                sits on the hero image, where the shopper is already looking,
+                instead of waiting for them to reach the buy bar.
+
+  All four carry the SAME data contract. assets/vto.js opens from a delegated
+  [data-vto-trigger] click and reads the attributes off whatever element it
+  finds, so a new placement needs markup and nothing else. 'tile' and 'gallery'
+  additionally carry data-vto-tile, which enrols them in the progress state
+  machine — both are dressed together, from one session, by construction.
+
+  Image resolution (v3 — merchant-selectable):
+    front: custom.vto_front_image metafield → product.images[0] → featured_image
+    back:  custom.vto_back_image  metafield → product.images[1] (optional; back tab hides if missing)
+  Merchants pick the exact garment images per product in the admin
+  (Settings → Custom data → Products: "VTO Front/Back Image"). When left
+  blank, behaviour falls back to the original first/second-image logic.
+{%- endcomment -%}
+
+{%- if true -%}
+{%- assign vto_placement = placement | default: 'sticky' -%}
+{%- assign default_variant_id = product.selected_or_first_available_variant.id -%}
+
+{%- comment -%}
+  ── Reference image selection ────────────────────────────────────────────
+  The merchant metafields win when set. They are set on 38 of 92 products;
+  the entire 48-piece polo range has neither, so the fallback below is what
+  actually runs on the flagship catalogue and has to be good.
+
+  The old fallback was positional — images[0] for front, images[1] for back —
+  and images[1] is the ON-MODEL lifestyle shot on every polo:
+
+      images[0]  "… — front"      -1-front.png       flat garment
+      images[1]  "… — on model"   -2-on-model.png    a different human
+      images[2]  "… — back"       -3-back.png        flat garment, back
+
+  So every polo sent a photograph of a model as the "back of the garment".
+  That is the exact hazard the model is most prone to: with a weak customer
+  photo it reproduces the person in the reference instead of the customer,
+  and the real back design was never in the request at all.
+
+  Selection is now by meaning rather than position: match the alt text and
+  the filename, and explicitly exclude on-model, lifestyle and detail crops
+  from BOTH slots. Shopify's alts here are structured ("— front", "— back",
+  "— on model", "— detail"), and the filenames carry the same words, so
+  either signal alone is enough.
+
+  When nothing matches, front degrades to the first non-excluded image and
+  back is left EMPTY on purpose. A missing back view costs the shopper one
+  of two images; a wrong back view costs them a picture of a stranger, and
+  the backend already treats back as optional.
+{%- endcomment -%}
+{%- assign front_image = product.metafields.custom.vto_front_image.value -%}
+{%- assign back_image = product.metafields.custom.vto_back_image.value -%}
+
+{%- if front_image == blank or back_image == blank -%}
+  {%- assign vto_first_clean = blank -%}
+  {%- for vto_img in product.images -%}
+    {%- assign vto_tag = vto_img.alt | default: '' | downcase -%}
+    {%- assign vto_src = vto_img | image_url: width: 1 | downcase -%}
+    {%- assign vto_tag = vto_tag | append: ' ' | append: vto_src -%}
+
+    {%- assign vto_skip = false -%}
+    {%- if vto_tag contains 'on-model' or vto_tag contains 'on model' or vto_tag contains 'onmodel' -%}
+      {%- assign vto_skip = true -%}
+    {%- endif -%}
+    {%- if vto_tag contains 'lifestyle' or vto_tag contains 'detail' or vto_tag contains 'campaign' -%}
+      {%- assign vto_skip = true -%}
+    {%- endif -%}
+
+    {%- unless vto_skip -%}
+      {%- if vto_first_clean == blank -%}
+        {%- assign vto_first_clean = vto_img -%}
+      {%- endif -%}
+      {%- if front_image == blank and vto_tag contains 'front' -%}
+        {%- assign front_image = vto_img -%}
+      {%- endif -%}
+      {%- if back_image == blank and vto_tag contains 'back' -%}
+        {%- assign back_image = vto_img -%}
+      {%- endif -%}
+    {%- endunless -%}
+  {%- endfor -%}
+
+  {%- comment -%}
+    Front is required — without it there is no try-on at all — so it falls
+    back to the first image that is not a model or a crop, and finally to the
+    featured image. Back deliberately has no such fallback.
+  {%- endcomment -%}
+  {%- if front_image == blank -%}
+    {%- assign front_image = vto_first_clean | default: product.featured_image -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- comment -%}
+  ── Fit context ──────────────────────────────────────────────────────────
+  custom.vto_fit_hint has no metafield definition on this store and is unset
+  on all 92 products, so this path was permanently inert and the model never
+  received any cut guidance.
+
+  The size-chart registry already carries a written fit line per garment
+  ("Regular fit — cut close to the body, not oversized.") plus the designed
+  ease, for every chart. That is better material than a three-value enum and
+  it is already maintained. The chart key travels on the trigger as
+  data-sc-chart; assets/vto.js resolves the line from the registry and sends
+  it. The metafield still wins when a merchant sets it.
+{%- endcomment -%}
+{%- assign fit_hint_raw = product.metafields.custom.vto_fit_hint.value | default: '' | downcase | strip -%}
+{%- assign fit_hint = '' -%}
+{%- if fit_hint_raw == 'oversized' or fit_hint_raw == 'fitted' or fit_hint_raw == 'relaxed' -%}
+  {%- assign fit_hint = fit_hint_raw -%}
+{%- endif -%}
+
+{%- comment -%} Which option position is "Size" (matches the theme's variant picker logic) so VTO can label size pills. -1 when there's no size option. {%- endcomment -%}
+{%- assign vto_size_index = -1 -%}
+{%- assign vto_size_trigger = 'products.general.size_trigger' | t | downcase -%}
+{%- if vto_size_trigger != blank -%}
+  {%- for opt in product.options_with_values -%}
+    {%- assign opt_name_dc = opt.name | downcase -%}
+    {%- if opt_name_dc contains vto_size_trigger -%}
+      {%- assign vto_size_index = forloop.index0 -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- comment -%}
+  Only the two text-button placements wear any of this, and a product page
+  renders more than one placement. Emitting it unconditionally put a second
+  identical copy of the whole block inside the gallery's badge layer.
+{%- endcomment -%}
+{%- if vto_placement == 'sticky' or vto_placement == 'block' -%}
+<style>
+  .vto-button-wrapper {
+    margin-top: 12px;
+    min-height: 46px;
+  }
+  .vto-trigger-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px 24px;
+    background: #5c1011;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(92,16,17,0.25);
+    box-sizing: border-box;
+    min-height: 46px;
+    transition: background 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+  }
+  .vto-trigger-btn__icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .vto-trigger-btn:hover {
+    background: #7a1a1b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(92,16,17,0.3);
+  }
+  .vto-trigger-btn:active {
+    transform: translateY(0) scale(0.985);
+    box-shadow: none;
+  }
+  .vto-trigger-btn__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    margin-left: 4px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.22);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+  }
+  .vto-trigger-btn__badge svg {
+    flex-shrink: 0;
+  }
+
+  {%- comment -%}
+    Sticky-bar variant. Sits directly above .sticky-buy__actions, so it drops
+    the wrapper's top margin and matches that row's radius and metrics rather
+    than the product-info block's.
+  {%- endcomment -%}
+  .vto-trigger-btn--sticky {
+    margin: 0 0 8px;
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-height: 44px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: none;
+  }
+  .vto-trigger-btn--sticky:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  @media (max-width: 380px) {
+    .vto-trigger-btn--sticky {
+      font-size: 12px;
+      padding: 11px 12px;
+    }
+  }
+</style>
+{%- endif -%}
+
+{%- comment -%}
+  'tile' is the buy bar's 48px thumbnail. It carries the identical data
+  contract as the other placements — vto.js opens from a delegated
+  [data-vto-trigger] click and reads these attributes off the element it
+  finds — so the contract stays defined in exactly one place. Only the
+  class and the inner markup differ; onrepeat-buy-bar.liquid styles it.
+{%- endcomment -%}
+{%- if vto_placement == 'block' -%}<div class="vto-button-wrapper" {{ block.shopify_attributes }}>{%- endif -%}
+  {%- comment -%}
+    No whitespace-stripping tags inside this attribute list — the hyphen form.
+    Whitespace is the only thing separating one attribute from the next, and
+    stripping it welds them together.
+
+    The tile branch used to end on the bare attribute data-vto-tile, and the
+    stripped endif that closed the branch pulled the next line up against it.
+    The browser then tokenised
+
+        data-vto-tile aria-label="Virtual Try-On for ..."
+
+    as ONE attribute named data-vto-tilearia-label. So the tile carried neither
+    data-vto-tile nor an accessible name: the selector .onrepeat-bb__thumb with
+    [data-vto-tile] matched nothing on any page, every minimised try-on fell
+    through to the floating copy this rebuild deleted, and the buy bar's
+    try-on button was unlabelled for screen readers. The other two placements
+    escaped only because their branch ends in a QUOTED value, where a missing
+    space is a recoverable parse error rather than a fused name.
+
+    Plain tags keep the newlines. The cost is some blank lines in the rendered
+    HTML; the alternative is silent, invisible and expensive.
+
+    (Tag syntax is spelled out in prose above on purpose: Liquid parses block
+    tags inside a comment, so a literal endif written here would unbalance the
+    template it is documenting.)
+  {%- endcomment -%}
+  <button
+    type="button"
+    {% if vto_placement == 'tile' %}
+      {%- comment -%}
+        vto-tile is the progress layer, styled in assets/vto.css. This tile IS
+        the minimised try-on: a running or finished render is shown here, on
+        the thumbnail the bar already displays, rather than on a second tile
+        floating over the card. assets/vto.js swaps the image, lights the ring
+        and hands the tile back untouched when the session ends — including
+        when the session belongs to a DIFFERENT product, which is how a try-on
+        follows the shopper from one product page to the next.
+      {%- endcomment %}
+      class="onrepeat-bb__thumb vto-tile"
+      data-vto-tile
+    {% elsif vto_placement == 'gallery' %}
+      {%- comment -%}
+        data-vto-tile-noimg tells the state machine not to swap a thumbnail in:
+        this placement is an icon, and injecting the 1024px result into it would
+        wreck the pill's layout. It still takes the ring, the label, the dot and
+        the percentage — everything the state machine drives that is not a
+        picture.
+
+        The data-vto-label-* attributes override the tile's terse copy. The buy
+        bar's label strip is 7.5px wide and can hold nothing longer than "View";
+        this pill has the room to say what is actually happening — and "Paused"
+        instead of "Creating" is the difference between an honest indicator and
+        one still claiming to work after the connection dropped.
+      {%- endcomment %}
+      {%- comment -%}
+        data-vto-hintable opts this placement into the one-time attention glow.
+        A bare attribute for the same reason data-vto-tile is one: the hint is a
+        property of a placement that has room to be noticed, not of a class, and
+        the buy bar's 48px thumbnail deliberately does not have it — a glow on a
+        control that is off-screen until you scroll is a glow nobody sees.
+      {%- endcomment %}
+      class="vto-gpill{% if stacked %} vto-gpill--stacked{% endif %}"
+      data-vto-tile
+      data-vto-tile-noimg
+      data-vto-hintable
+      data-vto-label-generating="Creating"
+      data-vto-label-offline="Paused"
+      data-vto-label-ready="View look"
+    {% else %}
+      class="vto-trigger-btn{% if vto_placement == 'sticky' %} vto-trigger-btn--sticky{% endif %}"
+    {% endif %}
+    aria-label="Virtual Try-On for {{ product.title | escape }}"
+    aria-controls="VtoModal"
+    aria-expanded="false"
+    data-vto-trigger
+    data-product-id="{{ product.id }}"
+    data-product-title="{{ product.title | escape }}"
+    data-sc-chart="{%- render 'size-chart-key', product: product -%}"
+    data-product-url="{{ product.url }}"
+    data-front-image="{{ front_image | image_url: width: 1024 }}"
+    data-back-image="{% if back_image %}{{ back_image | image_url: width: 1024 }}{% endif %}"
+    data-fit-hint="{{ fit_hint }}"
+    data-default-variant-id="{{ default_variant_id }}"
+    data-size-option-index="{{ vto_size_index }}"
+    data-variants='{{ product.variants | json | escape }}'
+  >
+    {%- if vto_placement == 'tile' -%}
+      {%- assign tile_media = product.selected_or_first_available_variant.featured_media | default: product.featured_media -%}
+      {%- if tile_media != blank -%}
+        {{- tile_media.preview_image | image_url: width: 144 | image_tag: loading: 'lazy', widths: '48,96,144', alt: '' -}}
+      {%- endif -%}
+      {%- render 'vto-tile-ring' -%}
+      {%- comment -%}
+        Stays aria-hidden: the button already carries a full aria-label, and
+        vto.js rewrites THAT as progress changes. Exposing the 7.5px label as
+        well would have a screen reader read the control's name twice.
+      {%- endcomment -%}
+      <span data-vto-tile-label aria-hidden="true">Try on</span>
+      <span class="vto-tile__dot" data-vto-tile-dot aria-hidden="true"></span>
+    {%- elsif vto_placement == 'gallery' -%}
+      {%- comment -%}
+        The icon disc doubles as the progress ring — one 22px object that is the
+        affordance at rest and the meter while working, rather than a button
+        that grows a second thing when it becomes busy.
+
+        pathLength="100" normalises the circumference to 100 units, which is
+        what lets `stroke-dasharray: <pct> 100` in assets/vto-gallery-pill.css
+        mean percent directly against the --vto-pct that vto.js writes. The same
+        trick, and the same variable, as the buy bar tile's rounded-rect ring.
+
+        Everything inside is aria-hidden: the button already carries a full
+        accessible name and vto.js rewrites THAT as the state changes, so
+        exposing the label and the percentage as well would have a screen reader
+        read the control twice, the second time on every progress tick.
+      {%- endcomment %}
+      <span class="vto-gpill__disc" aria-hidden="true">
+        <svg class="vto-gpill__ring" viewBox="0 0 24 24" fill="none" focusable="false">
+          <circle class="vto-gpill__track" cx="12" cy="12" r="10.6"/>
+          <circle class="vto-gpill__fill" cx="12" cy="12" r="10.6" pathLength="100"/>
+        </svg>
+        <svg class="vto-gpill__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+      </span>
+      <span class="vto-gpill__lab" aria-hidden="true">
+        <span data-vto-tile-label>Try on</span>
+        <span class="vto-gpill__pct" data-vto-tile-pct></span>
+        <span class="vto-gpill__ai">
+          <svg viewBox="0 0 24 24" fill="currentColor" focusable="false" aria-hidden="true">
+            <path d="M12 2l2.1 6.26L20.7 8.7l-4.9 4.3 1.4 6.5L12 15.8 6.8 19.5l1.4-6.5-4.9-4.3 6.6-.44L12 2z"/>
+          </svg>
+          AI
+        </span>
+      </span>
+      {%- comment -%}
+        Badged on the PILL's corner, not the icon's. A notification dot tucked
+        inside the pill reads as part of the camera glyph rather than as
+        "something is waiting for you", which is the whole reason it exists.
+      {%- endcomment %}
+      <span class="vto-gpill__dot" aria-hidden="true"></span>
+    {%- else -%}
+      <svg class="vto-trigger-btn__icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+        <circle cx="12" cy="13" r="3"/>
+      </svg>
+      <span>Virtual Try-On</span>
+      <span class="vto-trigger-btn__badge" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L14.09 8.26L20.66 8.73L15.77 13.02L17.18 19.5L12 15.79L6.82 19.5L8.23 13.02L3.34 8.73L9.91 8.26L12 2Z"/>
+        </svg>
+        AI
+      </span>
+    {%- endif -%}
+  </button>
+{%- if vto_placement == 'block' -%}</div>{%- endif -%}
+{%- endif -%}

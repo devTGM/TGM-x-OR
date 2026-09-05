@@ -1,0 +1,26 @@
+{%- comment -%}
+  Answers one question: is the Buy 2 Get 1 offer showing on this theme?
+  Outputs "1" when it is, nothing when it is not — callers capture the render
+  and test against blank, the same contract as onrepeat-buy-module-active.
+
+  Four surfaces hang off this answer — the PDP strip, the marquee item, the
+  announcement slide and the cart piece counter — and they must never
+  disagree: a banner promising a free piece while the cart counts nothing
+  toward it reads as a broken promise. One snippet, one answer.
+
+  THE SWITCH
+  settings.b2g1_enabled ("Rewards, shipping & trust" → Buy 2 Get 1). The
+  offer went live 2026-09-02, so the schema default is ON — untick the box in
+  the theme editor to pull every surface at once. The checkbox is display
+  only: it must move together with the automatic BxGy discount in
+  Admin → Discounts ("Buy 2 Get 1 Free"), or the storefront promises what
+  checkout will not honour. The cart ladder carries one extra belt: on the
+  live theme its won-state also demands a real free-piece allocation before
+  it claims money (see free-shipping-bar), so even a mismatch here cannot put
+  a false rupee figure in front of a paying customer.
+
+  A preview override (theme.role != 'main' forced the surfaces on for the
+  Development theme) lived here before go-live and was removed at go-live as
+  designed — the checkbox alone decides now, on every theme.
+{%- endcomment -%}
+{%- if settings.b2g1_enabled -%}1{%- endif -%}

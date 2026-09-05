@@ -1,0 +1,667 @@
+/* ============================================================
+   OnRepeat — collection page.
+
+   Three regions, all of them additions to the existing collection section
+   rather than replacements:
+
+     1. the knit-family rail   (snippets/onrepeat-family-rail.liquid)
+     2. the sticky toolbar     (sections/main-collection.liquid)
+     3. the editorial hero     (sections/main-collection-banner.liquid)
+
+   Loaded by the snippets and sections that need it, the way
+   onrepeat-product-card, onrepeat-rotating-tag, onrepeat-gsm-badge and six other
+   snippets in this theme load theirs. Repeated tags dedupe to one request,
+   and restyling the collection never means editing layout/theme.liquid,
+   where every app embed on the site lives.
+
+   Brand crimson is written literally (#5c1011 / #7b1e3a) to match
+   onrepeat-product-card.css and onrepeat-rotating-tag.css — the theme's colour
+   scheme variables are merchant-editable per section, and the crimson here
+   is brand furniture rather than a scheme colour.
+   ============================================================ */
+
+/* ── Knit-family rail ──────────────────────────────────────────────────────
+
+   Eight knits, six colourways each. The row scrolls horizontally rather than
+   wrapping: a wrapped row strands one or two chips on a second line at most
+   widths, which reads as a mistake. Same call, and the same scrollbar
+   suppression, as the colour swatches on the product card.
+   ------------------------------------------------------------------------ */
+
+/* A full-bleed band, matching the toolbar directly beneath it — a rule that
+   stopped at the page margins sitting immediately above one that reaches both
+   screen edges reads as a mistake rather than a choice. The inline padding
+   moves to the track, so the chips still start on the product grid's margin
+   but can scroll all the way out to the edge instead of being cut short of
+   it, which is how a horizontal scroller should behave. */
+.onrepeat-rail {
+  margin-inline: calc(var(--page-padding) * -1);
+  margin-block-end: var(--sp-5);
+  border-block-end: 1px solid rgb(var(--color-foreground) / 0.08);
+}
+
+.onrepeat-rail__track {
+  display: flex;
+  gap: var(--sp-2);
+  padding-inline: var(--page-padding);
+  padding-block-end: var(--sp-3);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* `safe` keeps the first chip reachable once the row overflows — plain
+     `center` would push it off the scrollable start edge. */
+  justify-content: safe flex-start;
+}
+
+.onrepeat-rail__track::-webkit-scrollbar {
+  display: none;
+}
+
+.onrepeat-rail__chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-1d5);
+  padding: var(--sp-2) var(--sp-3d5);
+  border: 1px solid rgb(var(--color-foreground) / 0.14);
+  border-radius: var(--rounded-full);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  white-space: nowrap;
+  color: rgb(var(--color-foreground));
+  text-decoration: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+/* The count is context for the family name, not a second thing to read. */
+.onrepeat-rail__n {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: rgb(var(--color-foreground) / 0.45);
+}
+
+@media (hover: hover) {
+  .onrepeat-rail__chip:hover {
+    border-color: rgb(var(--color-foreground) / 0.4);
+  }
+}
+
+.onrepeat-rail__chip.is-on {
+  background: #5c1011;
+  border-color: #5c1011;
+  color: #fff;
+}
+
+.onrepeat-rail__chip.is-on .onrepeat-rail__n {
+  color: rgb(255 255 255 / 0.66);
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────────────────
+
+   Count, sort and filter on one line, instead of a filter pill floating over
+   the photography.
+
+   The docking itself is no longer here. The toolbar and the category rail
+   above it are one sticky block now — see `.onrepeat-stickyhead` in
+   assets/onrepeat-dock.css, which also carries the frosted panel and the
+   full-bleed breakout this rule used to own. What is left below is the row's
+   own layout and its controls.
+   ------------------------------------------------------------------------ */
+
+.onrepeat-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  /* The panel is on the wrapper now, but the inline padding stays here: the
+     wrapper breaks the band out to both screen edges and each row inside it
+     gives the page padding back, so the count and the controls sit on the
+     product grid's margins while the glass spans edge to edge. */
+  padding-inline: var(--page-padding);
+  padding-block: var(--sp-2d5);
+}
+
+/* The count gives up space before the controls do: it can ellipsize, they
+   cannot usefully shrink. Without `min-width: 0` a flex item refuses to go
+   below its content width, which is what broke "48 products" onto two lines
+   and pushed the sort control off the right edge. */
+.onrepeat-toolbar__count {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: rgb(var(--color-foreground) / 0.62);
+}
+
+/* Also allowed to shrink, so a long sort label narrows the control rather than
+   forcing the row wider than the screen. */
+.onrepeat-toolbar__actions {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: var(--sp-2);
+}
+
+/* The sort control is the theme's own `facet-sort` custom element, moved into
+   the bar rather than rebuilt — its listbox, keyboard handling and form
+   submission all come with it.
+
+   It ships sized for a desktop sidebar: `min-width: 180px` plus padding and
+   the marker resolves to roughly 268px wide and 56px tall, which cannot share
+   a 390px row with a filter button. So the WRAPPER is resized here, never the
+   button. `.sort-by` is absolutely positioned on purpose — opening it expands
+   it to a 320px panel, and a statically positioned button would push the
+   product grid down the page instead of overlaying it. Because the wrapper's
+   only child is absolute, `width: auto` would collapse it to nothing; it is
+   sized from the same `--facet-button-width` the theme's own JS measures onto
+   the element, just with a smaller allowance and a cap.
+
+   The panel is anchored `inset-inline-end: 0`, so it opens leftward from the
+   right edge and stays on screen at the narrower width. */
+.onrepeat-toolbar .facet-sorting {
+  gap: var(--sp-2);
+}
+
+.onrepeat-toolbar .facet-sorting > span {
+  display: none;
+}
+
+.onrepeat-toolbar .sort-wrapper {
+  min-width: 4.5rem;
+  width: calc(var(--facet-button-width, 5rem) + 3rem);
+  max-width: 8.5rem;
+  height: 2.375rem;
+}
+
+@media screen and (min-width: 1024px) {
+  .onrepeat-toolbar .sort-wrapper {
+    max-width: 13rem;
+    height: 2.625rem;
+  }
+}
+
+/* Scoped away from [open] throughout: the open state is a panel with its own
+   radius and padding, and these rules match its specificity exactly — being
+   in a later stylesheet, they would otherwise win and square off its corners. */
+/* `height` — not just `min-height`. The theme sizes these triggers with
+   `.sort-wrapper > .button { height: clamp(--sp-14, 3vw, --sp-15) }`, i.e.
+   56–60px, so relaxing `min-height` alone left a 56px button sitting inside
+   the 38px wrapper and knocked it out of line with the filter pill. */
+.onrepeat-toolbar .sort-by:not([open]) {
+  min-height: 0;
+  height: 100%;
+  padding-inline: var(--sp-3);
+  border-radius: var(--rounded-button);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+/* Both pills read as quiet controls rather than brand furniture: ink text on a
+   neutral hairline, with crimson kept for the one thing that should interrupt
+   — the active-filter badge. `.button--secondary` paints its text with
+   `--color-button-background` (crimson here) and draws its outline from
+   `--color-button-border` via `.button::after`, so both need naming. */
+.onrepeat-toolbar .sort-by:not([open]),
+.onrepeat-toolbar__filter {
+  color: rgb(var(--color-foreground));
+}
+
+.onrepeat-toolbar .sort-by:not([open])::after,
+.onrepeat-toolbar__filter::after {
+  border-color: rgb(var(--color-foreground) / 0.16);
+}
+
+.onrepeat-toolbar .sort-by:not([open]) .sort-header {
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+/* A long localized label ("Date, new to old") truncates rather than widening
+   the control past its cap. `min-width: 0` again, so the flex item is allowed
+   to be narrower than its text. */
+.onrepeat-toolbar .sort-by:not([open]) .sort-selection {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onrepeat-toolbar__filter {
+  min-height: 0;
+  height: 2.375rem;
+  padding: 0 var(--sp-3);
+  border-radius: var(--rounded-button);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media screen and (min-width: 1024px) {
+  .onrepeat-toolbar__filter {
+    height: 2.625rem;
+  }
+}
+
+.onrepeat-toolbar__filter .count {
+  min-width: 1.0625rem;
+  height: 1.0625rem;
+  padding-inline: var(--sp-1);
+  background: #5c1011;
+  color: #fff;
+  font-size: var(--text-2xs);
+  font-weight: 800;
+}
+
+/* Active filters read back under the bar as removable chips. `facets-active`
+   already renders them; this only places the row and closes the gap so it
+   travels with the toolbar rather than floating above the grid. */
+.onrepeat-toolbar__active {
+  margin-block-start: calc(var(--sp-4) * -1);
+  margin-block-end: var(--sp-5);
+}
+
+/* `facets-active` emits its `.active-facets` container unconditionally, so the
+   wrapper is never itself empty — the inner element is the honest test. Its
+   capture is fully whitespace-controlled, so with no filters on it renders as
+   a genuinely empty node, and collection.js keeps it that way by assigning
+   innerHTML on each AJAX update. Browsers without :has() simply keep the
+   empty row's spacing, which is a gap rather than a break. */
+.onrepeat-toolbar__active:has(.active-facets:empty) {
+  display: none;
+}
+
+/* The toolbar's filter button opens the theme's existing mobile drawer, so the
+   pill that used to float over the grid is redundant — two triggers for one
+   drawer read as two different filters.
+
+   Only the trigger is hidden, never `<facet-sticky>` itself: the drawer it
+   controls (#FacetDrawerSticky) is a child of that element, so hiding the
+   element would take the drawer with it and leave the button opening nothing. */
+.collection .facet-sticky > button {
+  display: none;
+}
+
+/* ── Editorial hero ────────────────────────────────────────────────────────
+
+   The banner ran a flat 84% black wash over the photography to keep the title
+   legible, which is legible but kills the image. A gradient scrim holds
+   contrast exactly where the type sits — dark at the foot, near-clear across
+   the middle — and lets the knit read again.
+   ------------------------------------------------------------------------ */
+
+.banner__overlay--gradient {
+  background-color: transparent;
+  background-image: linear-gradient(
+    180deg,
+    rgb(var(--color-overlay) / calc(var(--overlay-opacity) * 0.5)) 0%,
+    rgb(var(--color-overlay) / calc(var(--overlay-opacity) * 0.1)) 34%,
+    rgb(var(--color-overlay) / var(--overlay-opacity)) 100%
+  );
+}
+
+.onrepeat-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: rgb(var(--color-foreground) / 0.9);
+}
+
+.onrepeat-hero__eyebrow::before {
+  content: '';
+  width: var(--sp-5);
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* The Devanagari mark sits on the title's baseline as a second voice, not a
+   subtitle — it names the same category in the script the brand is built on.
+
+   The h1 has to become a flex line to hold it there: `split-words`, which
+   carries the per-letter reveal, is `display: block`, so an inline sibling
+   would otherwise be pushed onto a line of its own. Scoped with :has() so
+   only titles that actually carry a mark change layout at all. */
+.banner__title:has(.onrepeat-hero__mark) {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.22em;
+}
+
+.onrepeat-hero__mark {
+  font-style: normal;
+  font-weight: 500;
+  font-size: 0.32em;
+  letter-spacing: 0;
+  color: rgb(var(--color-foreground) / 0.62);
+  white-space: nowrap;
+}
+
+/* The hero is a fixed height with its content anchored to the foot, so copy
+   that outgrows it grows upward — past the top of the banner and under the
+   transparent header, where it collided with the logo and the cart. Polo is a
+   single short paragraph and sits perfectly; T-Shirts, Hoodies and Shirts each
+   carry a second paragraph of sizing and shipping detail and overflowed.
+
+   Bounded to a few lines here rather than shortened in the admin, so the full
+   description stays in the markup — it is the structured category copy that
+   search results and AI answers quote — while the hero only ever shows as much
+   as it can hold. `-webkit-line-clamp` needs the box display, and the child
+   paragraphs are made inline so the two of them clamp as one flow instead of
+   the count restarting at each block. Nothing is faded or masked: when the
+   copy already fits, as Polo's does, the clamp does nothing at all. */
+.onrepeat-hero__desc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  max-width: 44ch;
+}
+
+.onrepeat-hero__desc > * {
+  display: inline;
+}
+
+/* Paragraph breaks become sentence spacing once the blocks are inline, so the
+   copy does not run together mid-clamp. */
+.onrepeat-hero__desc > * + *::before {
+  content: ' ';
+}
+
+@media screen and (min-width: 768px) {
+  .onrepeat-hero__desc {
+    -webkit-line-clamp: 4;
+    max-width: 54ch;
+  }
+}
+
+.onrepeat-hero__count {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: rgb(var(--color-foreground) / 0.72);
+}
+
+/* ── Editorial band ────────────────────────────────────────────────────────
+
+   The promotion block already sits inside the grid at a merchant-chosen
+   position. Spanning it across two columns turns it from "a card that isn't a
+   product" into a deliberate break in the scroll.
+   ------------------------------------------------------------------------ */
+
+.product-card--promo .promo-subtitle {
+  max-width: 34ch;
+  margin-inline: auto;
+}
+
+.product-card--promo .promo-title {
+  font-size: clamp(1.125rem, 2.4vw, 1.625rem);
+}
+
+/* The theme spans the promotion across `--card-column-size` columns only from
+   768px up, so on a 2-up mobile grid it lands in a single cell and reads as a
+   product that isn't one. Across the full row it reads as the break it is. */
+@media screen and (max-width: 767px) {
+  .collection .card-grid .product-card--promo {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ── Load more ─────────────────────────────────────────────────────────────
+
+   A button people can reach, over a line showing how far through the range
+   they are. Infinite scroll on its own hides the footer and makes a finite
+   range feel bottomless.
+   ------------------------------------------------------------------------ */
+
+.pagination__progress {
+  gap: var(--sp-2d5);
+  margin-block-end: var(--sp-4);
+}
+
+.pagination__track {
+  max-width: 22rem;
+  height: 2px;
+  border-radius: var(--rounded-full);
+  background: rgb(var(--color-foreground) / 0.12);
+  overflow: hidden;
+}
+
+.pagination__bar {
+  background: #5c1011;
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.pagination__tally {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: rgb(var(--color-foreground) / 0.55);
+}
+
+/* No loading state is defined here on purpose. The theme already has one: the
+   HoverButton base class injects a `.btn-loader` of three dots (theme.js:1248,
+   styled at theme.css:3444) and fades `.btn-text` out inline while the fetch
+   is in flight. A spinner added here drew straight over those dots. Grepping
+   the stylesheets for `aria-busy` finds nothing and makes it look as though
+   there is no feedback — the state is applied from JS, not CSS. */
+
+/* ── Offer rail ────────────────────────────────────────────────────────────
+
+   snippets/onrepeat-offer-rail.liquid — up to five cards above the browse
+   controls. Full-bleed and scrolling, like the family rail directly beneath
+   it; a rule that stopped at the page margins above one that reaches both
+   edges reads as a mistake rather than a choice.
+
+   Card sizes are literal pixels, not the type scale. The widths were chosen
+   against the strings they hold at 390px — "Buy 2, get 1 free" needs 168px to
+   stay on one line, everything else fits 152 — so a scale that moved with the
+   viewport would reflow the one thing these measurements exist to prevent.
+
+   Deliberately outside the sticky dock. The rail says what is on offer once
+   and then gets out of the way; pinning it would spend a permanent band of
+   every scroll on a message the shopper has already read, and the offers
+   re-assert themselves on the PDP and in the cart, which is where the
+   decision is actually made.
+   ------------------------------------------------------------------------ */
+.onrepeat-offers {
+  margin-inline: calc(var(--page-padding) * -1);
+  margin-block-end: var(--sp-3);
+}
+
+/* The rail arrives at the top of the collection section, and the section's
+   own padding was written for a page that opens on the product grid — 30px
+   under the divider before anything is drawn. With the rail there that reads
+   as a gap rather than as breathing room, so the section gives back most of
+   it. Scoped with :has() so a collection page without a rail keeps the
+   spacing the theme designed; browsers without :has() simply keep it too. */
+.section--padding:has(.onrepeat-offers) {
+  padding-block-start: 14px;
+}
+
+@media screen and (min-width: 768px) {
+  .section--padding:has(.onrepeat-offers) {
+    padding-block-start: 22px;
+  }
+}
+
+/* The other half of that gap belongs to the banner. `.banner__box` carries
+   40px of padding-block, which is sized to hold a title clear of the bottom
+   edge of a hero photograph. On a collection with no image — Polo, Shirts,
+   most of them — there is no photograph, the box is a title on white, and
+   the lower 40px is simply space above the offer rail.
+
+   Trimmed only where there is no image: an imageless banner has no
+   `media--*` class. Collections that DO have a hero keep every pixel, because
+   there the padding is holding the title inside the picture and cutting it
+   would slide the title down the image. */
+.collection-banner-section .banner:not([class*="media--"]) .banner__box {
+  padding-block-end: var(--sp-5);
+}
+
+/* Sits on the product grid's left margin, like the toolbar and family rail
+   below it. */
+.onrepeat-offers__head {
+  margin: 0 0 7px;
+  padding-inline: var(--page-padding);
+  font-family: var(--font-heading-family);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #5c1011;
+}
+
+.onrepeat-offers__track {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  padding-inline: var(--page-padding);
+  list-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  /* Without this the first card touches the screen edge. A snap container's
+     snapport defaults to its BORDER box, so the browser scrolls the track by
+     exactly the padding on load to bring card one's start edge flush — eating
+     the left margin the cards are supposed to share with the product grid.
+     Only visible where the rail overflows, which is every phone. */
+  scroll-padding-inline-start: var(--page-padding);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.onrepeat-offers__track::-webkit-scrollbar {
+  display: none;
+}
+
+.onrepeat-offers__card {
+  flex: 0 0 152px;
+  scroll-snap-align: start;
+  position: relative;
+  overflow: hidden;
+  border-radius: 11px;
+  padding: 9px 10px 8px;
+  color: #fff;
+}
+
+/* 1 · the hero — full brand crimson, and the only card that gets it. */
+.onrepeat-offers__card--hero {
+  flex-basis: 168px;
+  background: linear-gradient(135deg, #6d1416, #3d0a0b);
+}
+
+/* 2-4 · the spend ladder — one treatment, deepening as the threshold rises. */
+.onrepeat-offers__card--t1 { background: linear-gradient(135deg, #3f342c, #2a221c); }
+.onrepeat-offers__card--t2 { background: linear-gradient(135deg, #453529, #2c2118); }
+.onrepeat-offers__card--t3 { background: linear-gradient(135deg, #4d3722, #2f2114); }
+
+/* 5 · a different mechanic, so a different colour. */
+.onrepeat-offers__card--pay { background: linear-gradient(135deg, #1f3a34, #14251f); }
+
+.onrepeat-offers__v {
+  display: block;
+  font-family: var(--font-heading-family);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+/* The longest string on the rail, in the widest card — one line at 14px. */
+.onrepeat-offers__card--hero .onrepeat-offers__v {
+  font-size: 14px;
+}
+
+/* The gold of the announcement strip and the PDP chip, not a new accent. */
+.onrepeat-offers__v em {
+  font-style: normal;
+  color: #caa15a;
+}
+
+.onrepeat-offers__c {
+  display: block;
+  margin-block-start: 3px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgb(255 255 255 / 0.7);
+}
+
+.onrepeat-offers__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 7px 0;
+  padding-inline: var(--page-padding);
+}
+
+.onrepeat-offers__auto {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: rgb(var(--color-foreground) / 0.45);
+}
+
+.onrepeat-offers__dots {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+/* The script hides the dots once every card fits without scrolling. This rule
+   is what makes that work: `hidden` is a UA `display: none`, and the rule
+   above outranks it, so without this the indicator survives on desktop and
+   points at a row nobody has to scroll. */
+.onrepeat-offers__dots[hidden] {
+  display: none;
+}
+
+.onrepeat-offers__dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgb(var(--color-foreground) / 0.2);
+  transition: background 0.3s ease, width 0.3s ease;
+}
+
+.onrepeat-offers__dots i.is-on {
+  width: 12px;
+  border-radius: 99px;
+  background: #5c1011;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onrepeat-offers__dots i {
+    transition: none;
+  }
+}

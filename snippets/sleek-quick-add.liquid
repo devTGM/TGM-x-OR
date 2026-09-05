@@ -1,0 +1,68 @@
+{%- comment -%}
+  Renders a sleek quick-add trigger button for product cards.
+  The modal lives in theme.liquid (via sleek-quick-add-modal snippet).
+
+  Accepts:
+  - product: {Object} Product Liquid object
+  - section_id: {String} Section ID
+  - is_mobile: {Boolean} Mobile slot
+
+  Usage:
+  {% render 'sleek-quick-add', product: product, section_id: section_id %}
+{%- endcomment -%}
+
+{%- liquid
+  assign first_available = product.selected_or_first_available_variant
+  assign product_image = product.featured_image | image_url: width: 120
+-%}
+
+{%- comment -%} Build compact variant JSON {%- endcomment -%}
+{%- capture variants_json -%}
+[{%- for v in product.variants -%}{"id":{{ v.id }},"title":{{ v.title | json }},"available":{{ v.available }}}{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%}]
+{%- endcapture -%}
+
+{%- comment -%} Build formatted price {%- endcomment -%}
+{%- capture price_html -%}{%- render 'onrepeat-sheet-price', product: product -%}{%- endcapture -%}
+
+{%- if is_mobile -%}
+  <button type="button"
+    class="button button--primary button--small pointer-events-auto"
+    is="hover-button"
+    data-sleek-open
+    data-product-title="{{ product.title | escape }}"
+    data-product-price="{{ price_html | strip_newlines | escape }}"
+    data-product-url="{{ product.url }}"
+    data-product-handle="{{ product.handle }}"
+    data-sc-chart="{%- render 'size-chart-key', product: product -%}"
+    data-product-image="{{ product_image }}"
+    data-variants='{{ variants_json }}'
+    data-selected="{{ first_available.id }}"
+    aria-label="{{ 'products.product.choose_options' | t | escape }}">
+    <span class="btn-fill" data-fill></span>
+    <span class="btn-text">
+      {%- render 'icon', icon: 'plus', size: 'sm' -%}
+    </span>
+  </button>
+{%- else -%}
+  <button type="button"
+    class="button button--primary pointer-events-auto md:opacity-0"
+    is="hover-button"
+    data-sleek-open
+    data-product-title="{{ product.title | escape }}"
+    data-product-price="{{ price_html | strip_newlines | escape }}"
+    data-product-url="{{ product.url }}"
+    data-product-handle="{{ product.handle }}"
+    data-sc-chart="{%- render 'size-chart-key', product: product -%}"
+    data-product-image="{{ product_image }}"
+    data-variants='{{ variants_json }}'
+    data-selected="{{ first_available.id }}"
+    aria-label="{{ 'products.product.choose_options' | t | escape }}">
+    <span class="btn-fill" data-fill></span>
+    <span class="btn-text">
+      {%- render 'icon', icon: 'plus', size: 'sm', class: 'md:hidden' -%}
+      <span class="hidden md:block">
+        {{- 'products.product.choose_options' | t -}}
+      </span>
+    </span>
+  </button>
+{%- endif -%}

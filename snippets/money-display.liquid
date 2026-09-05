@@ -1,0 +1,83 @@
+{%- liquid
+  comment
+    The single money formatter for everything a shopper sees before checkout.
+
+      amount  money in the shop currency's subunits (paise)
+      style   'exact' (default)  $1,234.56 — prices, line totals, discount amounts
+              'compact'          $36 when whole, $3.57 otherwise — badges, tier labels
+              'no_zeros'         same USD output as compact; INR passthrough is
+                                 money_without_trailing_zeros (product cards)
+              'ceil'             $36, always rounded UP — spend thresholds, so an
+                                 unlock never arrives later than the displayed amount
+              'with_currency'    INR passthrough is money_with_currency; the USD
+                                 output is the same as 'exact' because this shop's
+                                 with-currency format is bare ₹ with no code
+              'whole'            ₹1,394 — INR rounded half-up to the rupee (the
+                                 approved PDP price display; checkout still charges
+                                 the exact paise). USD output is the same as
+                                 'exact': US visitors keep the converted price the
+                                 rest of the theme shows. Only for positive display
+                                 prices — the +50 rounding is wrong for negatives.
+
+    US-market visitors (only them, only while the toggle is on) get USD at the
+    merchant-set display rate. Everyone else gets the exact bytes the money
+    filters produced before this snippet existed. The conversion is printed
+    text only — cart data, data-* attributes and every checkout payload stay
+    INR, which is what Razorpay Magic Checkout charges.
+
+    JS mirror: theme.money.format in snippets/js-variables.liquid. Keep the
+    rounding here (round-half-up to the cent) identical to Math.round there.
+
+    CHECKOUT ROUTING DEPENDS ON THE CONDITION BELOW. snippets/onrepeat-usd-mode
+    mirrors it, and layout/theme.liquid uses that to decide whether to load
+    Razorpay Magic Checkout: native Shopify checkout runs only while USD prices
+    are on screen. If you change the condition here, change it there in the
+    same commit, or a shopper can be shown INR and still be sent to native
+    checkout — losing COD and UPI.
+  endcomment
+  assign md_rate = settings.usd_inr_rate | default: 0 | round
+  if settings.usd_display_enabled and md_rate > 0 and localization.country.iso_code == 'US'
+    assign md_amount = amount | default: 0
+    assign md_sign = ''
+    if md_amount < 0
+      assign md_sign = '-'
+      assign md_amount = 0 | minus: md_amount
+    endif
+    assign md_rate_double = md_rate | times: 2
+    assign md_cents = md_amount | times: 2 | plus: md_rate | divided_by: md_rate_double
+    if style == 'ceil'
+      assign md_dollars = md_cents | plus: 99 | divided_by: 100
+      assign md_cents_part = ''
+    else
+      assign md_dollars = md_cents | divided_by: 100
+      assign md_rem = md_cents | modulo: 100
+      assign md_hide_rem = false
+      if md_rem == 0
+        if style == 'compact' or style == 'no_zeros'
+          assign md_hide_rem = true
+        endif
+      endif
+      if md_hide_rem
+        assign md_cents_part = ''
+      else
+        assign md_cents_part = md_rem | prepend: '0' | slice: -2, 2 | prepend: '.'
+      endif
+    endif
+    if md_dollars >= 1000
+      assign md_units = md_dollars | modulo: 1000 | prepend: '00' | slice: -3, 3
+      assign md_thousands = md_dollars | divided_by: 1000
+      echo md_sign | append: '$' | append: md_thousands | append: ',' | append: md_units | append: md_cents_part
+    else
+      echo md_sign | append: '$' | append: md_dollars | append: md_cents_part
+    endif
+  elsif style == 'whole'
+    assign md_whole = amount | plus: 50 | divided_by: 100 | times: 100
+    echo md_whole | money_without_trailing_zeros
+  elsif style == 'with_currency'
+    echo amount | money_with_currency
+  elsif style == 'no_zeros'
+    echo amount | money_without_trailing_zeros
+  else
+    echo amount | money
+  endif
+-%}

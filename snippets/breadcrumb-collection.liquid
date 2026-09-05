@@ -1,0 +1,50 @@
+{%- comment -%}
+  ─────────────────────────────────────────────────────────────────────────────
+  Which collection a product's breadcrumb should name.
+
+  Echoes a collection handle, or nothing. Callers do:
+
+      {%- capture bc_handle -%}
+        {%- render 'breadcrumb-collection', product: product -%}
+      {%- endcapture -%}
+      {%- assign bc_collection = collections[bc_handle | strip] -%}
+
+  WHY THIS EXISTS
+  `product.collections | first` returns an arbitrary collection, and most of
+  this catalogue's products sit in merchandising groups as well as garment ones
+  — "Best Sellers", "Sale 2026", "All Products - Discount Scope". A breadcrumb
+  reading Home › All Products - Discount Scope › Moksha is worse than no
+  breadcrumb: it tells the shopper nothing about where they are and hands Google
+  a nonsense trail. So the garment collections are named explicitly, in order,
+  and everything else is ignored.
+
+  The order only matters if a product ever lands in two garment collections. At
+  the time of writing none does — the 92 products divide cleanly, which is what
+  makes this resolution unambiguous rather than a guess. If that changes, the
+  first match here wins, so keep the most specific categories at the front.
+
+  Sleeve-length collections come last deliberately: they cut across the garment
+  types (a Full Sleeve piece is usually also a Sweatshirt), so they are only the
+  right answer for something that belongs to no garment collection at all.
+
+  A product matching nothing here echoes an empty string, and the breadcrumb
+  drops its middle step rather than inventing one. Three products are in that
+  position today — duskline, memento-vitae and ombrix — and the honest fix is
+  to put them in a collection, not to make this snippet guess.
+  ─────────────────────────────────────────────────────────────────────────────
+{%- endcomment -%}
+{%- liquid
+  assign bc_priority = 'polo,shirts,hoodie,sweatshirt,t-shirts,sleeve-less,full-sleeve,half-sleeve' | split: ','
+  assign bc_match = ''
+  for bc_handle in bc_priority
+    if bc_match == ''
+      for bc_candidate in product.collections
+        if bc_candidate.handle == bc_handle
+          assign bc_match = bc_handle
+          break
+        endif
+      endfor
+    endif
+  endfor
+  echo bc_match
+-%}

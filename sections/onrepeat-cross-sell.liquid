@@ -1,0 +1,226 @@
+{%- comment -%}
+  Cross-sell swipe row (approved final PDP mockup).
+
+  Two modes:
+    colour      "The other knits, in Olive" — every product in the source
+                collection that shares the CURRENT product's colour (the
+                em-dash suffix of its title), excluding the product itself.
+                Falls back to collection mode when the title carries no
+                colour suffix or nothing matches.
+    collection  the first N products of the source collection, excluding
+                the current product ("More from the 240 GSM family").
+
+  One horizontal swipe row of the theme's standard product cards — no new
+  card design, and the same overlays the collection grid shows. The row
+  scroll-snaps; the next card is deliberately cut by the viewport as the
+  swipe cue drawn in the mockup.
+{%- endcomment -%}
+
+{%- liquid
+  assign xs_col = collections[section.settings.collection]
+  assign xs_mode = section.settings.mode | default: 'collection'
+  assign xs_max = section.settings.product_limit | default: 8
+  assign xs_sep = ' — '
+  assign xs_colour = ''
+  if product.title contains xs_sep
+    assign xs_parts = product.title | split: xs_sep
+    assign xs_colour = xs_parts | last | strip
+  endif
+  assign xs_suffix = xs_sep | append: xs_colour
+-%}
+
+{%- capture xs_cards -%}
+  {%- if xs_mode == 'colour' and xs_colour != '' -%}
+    {%- for xs_p in xs_col.products -%}
+      {%- if xs_p.id == product.id -%}{%- continue -%}{%- endif -%}
+      {%- if xs_p.title contains xs_suffix -%}
+        <div class="onrepeat-xs__cell">
+          {%- render 'product-card',
+            product: xs_p,
+            product_id: xs_p.id,
+            section_id: section.id,
+            lazy_load: true,
+            image_ratio: settings.product_image_ratio,
+            image_fill: settings.product_image_fill,
+            show_secondary_image: settings.product_secondary_image,
+            show_vendor: settings.product_vendor,
+            show_rating: settings.product_rating,
+            show_color_swatches: settings.product_color_swatches,
+            show_countdown: settings.product_countdown,
+            show_quick_add: settings.product_quick_add,
+            show_quick_view: settings.product_quick_view,
+            show_save_amount: settings.product_save_amount,
+            save_type: settings.product_save_type
+          -%}
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if xs_cards contains 'onrepeat-xs__cell' -%}
+  {%- assign xs_heading_suffix = ', in ' | append: xs_colour -%}
+{%- else -%}
+  {%- assign xs_heading_suffix = '' -%}
+  {%- capture xs_cards -%}
+    {%- for xs_p in xs_col.products limit: xs_max -%}
+      {%- unless xs_p.id == product.id -%}
+        <div class="onrepeat-xs__cell">
+          {%- render 'product-card',
+            product: xs_p,
+            product_id: xs_p.id,
+            section_id: section.id,
+            lazy_load: true,
+            image_ratio: settings.product_image_ratio,
+            image_fill: settings.product_image_fill,
+            show_secondary_image: settings.product_secondary_image,
+            show_vendor: settings.product_vendor,
+            show_rating: settings.product_rating,
+            show_color_swatches: settings.product_color_swatches,
+            show_countdown: settings.product_countdown,
+            show_quick_add: settings.product_quick_add,
+            show_quick_view: settings.product_quick_view,
+            show_save_amount: settings.product_save_amount,
+            save_type: settings.product_save_type
+          -%}
+        </div>
+      {%- endunless -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+{%- endif -%}
+
+{%- if xs_cards contains 'onrepeat-xs__cell' -%}
+<style>
+  #shopify-section-{{ section.id }} .section--padding {
+    padding-block-start: {{ section.settings.padding_top }}px;
+    padding-block-end: {{ section.settings.padding_bottom }}px;
+  }
+  #shopify-section-{{ section.id }} .onrepeat-xs__head h2 {
+    font-family: var(--font-heading-family, inherit);
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #2b1214;
+    margin: 0 0 2px;
+  }
+  #shopify-section-{{ section.id }} .onrepeat-xs__sub {
+    font-size: 0.72rem;
+    color: rgb(var(--color-foreground) / 0.55);
+    margin: 0 0 12px;
+  }
+  #shopify-section-{{ section.id }} .onrepeat-xs__row {
+    display: flex;
+    /* same gutter as the collection grid (--sp-3) so a cell is exactly the
+       width of a collection card */
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* the row bleeds past the page gutter so a cut card cues the swipe */
+    margin-inline: calc(-1 * var(--sp-4, 16px));
+    padding-inline: var(--sp-4, 16px);
+  }
+  #shopify-section-{{ section.id }} .onrepeat-xs__row::-webkit-scrollbar {
+    display: none;
+  }
+  /* A third of the screen was too small to read a knit pattern. A cell is now
+     the same width as a card in the two-up collection grid — the row still
+     bleeds past the gutter, so the next card peeks in and cues the swipe. */
+  #shopify-section-{{ section.id }} .onrepeat-xs__cell {
+    flex: 0 0 calc((100% - 12px) / 2);
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  @media screen and (min-width: 750px) {
+    #shopify-section-{{ section.id }} .onrepeat-xs__cell {
+      flex-basis: 300px;
+    }
+  }
+</style>
+<div class="section section--padding">
+  <div class="page-width relative">
+    <div class="onrepeat-xs__head">
+      <h2>{{ section.settings.heading | escape }}{{ xs_heading_suffix | escape }}</h2>
+      {%- if section.settings.subheading != blank -%}
+        <p class="onrepeat-xs__sub">{{ section.settings.subheading | escape }}</p>
+      {%- endif -%}
+    </div>
+    <div class="onrepeat-xs__row">
+      {{ xs_cards }}
+    </div>
+  </div>
+</div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "OnRepeat cross-sell",
+  "tag": "section",
+  "class": "onrepeat-cross-sell",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Source collection"
+    },
+    {
+      "type": "select",
+      "id": "mode",
+      "label": "Mode",
+      "options": [
+        { "value": "colour", "label": "Same colour, other patterns" },
+        { "value": "collection", "label": "Collection products" }
+      ],
+      "default": "collection"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "You may also like",
+      "info": "In colour mode the current colour is appended: “, in Olive”."
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "range",
+      "id": "product_limit",
+      "label": "Maximum products (collection mode)",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 16
+    }
+  ],
+  "presets": [
+    {
+      "name": "OnRepeat cross-sell"
+    }
+  ]
+}
+{% endschema %}

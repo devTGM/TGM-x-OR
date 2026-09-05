@@ -1,0 +1,75 @@
+{%- comment -%}
+  OnRepeat model-fit badge.
+
+  A clear, compact caption pill pinned to the BOTTOM-LEFT of the product gallery
+  frame, reading e.g. "Model is 6'0" · wears size L". Frosted dark-crimson glass
+  so it stays legible over the dark studio photography without competing with the
+  crimson GSM badge in the top-left corner.
+
+  Resolution order for each field (height / size):
+    1. explicit render param (height / size)
+    2. per-product metafield  (custom.model_height / custom.model_size)
+    3. global theme default    (settings.model_fit_default_height / _size)
+
+  Renders nothing when the feature is disabled or both fields resolve blank.
+
+  Params:
+    product (required)
+    class   (optional) extra classes
+    height  (optional) explicit height override
+    size    (optional) explicit size override
+
+  Usage:
+    {%- render 'onrepeat-model-fit-badge', product: product -%}
+{%- endcomment -%}
+
+{%- if settings.model_fit_enabled -%}
+  {%- liquid
+    assign fit_height = height
+    if fit_height == blank
+      assign fit_height = product.metafields.custom.model_height.value
+    endif
+    if fit_height == blank
+      assign fit_height = settings.model_fit_default_height
+    endif
+
+    assign fit_size = size
+    if fit_size == blank
+      assign fit_size = product.metafields.custom.model_size.value
+    endif
+    if fit_size == blank
+      assign fit_size = settings.model_fit_default_size
+    endif
+
+    assign fit_height = fit_height | strip
+    assign fit_size = fit_size | strip
+  -%}
+
+  {%- if fit_height != blank or fit_size != blank -%}
+    {{ 'onrepeat-model-fit-badge.css' | asset_url | stylesheet_tag }}
+    {%- capture aria -%}
+      Model{% if fit_height != blank %} is {{ fit_height }} tall{% endif %}{% if fit_height != blank and fit_size != blank %} and{% endif %}{% if fit_size != blank %} wears size {{ fit_size }}{% endif %}
+    {%- endcapture -%}
+    <span class="onrepeat-fit-pill{% if class != blank %} {{ class }}{% endif %}" role="img" aria-label="{{ aria | strip | escape }}">
+      <svg class="onrepeat-fit-pill__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="4.6" r="2.4" />
+        <path d="M12 7.2v6.8" />
+        <path d="M8.2 9.6h7.6" />
+        <path d="M12 14l-2.6 5.4M12 14l2.6 5.4" />
+      </svg>
+      <span class="onrepeat-fit-pill__text" aria-hidden="true">
+        {%- if fit_height != blank -%}
+          <span class="onrepeat-fit-pill__label">Model is</span>
+          <span class="onrepeat-fit-pill__val">{{ fit_height }}</span>
+        {%- endif -%}
+        {%- if fit_height != blank and fit_size != blank -%}
+          <span class="onrepeat-fit-pill__sep"></span>
+        {%- endif -%}
+        {%- if fit_size != blank -%}
+          <span class="onrepeat-fit-pill__label">wears<span class="onrepeat-fit-pill__size-word"> size</span></span>
+          <span class="onrepeat-fit-pill__val">{{ fit_size }}</span>
+        {%- endif -%}
+      </span>
+    </span>
+  {%- endif -%}
+{%- endif -%}

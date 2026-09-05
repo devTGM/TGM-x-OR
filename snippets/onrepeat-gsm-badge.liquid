@@ -1,0 +1,39 @@
+{%- comment -%}
+  OnRepeat GSM fabric-weight badge.
+
+  Extracts the GSM number from the first "... NNN GSM ..." occurrence inside the
+  product's `custom.product_details` rich-text metafield (e.g. the Fabric line
+  "240 GSM Banana Fabric") and renders a compact, on-brand crimson chip.
+  Renders nothing when there is no product_details or no valid GSM number.
+
+  Params:
+    product (required)
+    class   (optional) extra classes — pass 'onrepeat-gsm--pdp' for the PDP overlay.
+
+  Usage:
+    {%- render 'onrepeat-gsm-badge', product: product -%}
+    {%- render 'onrepeat-gsm-badge', product: product, class: 'onrepeat-gsm--pdp' -%}
+{%- endcomment -%}
+
+{%- liquid
+  assign md = product.metafields.custom.product_details
+  assign gsm_value = ''
+  if md != blank
+    assign md_text = md | metafield_tag | strip_html | downcase
+    if md_text contains 'gsm'
+      assign gsm_token = md_text | split: 'gsm' | first | strip | split: ' ' | last
+      assign gsm_int = gsm_token | plus: 0
+      if gsm_int > 0
+        assign gsm_value = gsm_int
+      endif
+    endif
+  endif
+-%}
+
+{%- if gsm_value != blank -%}
+  {{ 'onrepeat-gsm-badge.css' | asset_url | stylesheet_tag }}
+  <span class="onrepeat-gsm{% if class != blank %} {{ class }}{% endif %}" role="img" aria-label="Fabric weight {{ gsm_value }} GSM">
+    <span class="onrepeat-gsm__num">{{ gsm_value }}</span>
+    <span class="onrepeat-gsm__unit">GSM</span>
+  </span>
+{%- endif -%}

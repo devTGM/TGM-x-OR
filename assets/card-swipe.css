@@ -1,0 +1,150 @@
+/* ============================================================
+   <card-swipe> — swipeable product-card image gallery.
+   Pairs with assets/card-swipe.js. Scoped to its own class so it
+   never collides with the legacy .product-card__carousel rules.
+   ============================================================ */
+card-swipe.card-swipe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* No JS: drop the empty overlay so the featured <img> + link work as-is. */
+.no-js card-swipe.card-swipe {
+  display: none;
+}
+
+/* Capture horizontal drags but let vertical page scroll pass through.
+   Only applied when JS actually binds swiping (so mobile card-carousels,
+   which keep native horizontal scroll, are unaffected). */
+.card-swipe.is-swipe {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+/* Swiper engine structure. The base flex / overflow / transition rules come
+   from swiper-bundle.min.css; here we only position the Swiper to fill the
+   card and size the slide media so the gallery looks identical to before.
+   direction:ltr keeps slide order deterministic regardless of document dir. */
+.card-swipe .swiper,
+.card-swipe__swiper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  direction: ltr;
+}
+.card-swipe .swiper-wrapper {
+  height: 100%;
+}
+.card-swipe .swiper-slide {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+.card-swipe .swiper-slide > .media {
+  width: 100%;
+  height: 100%;
+}
+.card-swipe .swiper-slide img {
+  width: 100%;
+  height: 100%;
+}
+
+/* Once the gallery is mounted, hide the underlying featured <img>
+   fallback (its URL == slide 1, already cached → no extra request). */
+.card-swipe.is-ready ~ img {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* ── Dots ─────────────────────────────────────────────────── */
+.card-swipe__dots {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+  /* clamped so the centered dots never crowd the bottom-left rating pill */
+  max-width: 55%;
+  flex-wrap: nowrap;
+  justify-content: center;
+  /* frosted capsule — same glass language as the rating pill */
+  padding: 5px 9px;
+  border-radius: 100px;
+  background: rgba(28, 8, 10, 0.45);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  backdrop-filter: blur(8px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.card-swipe__dot {
+  width: 5px;
+  height: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+.card-swipe__dot.is-active {
+  width: 14px;
+  background: #ffffff;
+}
+
+/* ── Arrows (desktop / fine-pointer only) ─────────────────── */
+.card-swipe__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  z-index: 2;
+  color: #1c1c1c;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+.card-swipe__arrow--prev { left: 8px; }
+.card-swipe__arrow--next { right: 8px; }
+.card-swipe__arrow svg { width: 15px; height: 15px; }
+.card-swipe__arrow[disabled] {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Touch / coarse pointer (phones, tablets): dots are always visible as the
+   swipe affordance; arrows stay hidden. */
+
+/* Fine pointer (desktop + touch-laptops with a mouse): use side arrows
+   revealed on card hover, and hide the dots so they never sit under the
+   centered quick-add button. */
+@media (pointer: fine) {
+  .card-swipe__dots { display: none; }
+  .card-swipe__arrow { display: inline-flex; }
+  .product-card__media:hover .card-swipe__arrow:not([disabled]) { opacity: 1; }
+  .card-swipe__arrow:hover { background: #ffffff; }
+}
+
+/* Shop-the-look uses tiny thumbnails — keep just the featured image. */
+.shop-the-look .card-swipe { display: none; }
+.shop-the-look .card-swipe ~ img {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-swipe .swiper-wrapper { transition-duration: 0ms !important; }
+}

@@ -1,0 +1,711 @@
+{%- comment -%}
+  Renders the spend-reward ladder — the rail showing how close the cart is to the
+  next automatic discount tier.
+
+  Despite its filename this draws NO free-shipping milestone and never did: every
+  stop is typed 'discount', so the shipping-icon branch below is unreachable. It
+  used to widen its own scale to cover the free-shipping threshold anyway, which
+  only ever produced an empty rail when the reward tiers were switched off. Free
+  shipping is communicated by the dedicated "free delivery" line in the cart and
+  drawer footers, which reads settings.free_shipping_minimum directly.
+
+  Tier amounts and labels come from theme settings (Rewards, shipping & trust),
+  so this rail, the PDP reward bar and the PDP sticky buy bar cannot disagree.
+
+  Accepts:
+  - section: {Object} Section object; only `discount_rewards_enabled` is read
+  - context: {String} 'drawer' or 'main' — used for unique element IDs
+  - compact: {Boolean} draw the one-line status readout instead of the full
+      rail. The drawer passes true; the cart page does not.
+
+  Usage:
+  {% render 'free-shipping-bar', section: section, context: 'drawer', compact: true %}
+{%- endcomment -%}
+
+{%- liquid
+  assign context = context | default: 'global'
+  assign total_price = cart.original_total_price
+
+  if linklists.gift-wrapping.links != blank and linklists.gift-wrapping.links.first.type == 'product_link'
+    assign gift_wrapping = linklists.gift-wrapping.links.first
+    assign gift_wrap_id = gift_wrapping.object.variants.first.id
+    comment
+      Gift wrap does not count toward the reward thresholds. This subtracted
+      item.price — the UNIT price — from the cart total, so two wraps only ever
+      discounted one, and the variable name said "count" while holding money.
+      original_line_price is the whole line, pre-discount, matching total_price.
+    endcomment
+    assign gift_wrap_line_total = 0
+    for item in cart.items
+      if item.id == gift_wrap_id
+        assign gift_wrap_line_total = item.original_line_price
+        break
+      endif
+    endfor
+    assign total_price = total_price | minus: gift_wrap_line_total
+  endif
+
+  assign rewards_enabled = section.settings.discount_rewards_enabled
+
+  assign total_rupees = total_price | divided_by: 100.0
+
+  comment
+    1. Build the reward milestones — a spend-more-save-more ladder of up to three
+    reward tiers (5% off, then 5% + ₹300, then 5% + ₹700). Each tier carries an
+    `amount` (spend threshold in ₹) and a `label`; the parallel `tier_types` array
+    marks every stop as 'discount' so the rail uses the price-tag icon. The highest
+    tier reached is the active one; its label already includes the 5%, because the
+    percentage stacks with whichever flat tier applies (the two flat tiers never
+    stack with each other).
+  endcomment
+  assign tier_amounts = ''
+  assign tier_labels = ''
+  assign tier_sublabels = ''
+  assign tier_types = ''
+  assign tier_count = 0
+  assign max_amount_rupees = 0
+
+  comment
+    US context: tier labels are DERIVED from the numeric settings ("5% + $3.57")
+    instead of string-converting the merchant's INR label text, and every spend
+    figure rounds UP ('ceil') so a displayed target is never sooner than the
+    real unlock. The verification maths below stays INR — only wording converts.
+  endcomment
+  assign md_usd = false
+  if settings.usd_display_enabled and localization.country.iso_code == 'US'
+    assign md_rate_chk = settings.usd_inr_rate | default: 0 | round
+    if md_rate_chk > 0
+      assign md_usd = true
+      assign md_pct = settings.reward_percent | default: 5
+    endif
+  endif
+
+  if rewards_enabled
+    for i in (1..3)
+      comment
+        Tiers come from theme settings so the cart, the drawer, the PDP reward
+        bar and the PDP sticky buy bar cannot drift apart.
+      endcomment
+      case i
+        when 1
+          assign d_amount = settings.reward_tier1_amount | default: 1499 | plus: 0
+          assign d_label = settings.reward_tier1_label | default: '5% Off'
+        when 2
+          assign d_amount = settings.reward_tier2_amount | default: 3000 | plus: 0
+          assign d_label = settings.reward_tier2_label | default: '5% + ₹300'
+        when 3
+          assign d_amount = settings.reward_tier3_amount | default: 5000 | plus: 0
+          assign d_label = settings.reward_tier3_label | default: '5% + ₹700'
+      endcase
+
+      if md_usd
+        case i
+          when 1
+            assign d_label = md_pct | append: '% Off'
+          when 2
+            assign d_flat_paise = settings.reward_tier2_flat | default: 300 | times: 100
+            capture d_flat_usd
+              render 'money-display', amount: d_flat_paise, style: 'compact'
+            endcapture
+            assign d_label = md_pct | append: '% + ' | append: d_flat_usd
+          when 3
+            assign d_flat_paise = settings.reward_tier3_flat | default: 700 | times: 100
+            capture d_flat_usd
+              render 'money-display', amount: d_flat_paise, style: 'compact'
+            endcapture
+            assign d_label = md_pct | append: '% + ' | append: d_flat_usd
+        endcase
+      endif
+
+      if d_amount > 0
+        capture d_sublabel
+          echo 'Spend '
+          if md_usd
+            assign d_spend_paise = d_amount | times: 100
+            render 'money-display', amount: d_spend_paise, style: 'ceil'
+          else
+            echo d_amount | times: 100 | money_without_trailing_zeros
+          endif
+        endcapture
+
+        assign tier_count = tier_count | plus: 1
+        if tier_count > 1
+          assign tier_amounts = tier_amounts | append: ','
+          assign tier_labels = tier_labels | append: '|||'
+          assign tier_sublabels = tier_sublabels | append: '|||'
+          assign tier_types = tier_types | append: ','
+        endif
+        assign tier_amounts = tier_amounts | append: d_amount
+        assign tier_labels = tier_labels | append: d_label
+        assign tier_sublabels = tier_sublabels | append: d_sublabel
+        assign tier_types = tier_types | append: 'discount'
+
+        if d_amount > max_amount_rupees
+          assign max_amount_rupees = d_amount
+        endif
+      endif
+    endfor
+  endif
+
+  comment
+    3. This rail shows the DISCOUNT ladder only.
+
+    It used to widen its scale to cover the free-shipping threshold as well, but
+    no free-shipping node, label or icon was ever drawn — tier_types is set to
+    'discount' unconditionally, so the 'shipping' icon branch below is
+    unreachable. All that widening actually did was let the rail render with no
+    content at all when the reward tiers were switched off but a threshold was
+    still configured. Free shipping is communicated by the dedicated
+    "free delivery" line in the cart and drawer footers instead.
+
+    A progress percentage was also computed here and then overwritten wholesale
+    by the piecewise fill in step 6, so it has been removed with it.
+  endcomment
+
+  comment
+    4. Determine active discount tier. Track the HIGHEST threshold reached, not
+    simply the last one that matched, so a mis-ordered tier list cannot select a
+    lower tier than the shopper has earned.
+  endcomment
+  assign active_tier = 0
+  assign active_tier_amount = 0
+  assign amounts_arr = tier_amounts | split: ','
+  assign types_arr = tier_types | split: ','
+  if tier_count > 0
+    for amt_str in amounts_arr
+      assign amt = amt_str | plus: 0
+      if total_rupees >= amt and amt >= active_tier_amount
+        assign active_tier = forloop.index
+        assign active_tier_amount = amt
+      endif
+    endfor
+  endif
+
+  comment
+    4b. Reconcile the claim against what Shopify has ACTUALLY applied.
+
+    Everything above is derived from theme settings, which the theme cannot
+    enforce — the real perks are automatic discounts in Admin. Disable one, let
+    it expire, change its minimum, or narrow its collection scope, and this rail
+    would carry on promising "5% + ₹700 unlocked" on a cart that checkout will
+    charge in full. That is the one failure mode here that costs trust rather
+    than pixels, and it is silent.
+
+    So: compare what the claimed tier is worth against the money the cart has
+    actually saved, checking the percentage and the flat separately (see below).
+
+    Only ever suppresses. Extra savings — a discount code, an app discount —
+    push the actual figure UP and still verify.
+  endcomment
+  assign reward_verified = true
+  if active_tier > 0
+    assign actual_saving = cart.original_total_price | minus: cart.total_price
+
+    assign claimed_flat = 0
+    if active_tier == 2
+      assign claimed_flat = settings.reward_tier2_flat | default: 300 | times: 100
+    elsif active_tier == 3
+      assign claimed_flat = settings.reward_tier3_flat | default: 700 | times: 100
+    endif
+
+    comment
+      Two component checks, each scale-invariant. A single tolerance cannot do
+      this job: tight enough to notice a missing ₹700 on a ₹50,000 cart, it also
+      suppresses the legitimate few-rupee shortfall when gift wrap sits outside
+      the discount's scope; loose enough for that, and the ₹700 disappears into
+      the rounding on a large order.
+
+      1. Is the PERCENTAGE applying? Compare the saving against the percentage
+         component alone, allowing 20% slack for out-of-scope items.
+
+      2. Is the FLAT applying? Back it out of the saving rather than guessing.
+         With both parts live, actual = f + (gross - f) x pct/100, so
+         f = (actual x 100 - gross x pct) / (100 - pct). A cart where only the
+         percentage applies yields f = 0 at ANY size, which is exactly the case
+         a ratio test loses on large orders.
+    endcomment
+    assign claimed_pct = settings.reward_percent | default: 5
+    assign verify_gross = total_price
+
+    if actual_saving <= 0
+      assign reward_verified = false
+    else
+      assign pct_base = verify_gross | minus: claimed_flat
+      if pct_base < 0
+        assign pct_base = 0
+      endif
+      assign pct_floor = pct_base | times: claimed_pct | divided_by: 100 | times: 80 | divided_by: 100
+      if actual_saving < pct_floor
+        assign reward_verified = false
+      endif
+
+      if claimed_flat > 0 and reward_verified
+        assign implied_den = 100 | minus: claimed_pct
+        if implied_den <= 0
+          assign implied_flat = claimed_flat
+        else
+          assign implied_num = actual_saving | times: 100
+          assign implied_sub = verify_gross | times: claimed_pct
+          assign implied_num = implied_num | minus: implied_sub
+          assign implied_flat = implied_num | divided_by: implied_den
+        endif
+        assign flat_floor = claimed_flat | times: 80 | divided_by: 100
+        if implied_flat < flat_floor
+          assign reward_verified = false
+        endif
+      endif
+    endif
+  endif
+
+  comment
+    5. Even-spaced, piecewise fill + remaining-to-next-tier.
+    Each tier owns an equal visual segment so the rail stays balanced no matter
+    the rupee gap between tiers; the fill advances proportionally inside the
+    active segment, and reaches a node exactly as that tier unlocks.
+  endcomment
+  assign active_tier_prev = active_tier | minus: 1
+  assign fill_pct = 0
+  assign remaining_money = ''
+  if tier_count > 0
+    if active_tier >= tier_count
+      assign fill_pct = 100
+    else
+      assign prev_amt = 0
+      if active_tier > 0
+        assign prev_amt = amounts_arr[active_tier_prev] | plus: 0
+      endif
+      assign next_amt = amounts_arr[active_tier] | plus: 0
+      assign seg_span = next_amt | minus: prev_amt
+      assign seg_pct = 0
+      if seg_span > 0
+        assign seg_done = total_rupees | minus: prev_amt
+        assign seg_pct = seg_done | times: 100.0 | divided_by: seg_span
+      endif
+      if seg_pct < 0
+        assign seg_pct = 0
+      endif
+      if seg_pct > 100
+        assign seg_pct = 100
+      endif
+      comment
+        Map the fill onto centered node positions so the rail reads symmetric:
+        node i sits at (i - 0.5) * 100 / tier_count. The fill reaches each node
+        exactly as its tier unlocks, and runs 0 -> first node before tier 1.
+      endcomment
+      assign seg_step = 100.0 | divided_by: tier_count
+      if active_tier == 0
+        assign fill_pct = seg_step | divided_by: 2.0 | times: seg_pct | divided_by: 100.0
+      else
+        assign node_now = active_tier | times: 2 | minus: 1 | times: seg_step | divided_by: 2.0
+        assign fill_pct = seg_step | times: seg_pct | divided_by: 100.0 | plus: node_now
+      endif
+      assign remaining_paise = next_amt | times: 100 | minus: total_price
+      if remaining_paise < 0
+        assign remaining_paise = 0
+      endif
+      assign remaining_money = remaining_paise | money
+      assign remaining_money_compact = remaining_paise | money_without_trailing_zeros
+      if md_usd
+        capture remaining_money
+          render 'money-display', amount: remaining_paise, style: 'ceil'
+        endcapture
+        assign remaining_money_compact = remaining_money
+      endif
+    endif
+  endif
+  assign fill_pct = fill_pct | round
+  assign thumb_pct = fill_pct | at_most: 100
+
+  comment
+    6. Buy 2 Get 1 — the piece counter that sits above this ladder.
+
+    Counted in UNITS, not rupees, because that is what the offer is: any three
+    pieces, cheapest free. Gift wrap is excluded the same way it is excluded
+    from the spend total above — wrap is packaging, not a piece, and counting
+    it would unlock a free garment for two garments and a ribbon.
+
+    The cheapest figure previews what checkout will take off: the lowest UNIT
+    price in the bag at its original price, which is exactly the allocation the
+    BxGy discount makes (verified against the live checkout — the free unit is
+    discounted at full price and the 5% then applies to what remains).
+
+    b2g1_won also silences the tier ladder below. When the offer applies,
+    Shopify drops the ₹300/₹700 flat tiers (they cannot combine with it and it
+    is always worth more), so a ladder still promising "₹300 at ₹3,000" on a
+    three-piece cart would be a promise checkout will not keep. The 5% line is
+    unaffected and keeps showing in the totals, drawn from real allocations.
+  endcomment
+  capture b2g1_probe
+    render 'onrepeat-b2g1-on'
+  endcapture
+  assign b2g1_on = false
+  if b2g1_probe != blank
+    assign b2g1_on = true
+  endif
+  assign b2g1_units = 0
+  assign b2g1_cheapest = 0
+  if b2g1_on
+    for b_item in cart.items
+      if gift_wrap_id and b_item.id == gift_wrap_id
+        continue
+      endif
+      assign b2g1_units = b2g1_units | plus: b_item.quantity
+      if b2g1_cheapest == 0 or b_item.original_price < b2g1_cheapest
+        assign b2g1_cheapest = b_item.original_price
+      endif
+    endfor
+  endif
+  assign b2g1_won = false
+  if b2g1_on and b2g1_units >= 3
+    assign b2g1_won = true
+  endif
+
+  comment
+    7. The won state is a concrete money claim — "your 3rd piece is free,
+    minus ₹X" — so on the LIVE theme it has to be backed by a real
+    allocation, the same discipline reward_verified applies to the ladder.
+    The automatic BxGy lands on the free line as a line-level allocation of
+    exactly the cheapest unit price; nothing else on this store allocates
+    that much to one line (the flat tiers top out at ₹700, the 5% is
+    cart-level), so "an allocation at least the cheapest unit" identifies it.
+
+    If a three-piece cart has no such allocation on the live theme, the
+    switch is on but the discount is not — the misconfiguration the setting
+    text warns about. Then the meter HIDES and the tier ladder comes back:
+    the truthful state is the old one, and the one thing worse than no offer
+    UI is offer UI checkout will not honour.
+
+    Preview themes skip the check — there the promise IS the review, and the
+    discount deliberately does not exist yet.
+  endcomment
+  if b2g1_won and theme.role == 'main'
+    assign b2g1_backed = false
+    for bv_item in cart.items
+      for bv_alloc in bv_item.line_level_discount_allocations
+        if bv_alloc.amount >= b2g1_cheapest
+          assign b2g1_backed = true
+          break
+        endif
+      endfor
+      if b2g1_backed
+        break
+      endif
+    endfor
+    unless b2g1_backed
+      assign b2g1_won = false
+      assign b2g1_hide_meter = true
+    endunless
+  endif
+
+  comment
+    8. The unified ladder — the one card that tells the whole discount system
+    as a walk: 5% off → ₹300 off → 3rd piece free. It REPLACES both the old
+    B2G1 meter and the spend rail whenever it renders, because on this
+    catalogue the rupee tiers are piece tiers already (nothing sells under
+    ₹1,549, so any 2 pieces clear ₹3,000) and two progress cards describing
+    one journey is how shoppers stop reading either.
+
+    Every number on it is guarded:
+
+      · The flat chip lights from the SPEND actually cleared, not from the
+        piece count — so if a sub-₹1,451 product ever exists and two pieces
+        stop reaching ₹3,000, the chip waits rather than lies. Same for the
+        1-piece line: it only promises "save another ₹300" when a second
+        piece at the bag's cheapest price would genuinely cross the tier.
+
+      · "from ₹X more" at 2 pieces is pay(3) − pay(2), both computed from
+        the same model checkout was verified against (flat drops, 5% floors
+        on the remainder). Model against model, so gift wrap or a code
+        discount in the real total cannot skew the difference. If the result
+        falls outside (0, cheapest] anyway, the nudge is dropped and the
+        line stands without a number.
+
+      · The won line quotes the REAL saving — cart.original_total_price
+        minus cart.total_price — never the model.
+
+    When the ladder does not render (offer off, or the live theme's
+    backed-guard tripped) the old spend rail returns unchanged.
+  endcomment
+  assign lad_show = false
+  if b2g1_on and b2g1_units > 0 and b2g1_hide_meter != true
+    assign lad_show = true
+  endif
+
+  if lad_show
+    assign lad_min = settings.reward_tier1_amount | default: 1499 | times: 100
+    assign lad_pct = settings.reward_percent | default: 5
+    assign lad_t2 = settings.reward_tier2_amount | default: 3000 | times: 100
+    assign lad_a2 = settings.reward_tier2_flat | default: 300 | times: 100
+    assign lad_t3 = settings.reward_tier3_amount | default: 5000 | times: 100
+    assign lad_a3 = settings.reward_tier3_flat | default: 700 | times: 100
+
+    assign lad_pct_on = false
+    if lad_min > 0 and lad_pct > 0 and total_price >= lad_min
+      assign lad_pct_on = true
+    endif
+
+    assign lad_flat = 0
+    unless b2g1_won
+      if lad_t3 > 0 and lad_a3 > 0 and total_price >= lad_t3
+        assign lad_flat = lad_a3
+      elsif lad_t2 > 0 and lad_a2 > 0 and total_price >= lad_t2
+        assign lad_flat = lad_a2
+      endif
+    endunless
+
+    comment
+      pay(3) − pay(2), both from the model: flat drops when the free piece
+      lands, the 5% floors on what remains (integer division, matching both
+      the buy bar's maths and Shopify's own allocation to the paisa).
+    endcomment
+    assign lad_delta = 0
+    if b2g1_units == 2
+      assign lad_p3 = total_price
+      if lad_p3 >= lad_min and lad_pct > 0
+        assign lad_cut3 = lad_p3 | times: lad_pct | divided_by: 100
+        assign lad_p3 = lad_p3 | minus: lad_cut3
+      endif
+      assign lad_p2 = total_price | minus: lad_flat
+      if lad_p2 >= lad_min and lad_pct > 0
+        assign lad_cut2 = lad_p2 | times: lad_pct | divided_by: 100
+        assign lad_p2 = lad_p2 | minus: lad_cut2
+      endif
+      assign lad_delta = lad_p3 | minus: lad_p2
+      if lad_delta <= 0 or lad_delta > b2g1_cheapest
+        assign lad_delta = 0
+      endif
+    endif
+
+    assign lad_promise2 = false
+    if b2g1_units == 1 and lad_a2 > 0 and lad_t2 > 0
+      assign lad_two = b2g1_cheapest | plus: total_price
+      if lad_two >= lad_t2
+        assign lad_promise2 = true
+      endif
+    endif
+
+    assign lad_saved = cart.original_total_price | minus: cart.total_price
+  endif
+-%}
+
+{%- if lad_show -%}
+  {%- capture lad_flat_label -%}
+    {%- if lad_flat == lad_a3 and lad_flat > 0 -%}{%- render 'money-display', amount: lad_a3, style: 'no_zeros' -%}
+    {%- else -%}{%- render 'money-display', amount: lad_a2, style: 'no_zeros' -%}{%- endif -%}
+  {%- endcapture -%}
+  {%- assign lad_flat_label = lad_flat_label | strip -%}
+  <div class="onrepeat-lad w-full{% if b2g1_won %} is-won{% endif %}" id="OnRepeatLadder-{{ context }}">
+    <div class="onrepeat-lad__chips" aria-hidden="true">
+      <span class="onrepeat-lad__chip{% if lad_pct_on %} is-done{% endif %}">{% if lad_pct_on %}&#10003;&nbsp;{% endif %}{{ lad_pct }}% off</span>
+      <i{% if lad_flat > 0 or b2g1_won %} class="is-on"{% endif %}></i>
+      {%- if b2g1_won -%}
+        <span class="onrepeat-lad__chip is-absorbed">{{ lad_flat_label }} off</span>
+      {%- else -%}
+        <span class="onrepeat-lad__chip{% if lad_flat > 0 %} is-done{% endif %}">{% if lad_flat > 0 %}&#10003;&nbsp;{% endif %}{{ lad_flat_label }} off</span>
+      {%- endif -%}
+      <i{% if b2g1_won %} class="is-on"{% endif %}></i>
+      <span class="onrepeat-lad__chip{% if b2g1_won %} is-free{% endif %}">{% if b2g1_won %}&#10003;&nbsp;{% endif %}3rd free</span>
+    </div>
+    <p class="onrepeat-lad__line" role="status">
+      {%- if b2g1_won -%}
+        <strong>Your 3rd piece is free</strong>{% if lad_saved > 0 %} &mdash; you save {% render 'money-display', amount: lad_saved, style: 'no_zeros' %} on this bag{% endif %}
+      {%- elsif b2g1_units == 2 -%}
+        <strong>1 more piece</strong> &mdash; the cheapest goes free
+        {%- if lad_delta > 0 %} <span class="onrepeat-lad__nudge">&middot; from {% render 'money-display', amount: lad_delta, style: 'no_zeros' %} more</span>{% endif -%}
+      {%- elsif lad_promise2 -%}
+        <strong>Add 1 more</strong> &mdash; save another {% render 'money-display', amount: lad_a2, style: 'no_zeros' %}
+      {%- else -%}
+        <strong>Add 2 more</strong> &mdash; the cheapest piece goes free
+      {%- endif -%}
+    </p>
+  </div>
+{%- endif -%}
+
+{%- unless lad_show -%}
+
+{%- comment -%}
+  When the claim cannot be verified against the discounts Shopify has actually
+  applied, the rail renders nothing at all.
+
+  Staying silent is the only honest option: the shopper has already spent enough
+  to reach the tier, so asking them for more would be wrong, and marking it
+  unlocked would be a promise checkout will not keep. The savings they ARE
+  getting still show in the totals breakdown, which is drawn from the real
+  allocations and cannot overstate them.
+
+  Under normal operation `actual` always meets `expected`, so this never fires.
+{%- endcomment -%}
+{%- if reward_verified -%}
+{%- if compact and tier_count > 0 -%}
+  {%- comment -%}
+    Drawer variant. By the time someone opens the cart the ladder has stopped
+    being a pitch and become a status readout, so it gets one sentence and three
+    segments instead of the full rail — roughly 34px rather than 95px, which is
+    the difference between seeing both cart lines and not. The cart PAGE keeps
+    the full rail, where there is height to spend.
+
+    The n/3 counter carries the same information as the segment colours, so the
+    state is never conveyed by colour alone.
+  {%- endcomment -%}
+  {%- liquid
+    assign c_labels = tier_labels | split: '|||'
+    assign c_next_label = c_labels[active_tier]
+    assign c_top_label = c_labels | last
+  -%}
+  <div class="reward-compact w-full{% if active_tier >= tier_count %} is-complete{% endif %}"
+    id="UnifiedRewardBar-{{ context }}"
+    data-tier-count="{{ tier_count }}"
+    data-active-tier="{{ active_tier }}"
+  >
+    <div class="reward-compact__row">
+      <span class="reward-compact__msg">
+        {%- if active_tier >= tier_count -%}
+          <strong>{{ c_top_label }}</strong> unlocked — every reward earned
+        {%- else -%}
+          Add <strong>{{ remaining_money_compact }}</strong> to unlock <strong>{{ c_next_label }}</strong>
+        {%- endif -%}
+      </span>
+      <span class="reward-compact__count">{{ active_tier }}/{{ tier_count }}</span>
+    </div>
+    <div class="reward-compact__rail"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="{{ tier_count }}"
+      aria-valuenow="{{ active_tier }}"
+      aria-label="Discount reward progress"
+    >
+      {%- for amt_str in amounts_arr -%}
+        <span class="reward-compact__seg{% if forloop.index <= active_tier %} is-on{% endif %}" aria-hidden="true"></span>
+      {%- endfor -%}
+    </div>
+  </div>
+{%- else -%}
+<div class="free-shipping-bar grid gap-3 w-full{% if tier_count > 0 and active_tier >= tier_count %} is-complete{% endif %}"
+  id="UnifiedRewardBar-{{ context }}"
+  data-tier-count="{{ tier_count }}"
+  data-tier-amounts="{{ tier_amounts }}"
+  data-active-tier="{{ active_tier }}"
+>
+  
+  {%- comment -%} Reward headline — one clear, action-oriented status line {%- endcomment -%}
+  {%- if tier_count > 0 -%}
+    {%- assign h_labels = tier_labels | split: '|||' -%}
+    <div class="reward-headline{% if active_tier >= tier_count %} is-earned{% endif %}">
+      {%- comment -%} Both branches of this conditional emitted identical markup. {%- endcomment -%}
+      <span class="reward-headline__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/><rect x="2.5" y="7.5" width="19" height="4.5" rx="1"/><path d="M12 7.5V21"/><path d="M12 7.5H7.75a2.25 2.25 0 1 1 0-4.5C11 3 12 7.5 12 7.5Z"/><path d="M12 7.5h4.25a2.25 2.25 0 1 0 0-4.5C13 3 12 7.5 12 7.5Z"/></svg>
+      </span>
+      {%- comment -%}
+        One short line. This used to read "5% + ₹300 unlocked — add ₹1,902.00
+        more for 5% + ₹700", which wrapped to two lines in the drawer and shifted
+        the whole panel every time the shopper changed a quantity. The "… unlocked"
+        prefix is redundant — the rail immediately below marks every earned tier
+        with a tick and the word "Unlocked" — so only the ask survives. Trailing
+        zeros go too: the figure is a target, not a price.
+      {%- endcomment -%}
+      <span class="reward-headline__text">
+        {%- if active_tier >= tier_count -%}
+          {%- assign top_label = h_labels | last -%}
+          <strong>{{ top_label }}</strong> unlocked
+        {%- else -%}
+          {%- assign next_label = h_labels[active_tier] -%}
+          Add <strong>{{ remaining_money_compact }}</strong> for <strong>{{ next_label }}</strong>
+        {%- endif -%}
+      </span>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} 3. Progress rail — even-spaced tier nodes, segment-proportional fill {%- endcomment -%}
+  {%- if max_amount_rupees > 0 -%}
+    {%- comment -%}
+      Every visible part of this rail — the dots and the labels — is aria-hidden,
+      so the only thing exposed to assistive tech was a bare percentage: "43".
+      aria-valuetext replaces that with the sentence a sighted shopper reads.
+    {%- endcomment -%}
+    {%- liquid
+      assign vt_labels = tier_labels | split: '|||'
+      assign vt_next = vt_labels[active_tier]
+    -%}
+    {%- capture reward_valuetext -%}
+      {%- if tier_count > 0 and active_tier >= tier_count -%}
+        All rewards unlocked
+      {%- elsif remaining_money != blank -%}
+        {{ remaining_money }} more to unlock {{ vt_next | default: 'the next reward' }}
+      {%- else -%}
+        {{ fill_pct }}% toward your next reward
+      {%- endif -%}
+    {%- endcapture -%}
+    <div class="reward-track-container"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="{{ fill_pct }}"
+      aria-valuetext="{{ reward_valuetext | strip | escape }}"
+      aria-label="Discount reward progress"
+    >
+      <div class="reward-track">
+        <div class="reward-fill" id="RewardFill-{{ context }}" style="--progress: {{ fill_pct }}%;"></div>
+        <div class="reward-thumb" id="RewardThumb-{{ context }}" style="--thumb: {{ thumb_pct }}%;"></div>
+
+        {%- if tier_count > 0 -%}
+          {%- for amt_str in amounts_arr -%}
+            {%- liquid
+              assign node_pos = forloop.index | times: 2 | minus: 1 | times: 50.0 | divided_by: tier_count
+              assign dot_unlocked = false
+              assign dot_next = false
+              if forloop.index <= active_tier
+                assign dot_unlocked = true
+              endif
+              assign next_index = active_tier | plus: 1
+              if forloop.index == next_index
+                assign dot_next = true
+              endif
+              assign dot_type = types_arr[forloop.index0]
+            -%}
+            <span class="reward-dot{% if dot_unlocked %} is-unlocked{% endif %}{% if dot_next %} is-next{% endif %}{% if forloop.last %} reward-dot--end{% endif %}"
+              data-tier="{{ forloop.index }}" style="--dot-left: {{ node_pos }}%;" aria-hidden="true">
+              {%- if dot_unlocked -%}
+                <svg class="reward-dot__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {%- elsif dot_type == 'discount' -%}
+                <svg class="reward-dot__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+              {%- else -%}
+                <svg class="reward-dot__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/><rect x="2.5" y="7.5" width="19" height="4.5" rx="1"/><path d="M12 7.5V21"/><path d="M12 7.5H7.75a2.25 2.25 0 1 1 0-4.5C11 3 12 7.5 12 7.5Z"/><path d="M12 7.5h4.25a2.25 2.25 0 1 0 0-4.5C13 3 12 7.5 12 7.5Z"/></svg>
+              {%- endif -%}
+            </span>
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+
+      {%- if tier_count > 0 -%}
+        <div class="reward-labels" aria-hidden="true" data-tier-count="{{ tier_count }}">
+          {%- assign labels_arr = tier_labels | split: '|||' -%}
+          {%- assign sublabels_arr = tier_sublabels | split: '|||' -%}
+          {%- for amt_str in amounts_arr -%}
+            {%- liquid
+              assign idx = forloop.index0
+              assign m_label = labels_arr[idx]
+              assign m_sublabel = sublabels_arr[idx]
+              assign node_pos = forloop.index | times: 2 | minus: 1 | times: 50.0 | divided_by: tier_count
+              assign is_unlocked = false
+              if forloop.index <= active_tier
+                assign is_unlocked = true
+              endif
+              if is_unlocked
+                assign m_sublabel = 'Unlocked'
+              endif
+            -%}
+            <div class="reward-label{% if is_unlocked %} is-unlocked{% endif %}{% if forloop.last %} reward-label--end{% endif %}"
+              style="--label-left: {{ node_pos }}%;" data-tier="{{ forloop.index }}">
+              <span class="reward-label__title">{{ m_label }}</span>
+              <span class="reward-label__sub">{{ m_sublabel }}</span>
+            </div>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+
+</div>
+{%- endif -%}
+{%- endif -%}
+{%- endunless -%}

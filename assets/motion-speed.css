@@ -1,0 +1,55 @@
+/* ============================================================
+   Site-wide drawer/modal motion timing.
+
+   The cart drawer already used these numbers (cart-enhancements.css, from the
+   cart overhaul) and felt markedly quicker than every other overlay. Nothing
+   about it was special — the rest of the theme was simply slower:
+
+     panel slide     0.6s   (theme.css .loaded .drawer__inner)
+     content fade    0.5s AFTER a 0.35s delay  -> fully visible at ~850ms
+     overlay         0.8s
+
+   So a shopper opening the menu or search watched a mostly-empty sheet for
+   over half a second. This file brings every drawer to the cart's timing.
+
+   The overlay duration matters for more than looks: ModalElement.showTransition
+   resolves its promise on the OVERLAY's transitionend, and afterShow() — which
+   arms the focus trap and sets the body scroll-lock class — waits on that
+   promise. At 0.8s the focus trap armed 800ms after opening. It is shortened
+   here, but deliberately never set to 0/none: with no transition the event
+   never fires and afterShow() would never run at all.
+
+   Loaded after theme.css from layout/theme.liquid. Cart-specific rules in
+   cart-enhancements.css load later still and keep their own (equivalent) values.
+   ============================================================ */
+
+.loaded .drawer__inner {
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.drawer[active] > .drawer__inner > :is(.drawer__content, .drawer__header) {
+  transition: opacity 0.22s ease 0.08s, visibility 0.22s ease 0.08s;
+}
+
+.drawer .overlay {
+  transition: 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  transition-property: opacity, visibility, background-color;
+}
+
+/* Honour a reduced-motion preference: no travel, no fade-in delay — but keep a
+   real (tiny) transition on the overlay so transitionend still fires and
+   afterShow() still runs. */
+@media (prefers-reduced-motion: reduce) {
+  .loaded .drawer__inner {
+    transition: transform 0.01s linear;
+  }
+
+  .drawer[active] > .drawer__inner > :is(.drawer__content, .drawer__header) {
+    transition: opacity 0.01s linear, visibility 0.01s linear;
+  }
+
+  .drawer .overlay {
+    transition: 0.01s linear;
+    transition-property: opacity, visibility, background-color;
+  }
+}

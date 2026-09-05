@@ -1,0 +1,187 @@
+/* ============================================================
+   OnRepeat — docked bars.
+
+   Two places on the site have a row of chips that names what you are looking
+   at, and both of them used to scroll away the moment you started looking:
+
+     1. the collection page's category rail + toolbar
+        (sections/main-collection.liquid, snippets/onrepeat-family-rail.liquid)
+     2. the homepage's collection tabs
+        (sections/featured-collections.liquid)
+
+   The toolbar already docked under the header on its own. Everything here is
+   about making the rest of that furniture behave the same way, and — more
+   importantly — making them behave the same way *by sharing the rule* rather
+   than by two copies that agree today.
+
+   `.onrepeat-dock` is that shared rule and nothing else: where a bar stops, and
+   how it follows the header. The two skins below only paint.
+   ============================================================ */
+
+/* ── The dock primitive ───────────────────────────────────────────────────
+
+   `--sticky-header-height` is maintained by the theme's own header script, so
+   a docked bar lands under the header whether or not the merchant has sticky
+   headers switched on.
+
+   But that variable is set once by StickyHeader when you scroll past the
+   header and is never cleared — so parking a bar at that offset alone leaves
+   it floating a header's height down the viewport, with the page showing
+   through the gap above it once the header slides away.
+
+   The header's visibility is read from its own state classes instead. It is
+   only actually translated off-screen in two cases, and the conditions differ
+   because `header-hidden` is applied by the script at every width while the
+   stylesheet only moves the header for some of them:
+
+     • sticky type `on-scroll-up`, at any width
+     • any sticky type under 768px — which is this store, since its header is
+       set to `always`, and so is the case in play on a phone
+
+   Matching those exactly matters: keying off `header-hidden` alone would pull
+   a bar to the top of a desktop viewport while an `always` header is still
+   sitting there, and slide the row underneath it.
+
+   `.header-section` is a preceding sibling of `.page-container`, so the state
+   is reachable with `~`. This is the theme's own idiom — it positions the
+   product-page sticky columns the same way.
+   ------------------------------------------------------------------------ */
+
+.onrepeat-dock {
+  position: sticky;
+  inset-block-start: var(--sticky-header-height, 0px);
+  /* Matches the header's own timing exactly, so the two move as one rather
+     than the bar chasing it. */
+  transition: var(--animation-primary);
+  transition-property: inset-block-start;
+  z-index: 4;
+}
+
+.header-section.header-hidden[data-sticky-type='on-scroll-up'] ~ .page-container .onrepeat-dock {
+  inset-block-start: 0;
+}
+
+@media screen and (max-width: 767px) {
+  .header-section.header-sticky.header-hidden ~ .page-container .onrepeat-dock {
+    inset-block-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onrepeat-dock {
+    transition: none;
+  }
+}
+
+/* ── Collection page: the sticky head ─────────────────────────────────────
+
+   The category rail and the toolbar are one docked block, not two bars that
+   happen to stick at the same time. Stacking two independently sticky rows
+   means picking an offset for the second from the height of the first, which
+   is a number nobody has: the rail is one line of chips whose height follows
+   the type scale, and it is absent entirely on collections with no families.
+   One wrapper sidesteps the arithmetic — whatever is inside it docks, and the
+   pair can never overlap or leave a gap.
+
+   The frosted panel moves here from `.onrepeat-toolbar` for the same reason it
+   has to exist at all: the rail has never had a background of its own, and a
+   transparent bar docked over a product grid is a bar you can read the
+   photography through. Two translucent panels stacked would also double their
+   own tint, so there is exactly one, on the wrapper.
+   ------------------------------------------------------------------------ */
+
+.onrepeat-stickyhead {
+  /* Full-bleed, like the header it docks under. The head sits inside
+     `.collection.page-width`, which insets it by `--page-padding`, so a panel
+     that stopped at those margins would read as a floating card rather than a
+     band. Pulled back out by that padding; the children give themselves the
+     same value back, so the panel spans edge to edge while the chips and the
+     controls stay on the product grid's margins. This is the theme's own
+     idiom — `.complementary-products .horizontal-products` breaks out of the
+     same container the same way. */
+  margin-inline: calc(var(--page-padding) * -1);
+  margin-block-end: var(--sp-4);
+  background: rgb(var(--color-background) / 0.92);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-block-end: 1px solid rgb(var(--color-foreground) / 0.08);
+}
+
+/* The children were each their own full-bleed band before they shared one.
+   Their own breakouts, backgrounds and end margins are handed to the wrapper;
+   what stays is the hairline between them and their inline padding. */
+.onrepeat-stickyhead > .onrepeat-rail {
+  margin-inline: 0;
+  margin-block-end: 0;
+}
+
+/* The rail's own spacing was 12px below the chips and nothing above them,
+   which was right when it sat under the collection hero with the section's
+   padding overhead. As the first row of a docked band there is nothing
+   overhead any more, so the chips landed flush against the header — measured
+   0px above, 13px below.
+
+   Evened up to the same 10px the toolbar under it already uses on both edges,
+   and the same the homepage tab row uses. Three docked rows, one number. */
+.onrepeat-stickyhead .onrepeat-rail__track {
+  padding-block: var(--sp-2d5);
+}
+
+.onrepeat-stickyhead > .onrepeat-toolbar {
+  position: static;
+  margin-inline: 0;
+  margin-block-end: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-block-end: 0;
+}
+
+/* ── Homepage: the collection tabs ────────────────────────────────────────
+
+   Same behaviour, different container. A sticky element is released by its
+   containing block, and `.tab-list` sits in the section's `.page-width`
+   alongside the tab panels — so the bar docks for exactly as long as that
+   section's products are on screen and leaves with them. That is the whole
+   behaviour asked for, and it needs no scroll listener and no measurement of
+   where the section starts or ends.
+
+   The band is painted by a pseudo-element rather than by breaking the bar out
+   of `.page-width` the way the collection head does. `.tab-list .scroll-area`
+   already breaks itself out under 768px so the chips can scroll to the screen
+   edge; a second negative margin on the parent would stack with it and push
+   the row two paddings past the edge. A pseudo-element paints wider than its
+   parent without moving anything.
+   ------------------------------------------------------------------------ */
+
+.onrepeat-tabstick {
+  /* Sticky is a positioned element, so the band anchors to this box, and the
+     z-index makes it a stacking context — which is what lets the band sit
+     behind the chips at z-index: -1 without falling behind the page. */
+  padding-block: var(--sp-2d5);
+  /* The tab row's own end margin is large (32–48px) so the grid can breathe.
+     Kept as margin rather than folded into the docked box: margin is outside
+     the sticky box, so the bar docks tight under the header instead of
+     carrying a gap of empty frosted glass down the screen with it. */
+}
+
+.onrepeat-tabstick::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline: calc(var(--page-padding) * -1);
+  z-index: -1;
+  background: rgb(var(--color-background) / 0.92);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-block-end: 1px solid rgb(var(--color-foreground) / 0.08);
+}
+
+/* The indicators are desktop-only arrows for the carousel. They sit in the
+   same row and would otherwise set the docked bar's height taller than the
+   chips need. */
+@media screen and (min-width: 1024px) {
+  .onrepeat-tabstick .indicators {
+    align-items: center;
+  }
+}

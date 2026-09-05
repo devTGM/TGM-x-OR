@@ -1,0 +1,379 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "scrolling_text_4xmCym": {
+      "type": "scrolling-text",
+      "blocks": {
+        "text_4VnmWc": {
+          "type": "text",
+          "settings": {
+            "text": "<em>🎅 Merry Christmas from SUन्य🎄</em>",
+            "text_size": 52,
+            "text_font": "body",
+            "highlighted_text": "underline",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "text_4VnmWc"
+      ],
+      "disabled": true,
+      "name": "t:sections.scrolling-text.presets.name",
+      "settings": {
+        "direction": "left",
+        "speed": 20,
+        "grid_horizontal": 70,
+        "enable_twin": false,
+        "enable_parallax": true,
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "rounded": false
+      }
+    },
+    "lookbook_YyiTqb": {
+      "type": "lookbook",
+      "blocks": {
+        "content_74hCYW": {
+          "type": "content",
+          "settings": {
+            "icon": "map_pin",
+            "icon_image": "shopify://shop_images/OnRepeat_Logo.ai.png",
+            "icon_width": 50,
+            "heading": "Learn More About SUन्य",
+            "text": "<p>Welcome To OnRepeat's Fashion World</p>",
+            "link": "shopify://pages/about-us",
+            "color_text": "#ffffff",
+            "vertical": 9,
+            "horizontal": 50,
+            "vertical_mobile": 12,
+            "horizontal_mobile": 50
+          }
+        },
+        "product_ECyeb8": {
+          "type": "product",
+          "settings": {
+            "product": "fusion",
+            "color_text": "#ffffff",
+            "vertical": 22,
+            "horizontal": 32,
+            "vertical_mobile": 22,
+            "horizontal_mobile": 22
+          }
+        },
+        "product_e4wdaD": {
+          "type": "product",
+          "settings": {
+            "product": "nexus",
+            "color_text": "#ffffff",
+            "vertical": 23,
+            "horizontal": 67,
+            "vertical_mobile": 23,
+            "horizontal_mobile": 80
+          }
+        },
+        "product_f4Y44g": {
+          "type": "product",
+          "settings": {
+            "product": "arambh",
+            "color_text": "#ffffff",
+            "vertical": 60,
+            "horizontal": 28,
+            "vertical_mobile": 50,
+            "horizontal_mobile": 14
+          }
+        },
+        "product_i7C7hQ": {
+          "type": "product",
+          "settings": {
+            "product": "spirit",
+            "color_text": "#ffffff",
+            "vertical": 65,
+            "horizontal": 71,
+            "vertical_mobile": 50,
+            "horizontal_mobile": 90
+          }
+        }
+      },
+      "block_order": [
+        "content_74hCYW",
+        "product_ECyeb8",
+        "product_e4wdaD",
+        "product_f4Y44g",
+        "product_i7C7hQ"
+      ],
+      "disabled": true,
+      "name": "t:sections.lookbook.name",
+      "settings": {
+        "image": "shopify://shop_images/Gemini_Generated_Image_titzzbtitzzbtitz.png",
+        "image_mobile": "shopify://shop_images/Gemini_Generated_Image_msw1c0msw1c0msw1.png",
+        "heading": "",
+        "heading_size": "title-md",
+        "heading_alignment": "text-center md:items-center",
+        "heading_tag": "h2",
+        "heading_position": "none",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "color_overlay": "#171717",
+        "overlay_opacity": 30,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": false
+      }
+    },
+    "scrolling_text_CLbKA3": {
+      "type": "scrolling-text",
+      "blocks": {
+        "text_KjELzd": {
+          "type": "text",
+          "settings": {
+            "text": "Welcome to SUन्य",
+            "text_size": 52,
+            "text_font": "body",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "text_KjELzd"
+      ],
+      "name": "t:sections.scrolling-text.presets.name",
+      "settings": {
+        "direction": "left",
+        "speed": 20,
+        "grid_horizontal": 70,
+        "enable_twin": false,
+        "enable_parallax": true,
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "rounded": false
+      }
+    },
+    "lookbook_MqfBrM": {
+      "type": "lookbook",
+      "blocks": {
+        "content_RKaP6G": {
+          "type": "content",
+          "settings": {
+            "icon": "map_pin",
+            "icon_image": "shopify://shop_images/OnRepeat_Logo.ai.png",
+            "icon_width": 50,
+            "heading": "Learn More About SUन्य",
+            "text": "<p>Welcome To OnRepeat's Fashion World</p>",
+            "link": "shopify://pages/about-us",
+            "color_text": "#ffffff",
+            "vertical": 9,
+            "horizontal": 50,
+            "vertical_mobile": 12,
+            "horizontal_mobile": 50
+          }
+        },
+        "product_RrRtXr": {
+          "type": "product",
+          "settings": {
+            "product": "fusion",
+            "color_text": "#ffffff",
+            "vertical": 22,
+            "horizontal": 32,
+            "vertical_mobile": 22,
+            "horizontal_mobile": 22
+          }
+        },
+        "product_CwFDYN": {
+          "type": "product",
+          "settings": {
+            "product": "nexus",
+            "color_text": "#ffffff",
+            "vertical": 23,
+            "horizontal": 67,
+            "vertical_mobile": 23,
+            "horizontal_mobile": 80
+          }
+        },
+        "product_FDPmHQ": {
+          "type": "product",
+          "settings": {
+            "product": "arambh",
+            "color_text": "#ffffff",
+            "vertical": 60,
+            "horizontal": 28,
+            "vertical_mobile": 50,
+            "horizontal_mobile": 14
+          }
+        },
+        "product_qb48Vq": {
+          "type": "product",
+          "settings": {
+            "product": "spirit",
+            "color_text": "#ffffff",
+            "vertical": 65,
+            "horizontal": 71,
+            "vertical_mobile": 50,
+            "horizontal_mobile": 90
+          }
+        }
+      },
+      "block_order": [
+        "content_RKaP6G",
+        "product_RrRtXr",
+        "product_CwFDYN",
+        "product_FDPmHQ",
+        "product_qb48Vq"
+      ],
+      "name": "t:sections.lookbook.name",
+      "settings": {
+        "image": "shopify://shop_images/Gemini_Generated_Image_hbjmg7hbjmg7hbjm.png",
+        "image_mobile": "shopify://shop_images/Gemini_Generated_Image_h19vvbh19vvbh19v.png",
+        "heading": "",
+        "heading_size": "title-md",
+        "heading_alignment": "text-center md:items-center",
+        "heading_tag": "h2",
+        "heading_position": "none",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "color_overlay": "#171717",
+        "overlay_opacity": 30,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": false
+      }
+    },
+    "main": {
+      "type": "main-page",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "heading_size": "title-xl tracking-heading",
+        "heading_alignment": "text-left",
+        "heading_tag": "h6",
+        "text_size": "text-sm",
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "narrow": true,
+        "rounded": false
+      }
+    },
+    "video_hero_CpBfMF": {
+      "type": "video-hero",
+      "blocks": {
+        "slide_6PfQd8": {
+          "type": "slide",
+          "settings": {
+            "heading": "SUन्य | ONREPEAT — Indian apparel with a point of view. Less noise, more presence.",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "slide_aRGVUH": {
+          "type": "slide",
+          "settings": {
+            "heading": "SUन्य | ONREPEAT. Indian apparel. For the form, the fit, the feeling.",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "slide_YqqAqU": {
+          "type": "slide",
+          "settings": {
+            "heading": "Founder, SUन्य | ONREPEAT. Designing apparel out of India. Thinking out loud here.",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "slide_6PfQd8",
+        "slide_aRGVUH",
+        "slide_YqqAqU"
+      ],
+      "name": "t:sections.video-hero.presets.name",
+      "settings": {
+        "transparent_header": false,
+        "video": "shopify://files/videos/ONREPEAT RAKTPRINT.mp4",
+        "video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+        "description": "",
+        "enable_video_autoplay": true,
+        "enable_video_looping": true,
+        "content_width": "medium",
+        "color_text": "#ffffff",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_overlay": "#000000",
+        "overlay_opacity": 40,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": false
+      }
+    }
+  },
+  "order": [
+    "scrolling_text_4xmCym",
+    "lookbook_YyiTqb",
+    "scrolling_text_CLbKA3",
+    "lookbook_MqfBrM",
+    "main",
+    "video_hero_CpBfMF"
+  ]
+}

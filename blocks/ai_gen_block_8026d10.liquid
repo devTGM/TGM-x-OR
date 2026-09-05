@@ -1,0 +1,333 @@
+{% doc %}
+  @prompt
+    AN ANNOUNCEMENT BAR WHICH DISPLAY CONTINUOUSLY ABOVE THE HEADER BAR EVEN WHEN I SCROLL THE WEBSITE
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-announcement-bar-{{ ai_gen_id }} {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background-color: {{ block.settings.background_color }};
+    {% if block.settings.background_gradient != blank %}
+      background: {{ block.settings.background_gradient }};
+    {% endif %}
+    color: {{ block.settings.text_color }};
+    padding: {{ block.settings.padding_vertical }}px {{ block.settings.padding_horizontal }}px;
+    text-align: {{ block.settings.text_alignment }};
+    font-size: {{ block.settings.font_size }}px;
+    font-weight: {{ block.settings.font_weight }};
+    line-height: 1.4;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .ai-announcement-bar-content-{{ ai_gen_id }} {
+    max-width: {{ settings.page_width }}px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    position: relative;
+  }
+
+  .ai-announcement-bar-text-{{ ai_gen_id }} {
+    flex: 1;
+    {% if block.settings.text_alignment == 'center' %}
+      text-align: center;
+    {% elsif block.settings.text_alignment == 'right' %}
+      text-align: right;
+    {% else %}
+      text-align: left;
+    {% endif %}
+  }
+
+  .ai-announcement-bar-text-{{ ai_gen_id }} a {
+    color: {{ block.settings.link_color }};
+    text-decoration: underline;
+  }
+
+  .ai-announcement-bar-text-{{ ai_gen_id }} a:hover {
+    color: {{ block.settings.link_hover_color }};
+    text-decoration: none;
+  }
+
+  .ai-announcement-bar-close-{{ ai_gen_id }} {
+    background: none;
+    border: none;
+    color: {{ block.settings.text_color }};
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .ai-announcement-bar-close-{{ ai_gen_id }}:hover {
+    opacity: 1;
+  }
+
+  .ai-announcement-bar-close-{{ ai_gen_id }} svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .ai-announcement-bar-hidden-{{ ai_gen_id }} {
+    display: none;
+  }
+
+  body.ai-announcement-bar-active-{{ ai_gen_id }} {
+    padding-top: var(--ai-announcement-bar-height-{{ ai_gen_id }});
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-announcement-bar-{{ ai_gen_id }} {
+      font-size: {{ block.settings.font_size | times: 0.9 }}px;
+      padding: {{ block.settings.padding_vertical | times: 0.8 }}px {{ block.settings.padding_horizontal | times: 0.8 }}px;
+    }
+  }
+{% endstyle %}
+
+<announcement-bar-{{ ai_gen_id }}
+  class="ai-announcement-bar-{{ ai_gen_id }}"
+  data-closeable="{{ block.settings.closeable }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-announcement-bar-content-{{ ai_gen_id }}">
+    <div class="ai-announcement-bar-text-{{ ai_gen_id }}">
+      {% if block.settings.announcement_text != blank %}
+        {{ block.settings.announcement_text }}
+      {% else %}
+        <p>Add your announcement text here</p>
+      {% endif %}
+    </div>
+    {% if block.settings.closeable %}
+      <button 
+        class="ai-announcement-bar-close-{{ ai_gen_id }}"
+        aria-label="Close announcement"
+        type="button"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    {% endif %}
+  </div>
+</announcement-bar-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class AnnouncementBar{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.storageKey = 'ai-announcement-bar-{{ ai_gen_id }}-closed';
+      }
+
+      connectedCallback() {
+        this.setupAnnouncementBar();
+        this.setupEventListeners();
+      }
+
+      setupAnnouncementBar() {
+        if (this.dataset.closeable === 'true' && this.isClosed()) {
+          this.classList.add('ai-announcement-bar-hidden-{{ ai_gen_id }}');
+          return;
+        }
+
+        this.adjustBodyPadding();
+        document.body.classList.add('ai-announcement-bar-active-{{ ai_gen_id }}');
+      }
+
+      setupEventListeners() {
+        const closeButton = this.querySelector('.ai-announcement-bar-close-{{ ai_gen_id }}');
+        if (closeButton) {
+          closeButton.addEventListener('click', () => {
+            this.closeAnnouncement();
+          });
+        }
+
+        window.addEventListener('resize', () => {
+          if (!this.classList.contains('ai-announcement-bar-hidden-{{ ai_gen_id }}')) {
+            this.adjustBodyPadding();
+          }
+        });
+      }
+
+      adjustBodyPadding() {
+        const height = this.offsetHeight;
+        document.documentElement.style.setProperty('--ai-announcement-bar-height-{{ ai_gen_id }}', height + 'px');
+      }
+
+      closeAnnouncement() {
+        this.classList.add('ai-announcement-bar-hidden-{{ ai_gen_id }}');
+        document.body.classList.remove('ai-announcement-bar-active-{{ ai_gen_id }}');
+        document.documentElement.style.removeProperty('--ai-announcement-bar-height-{{ ai_gen_id }}');
+        if (this.dataset.closeable === 'true') {
+          localStorage.setItem(this.storageKey, 'true');
+        }
+      }
+
+      isClosed() {
+        return localStorage.getItem(this.storageKey) === 'true';
+      }
+    }
+
+    customElements.define('announcement-bar-{{ ai_gen_id }}', AnnouncementBar{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Announcement bar",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "richtext",
+      "id": "announcement_text",
+      "label": "Announcement text",
+      "default": "<p>Free shipping on orders over $50! <a href=\"/collections/all\">Shop now</a></p>"
+    },
+    {
+      "type": "checkbox",
+      "id": "closeable",
+      "label": "Allow customers to close",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "padding_vertical",
+      "label": "Vertical padding",
+      "min": 5,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal",
+      "label": "Horizontal padding",
+      "min": 10,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Background gradient"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "link_color",
+      "label": "Link color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "link_hover_color",
+      "label": "Link hover color",
+      "default": "#cccccc"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Announcement bar"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

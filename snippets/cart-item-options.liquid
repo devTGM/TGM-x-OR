@@ -1,0 +1,80 @@
+{%- comment -%}
+  Cart line item — options, custom properties, and selling plan.
+  Shared between `sections/main-cart.liquid` and `sections/cart-drawer.liquid`.
+
+  Params:
+    item    (required) — a Shopify cart line item.
+    inline  (optional) — lay the options out as one running line ("Size L")
+      rather than a stacked "Name: value" list. The drawer passes true so the
+      whole line fits in the single meta row under the title; the cart page,
+      which has the width for a proper description list, does not.
+{%- endcomment -%}
+{%- if item.product.has_only_default_variant == false or item.properties.size != 0 or item.selling_plan_allocation != null -%}
+  <dl class="{% if inline %}cart-item-options--inline{% else %}grid gap-1d5{% endif %}">
+    {%- unless item.product.has_only_default_variant -%}
+      {%- for option in item.options_with_values -%}
+        <div class="flex items-center gap-1d5 leading-tight cart-item-option-row">
+          <dt class="cart-item-option__name text-xs">{{ option.name }}{% unless inline %}:{% endunless %}</dt>
+          <dd class="cart-item-option__pill flex items-center gap-2">
+            <span>{{ option.value }}</span>
+            {%- if option.name == 'Size' and item.properties.size == 0 -%}
+              <button type="button" class="cart-edit-size-btn" onclick="this.closest('.cart-item-option-row').nextElementSibling.classList.toggle('hidden')">Edit</button>
+            {%- endif -%}
+          </dd>
+        </div>
+        
+        {%- if option.name == 'Size' and item.properties.size == 0 -%}
+          <div class="cart-size-switcher hidden w-full flex flex-wrap gap-2">
+            {%- for variant in item.product.variants -%}
+              {%- assign match = true -%}
+              {%- for product_option in item.product.options_with_values -%}
+                {%- assign pos = 'option' | append: product_option.position -%}
+                {%- if product_option.name != 'Size' -%}
+                  {%- if variant[pos] != item.variant[pos] -%}
+                    {%- assign match = false -%}
+                  {%- endif -%}
+                {%- else -%}
+                  {%- assign variant_size_val = variant[pos] -%}
+                {%- endif -%}
+              {%- endfor -%}
+              
+              {%- if match -%}
+                <button type="button" 
+                        class="cart-size-pill {% if variant.id == item.variant.id %}is-active{% endif %} {% unless variant.available %}is-disabled{% endunless %}" 
+                        data-variant-id="{{ variant.id }}" 
+                        data-line-key="{{ item.key }}"
+                        data-qty="{{ item.quantity }}"
+                        {% unless variant.available %}disabled{% endunless %}
+                        onclick="CartVariantSwitcher.swapVariant(this)">
+                  {{ variant_size_val }}
+                </button>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endunless -%}
+
+    {%- for property in item.properties -%}
+      {%- assign property_first_char = property.first | slice: 0 -%}
+      {%- if property.last != blank and property_first_char != '_' -%}
+        <div class="flex gap-1 text-xs text-opacity leading-tight">
+          <dt>{{ property.first }}:&nbsp;</dt>
+          <dd>
+            {%- if property.last contains '/uploads/' -%}
+              <a href="{{ property.last }}" class="link" target="_blank" aria-describedby="a11y-new-window-message">
+                {{- property.last | split: '/' | last -}}
+              </a>
+            {%- else -%}
+              {{- property.last -}}
+            {%- endif -%}
+          </dd>
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </dl>
+
+  {%- if item.selling_plan_allocation != null -%}
+    <p class="text-xs text-opacity">{{ item.selling_plan_allocation.selling_plan.name }}</p>
+  {%- endif -%}
+{%- endif -%}

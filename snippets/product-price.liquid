@@ -1,0 +1,110 @@
+{%- comment -%}
+  Renders a list of product's price (regular, sale)
+
+  Accepts:
+  - product: {Object} Product Liquid object (optional)
+  - placeholder: {Boolean} Renders a placeholder price (optional)
+  - use_variant: {Boolean} Renders selected or first variant price instead of overall product pricing (optional)
+  - show_badges: {Boolean} Renders 'Sale' and 'Sold Out' tags if the product matches the condition (optional)
+  - hide_unit_price: if set to true, unit pricing are hidden (optional)
+  - skip_to_price: if set to true, quantity price breaks configured are hidden (optional)
+  - no_decimals: if true, prices render without trailing ".00" (optional; used by product cards)
+  - whole: if true, INR prices round to the whole rupee — money-display style 'whole'
+    (optional; the PDP title price, per the approved redesign)
+  - show_saved_percent: if true, appends a "NN% OFF" chip when on sale (optional; used by product cards)
+  - class: {String} Adds a price class to the price element (optional)
+
+  Usage:
+  {% render 'product-price', product: product %}
+{%- endcomment -%}
+{%- liquid
+  if use_variant
+    assign target = product.selected_or_first_available_variant
+  elsif placeholder
+    assign target = null
+  else
+    assign target = product
+  endif
+
+  assign compare_at_price = target.compare_at_price
+  assign price = target.price | default: 1999
+
+  assign on_sale = false
+  if compare_at_price > price
+    assign on_sale = true
+  endif
+
+  assign md_style = 'exact'
+  if whole
+    assign md_style = 'whole'
+  elsif no_decimals
+    assign md_style = 'no_zeros'
+  elsif settings.currency_code_enabled
+    assign md_style = 'with_currency'
+  endif
+-%}
+
+<div class="price
+  {%- if on_sale %} price--on-sale{% endif -%}
+  {%- if class != blank %} {{ class }}{% endif -%}"
+>
+  {%- if on_sale -%}
+    <span class="sr-only">{{ 'products.price.sale_price' | t }}</span>
+  {%- endif -%}
+
+  <span class="price__regular whitespace-nowrap">
+    {%- liquid
+      if product.quantity_price_breaks_configured? != true or skip_to_price
+        if target == product and product.price_varies
+          capture price_min
+            render 'money-display', amount: product.price_min, style: md_style
+          endcapture
+          echo 'products.price.from_price_html' | t: price: price_min
+        else
+          render 'money-display', amount: price, style: md_style
+        endif
+      else
+        capture price_min
+          render 'money-display', amount: product.price_min, style: md_style
+        endcapture
+        echo 'products.price.from_price_html' | t: price: price_min
+      endif
+    -%}
+  </span>
+
+  {%- if on_sale -%}
+    <span class="sr-only">{{ 'products.price.regular_price' | t }}</span>
+    <span class="price__sale inline-flex items-center h-auto relative">
+      {%- render 'money-display', amount: compare_at_price, style: md_style -%}
+    </span>
+    {%- if show_saved_percent -%}
+      {%- assign saved_pct = compare_at_price | minus: price | times: 100.0 | divided_by: compare_at_price | round -%}
+      {%- if saved_pct > 0 -%}
+        <span class="price__off whitespace-nowrap">{{ saved_pct }}% OFF</span>
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- unless hide_unit_price -%}
+    {%- assign product_variant = product.selected_or_first_available_variant -%}
+    {%- if product_variant.unit_price_measurement -%}
+      <span class="sr-only">{{ 'products.price.unit_price' | t }}</span>
+      <span class="unit-price flex items-center">
+        {%- liquid
+          capture unit_price_base_unit
+            if product_variant.unit_price_measurement
+              if product_variant.unit_price_measurement.reference_value != 1
+                echo product_variant.unit_price_measurement.reference_value
+              endif
+              echo product_variant.unit_price_measurement.reference_unit
+            endif
+          endcapture
+        -%}
+        ({% render 'money-display', amount: product_variant.unit_price %}
+        <span aria-hidden="true">/</span>
+        <span class="sr-only">&nbsp;{{ 'general.accessibility.unit_price_separator' | t }}&nbsp;</span>
+        {{ unit_price_base_unit }})
+        </span>
+    {%- endif -%}
+  {%- endunless -%}
+</div>

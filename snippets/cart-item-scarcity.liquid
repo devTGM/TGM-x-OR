@@ -1,0 +1,52 @@
+{%- comment -%}
+  Cart line item — low-stock "Only N left" badge.
+  Shared between `sections/main-cart.liquid` and `sections/cart-drawer.liquid`.
+
+  Counts what is still AVAILABLE TO ADD, not gross inventory. The badge used to
+  print `variant.inventory_quantity` straight out, so a shopper holding 2 of the
+  4 remaining units was told "Only 4 left in your size" — an urgency claim that
+  is not true for them, and one that collapses the moment they try to add a fifth
+  and the cart refuses. Subtracting what they already hold makes the number the
+  one that actually constrains them, and hides the badge entirely once they hold
+  the lot: there is nothing left to warn about.
+
+  Uses item_count_for_variant rather than item.quantity so a variant split across
+  several lines (hidden properties, bundles) is counted once, in full.
+
+  Params:
+    item       (required) — a Shopify cart line item.
+    enabled    (required) — bool; render nothing when false.
+    threshold  (required) — int; max remaining quantity at which the badge shows.
+    style      (optional) — 'calm' shortens the badge to "N left" and drops the
+      red, for the drawer's single meta line where it sits beside the size. The
+      urgency is in the number; a full red sentence on every line, next to a
+      total that is also red, is a lot of alarm for a cart that is going well.
+{%- endcomment -%}
+{%- if enabled -%}
+  {%- liquid
+    assign scarcity_show = false
+    if item.variant.inventory_management == 'shopify' and item.variant.inventory_quantity > 0
+      assign scarcity_in_cart = cart | item_count_for_variant: item.variant.id
+      assign scarcity_left = item.variant.inventory_quantity | minus: scarcity_in_cart
+      if scarcity_left > 0 and scarcity_left <= threshold
+        assign scarcity_show = true
+      endif
+    endif
+  -%}
+  {%- if scarcity_show -%}
+    {%- comment -%}
+      Deliberately NOT a live region. Every badge used to carry aria-live, so a
+      cart with six low-stock lines created six competing live regions that all
+      re-announced on any re-render. Cart changes are announced once, centrally,
+      by the region CartFeedback owns in assets/cart.js.
+    {%- endcomment -%}
+    {%- if style == 'calm' -%}
+      <span class="scarcity-badge scarcity-badge--calm text-xs">{{ scarcity_left }} left</span>
+    {%- else -%}
+      <p class="scarcity-badge text-xs">
+        <span class="scarcity-dot" aria-hidden="true">&bull;</span>
+        Only {{ scarcity_left }} left in your size
+      </p>
+    {%- endif -%}
+  {%- endif -%}
+{%- endif -%}

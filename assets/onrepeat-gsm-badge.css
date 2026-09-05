@@ -1,0 +1,70 @@
+/*
+ * OnRepeat GSM fabric-weight badge (snippets/onrepeat-gsm-badge.liquid).
+ *
+ * Compact, on-brand crimson chip shown in the top-left corner of product
+ * cards (inside the existing .badges stack) and over the PDP main image.
+ * Crimson gradient matches the brand trust cards (#8A1C3E -> #5C1011).
+ */
+
+.onrepeat-gsm {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  width: max-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, #8A1C3E 0%, #5C1011 100%);
+  color: #fff;
+  font-family: var(--font-heading-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(92, 16, 17, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.onrepeat-gsm__num {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.onrepeat-gsm__unit {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+/* PDP: overlay the top-left of the main media viewport. */
+.onrepeat-gsm--pdp {
+  position: absolute;
+  inset-block-start: var(--sp-3, 0.75rem);
+  inset-inline-start: var(--sp-3, 0.75rem);
+  z-index: 3;
+  padding: 5px 10px;
+}
+
+.onrepeat-gsm--pdp .onrepeat-gsm__num {
+  font-size: 13.5px;
+}
+
+.onrepeat-gsm--pdp .onrepeat-gsm__unit {
+  font-size: 9px;
+}
+
+@media screen and (min-width: 768px) {
+  .onrepeat-gsm--pdp {
+    inset-block-start: var(--sp-4, 1rem);
+    inset-inline-start: var(--sp-4, 1rem);
+  }
+  .onrepeat-gsm--pdp .onrepeat-gsm__num {
+    font-size: 15px;
+  }
+  .onrepeat-gsm--pdp .onrepeat-gsm__unit {
+    font-size: 9.5px;
+  }
+}

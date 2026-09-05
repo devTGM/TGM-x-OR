@@ -1,0 +1,257 @@
+{%- comment -%}
+  The collection-page offer rail — up to five swipeable cards above the
+  browse controls, saying what this store takes off a bag before the shopper
+  has put anything in one.
+
+  THE ORDER IS THE DESIGN
+  Cards run by threshold, ascending. Five cards on a 390px screen means most
+  shoppers see the first two and nothing else, so the order decides what the
+  rail actually communicates — ordering by SIZE would put "₹700 over ₹5,000"
+  in position two, which speaks to almost nobody at an average order near
+  ₹1,668. Ascending threshold turns the swipe itself into the ladder: each
+  card right is a bigger reward, further away.
+
+  THREE VISUAL FAMILIES, BECAUSE THERE ARE THREE KINDS OF OFFER
+    1  Buy 2 Get 1  — full brand crimson, wider. The only card with no
+                      threshold at all, and the only one given the brand
+                      colour, so it cannot be mistaken for a spend tier.
+    2-4 the tiers   — one warm-neutral treatment deepening as the threshold
+                      rises. They read as a set because they ARE a set: one
+                      staircase, three rungs.
+    5  prepaid      — green, deliberately unlike the rest. Not about how much
+                      you spend; about how you pay.
+
+  IT STATES, IT DOES NOT CLAIM
+  Nothing here is marked "applied". A collection page has no cart total to
+  reason from, and two of these five could not be resolved from one anyway:
+  Buy 2 Get 1 turns on an item count, and the prepaid ₹100 turns on a payment
+  method chosen at checkout. A rail that lit cards up would be making a
+  promise it has no way to keep, so this one only ever lists what is on offer.
+
+  WHERE THE NUMBERS COME FROM
+  The three tiers read settings.reward_tier* — the same single source of truth
+  as the cart ladder, the PDP reward bar and the sticky buy bar, so the rail
+  cannot drift from them. Buy 2 Get 1 hangs off onrepeat-b2g1-on, which is the
+  one answer all four B2G1 surfaces share. All of it is DISPLAY ONLY: the
+  theme grants nothing, and every figure here must match the automatic
+  discounts in Admin → Discounts.
+
+  THE PREPAID CARD IS NOT A SHOPIFY DISCOUNT
+  It is applied by Razorpay Magic Checkout, which is why it has its own
+  setting rather than a reward tier, and why it is suppressed for USD
+  visitors: they go to Shopify's native checkout (see onrepeat-usd-mode), where
+  Razorpay never runs and the ₹100 would never arrive. Set the amount to 0 to
+  drop the card. It must move together with the prepaid banner in the cart and
+  cart-drawer sections, or the two surfaces disagree.
+
+  ONLY WHERE THERE ARE GOODS
+  An empty collection gets no rail: a spend ladder above "no products here"
+  is advertising a bag the shopper cannot fill.
+
+  This was briefly a five-product floor, on the theory that the rail would
+  otherwise stand taller than the goods. It does not — four products is two
+  rows of full-height product cards against 88px of rail — and the floor's
+  only real effect was to hide the offers on /collections/shirts.
+
+  Accepts:
+  - collection: {Object} the collection being browsed. Required; the rail does
+      not render without one.
+
+  Usage (already wired):
+    {%- render 'onrepeat-offer-rail', collection: collection -%}   ← sections/main-collection.liquid
+{%- endcomment -%}
+
+{%- liquid
+  assign or_show = false
+  if settings.offer_rail_enabled and collection != blank and collection.all_products_count > 0
+    assign or_show = true
+  endif
+-%}
+
+{%- if or_show -%}
+  {%- liquid
+    capture or_b2g1_raw
+      render 'onrepeat-b2g1-on'
+    endcapture
+    assign or_b2g1 = or_b2g1_raw | strip
+
+    comment
+      `strip` is not optional here, exactly as in onrepeat-usd-mode's own docs — a
+      stray newline would make the comparison false and silently send a US
+      shopper the prepaid card they can never redeem.
+    endcomment
+    capture or_usd_raw
+      render 'onrepeat-usd-mode'
+    endcapture
+    assign or_usd = or_usd_raw | strip
+
+    assign or_pct = settings.reward_percent | default: 5
+    assign or_t1 = settings.reward_tier1_amount | default: 1499
+    assign or_t2 = settings.reward_tier2_amount | default: 3000
+    assign or_t3 = settings.reward_tier3_amount | default: 5000
+    assign or_f2 = settings.reward_tier2_flat | default: 300
+    assign or_f3 = settings.reward_tier3_flat | default: 700
+
+    comment
+      Liquid's `default` replaces nil/false/empty, never 0, so a merchant who
+      types 0 to retire the prepaid card keeps their 0.
+    endcomment
+    assign or_prepaid = settings.offer_rail_prepaid_off | default: 100
+    if or_usd == 'true'
+      assign or_prepaid = 0
+    endif
+
+    comment
+      Money, the same way the cart ladder does it.
+
+      The flat amounts go through money-display 'no_zeros', whose two branches
+      are both already right: dollars for a US visitor, and
+      money_without_trailing_zeros for everyone else — "₹300", not "₹300.00",
+      which is what plain `money` would print on this shop.
+
+      The spend thresholds cannot use one style for both. In USD they must
+      round UP ('ceil') so a displayed target never arrives sooner than the
+      real unlock; in INR they are exact figures the merchant typed and must
+      be echoed as typed. So they branch.
+    endcomment
+    assign or_t1_paise = or_t1 | times: 100
+    assign or_t2_paise = or_t2 | times: 100
+    assign or_t3_paise = or_t3 | times: 100
+    assign or_f2_paise = or_f2 | times: 100
+    assign or_f3_paise = or_f3 | times: 100
+    assign or_pre_paise = or_prepaid | times: 100
+
+    if or_usd == 'true'
+      capture or_t1_spend
+        render 'money-display', amount: or_t1_paise, style: 'ceil'
+      endcapture
+      capture or_t2_spend
+        render 'money-display', amount: or_t2_paise, style: 'ceil'
+      endcapture
+      capture or_t3_spend
+        render 'money-display', amount: or_t3_paise, style: 'ceil'
+      endcapture
+    else
+      assign or_t1_spend = or_t1_paise | money_without_trailing_zeros
+      assign or_t2_spend = or_t2_paise | money_without_trailing_zeros
+      assign or_t3_spend = or_t3_paise | money_without_trailing_zeros
+    endif
+
+    capture or_f2_txt
+      render 'money-display', amount: or_f2_paise, style: 'no_zeros'
+    endcapture
+    capture or_f3_txt
+      render 'money-display', amount: or_f3_paise, style: 'no_zeros'
+    endcapture
+    capture or_pre_txt
+      render 'money-display', amount: or_pre_paise, style: 'no_zeros'
+    endcapture
+  -%}
+
+  <div class="onrepeat-offers" role="region" aria-labelledby="OnRepeatOffersHead">
+    <p class="onrepeat-offers__head" id="OnRepeatOffersHead">Exclusive offers</p>
+
+    <ul class="onrepeat-offers__track" role="list">
+      {%- if or_b2g1 != blank -%}
+        <li class="onrepeat-offers__card onrepeat-offers__card--hero">
+          <b class="onrepeat-offers__v">Buy 2, get <em>1 free</em></b>
+          <span class="onrepeat-offers__c">Add any three pieces</span>
+        </li>
+      {%- endif -%}
+
+      {%- if or_t1 > 0 -%}
+        <li class="onrepeat-offers__card onrepeat-offers__card--t1">
+          <b class="onrepeat-offers__v"><em>{{ or_pct }}%</em> off</b>
+          <span class="onrepeat-offers__c">Over {{ or_t1_spend | strip }}</span>
+        </li>
+      {%- endif -%}
+
+      {%- if or_t2 > 0 and or_f2 > 0 -%}
+        <li class="onrepeat-offers__card onrepeat-offers__card--t2">
+          <b class="onrepeat-offers__v"><em>{{ or_f2_txt | strip }}</em> off</b>
+          <span class="onrepeat-offers__c">Over {{ or_t2_spend | strip }}</span>
+        </li>
+      {%- endif -%}
+
+      {%- if or_t3 > 0 and or_f3 > 0 -%}
+        <li class="onrepeat-offers__card onrepeat-offers__card--t3">
+          <b class="onrepeat-offers__v"><em>{{ or_f3_txt | strip }}</em> off</b>
+          <span class="onrepeat-offers__c">Over {{ or_t3_spend | strip }}</span>
+        </li>
+      {%- endif -%}
+
+      {%- if or_prepaid > 0 -%}
+        <li class="onrepeat-offers__card onrepeat-offers__card--pay">
+          <b class="onrepeat-offers__v"><em>{{ or_pre_txt | strip }}</em> off</b>
+          <span class="onrepeat-offers__c">Paying online at checkout</span>
+        </li>
+      {%- endif -%}
+    </ul>
+
+    {%- comment -%}
+      One honest statement for the whole rail rather than "AUTO" stamped on
+      every card. Every offer above really is automatic — the tiers and the
+      free piece are automatic discounts in Admin, and the prepaid ₹100 is
+      applied by Razorpay at checkout with no code to enter (the cart drawer's
+      prepaid_checkout_code is empty for the same reason).
+
+      The dots are built by script and stay absent without it: they say how
+      many cards there are and where you are, which is information the rail
+      can live without, not markup that has to be there before it is true.
+    {%- endcomment -%}
+    <div class="onrepeat-offers__foot">
+      <span class="onrepeat-offers__auto">No codes — all applied automatically</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      if (window.__onrepeatOfferRail) return;
+      window.__onrepeatOfferRail = true;
+
+      function wire(root) {
+        var track = root.querySelector('.onrepeat-offers__track');
+        var foot = root.querySelector('.onrepeat-offers__foot');
+        if (!track || !foot) return;
+
+        var cards = track.querySelectorAll('.onrepeat-offers__card');
+        if (cards.length < 2) return;
+
+        var dots = document.createElement('div');
+        dots.className = 'onrepeat-offers__dots';
+        dots.setAttribute('aria-hidden', 'true');
+        for (var i = 0; i < cards.length; i++) dots.appendChild(document.createElement('i'));
+        var pips = dots.querySelectorAll('i');
+        pips[0].className = 'is-on';
+        foot.appendChild(dots);
+
+        /* On a wide screen all five cards are already visible, and a position
+           indicator for a row nobody has to scroll is noise. */
+        function fit() {
+          dots.hidden = track.scrollWidth <= track.clientWidth + 1;
+        }
+
+        track.addEventListener('scroll', function () {
+          var max = track.scrollWidth - track.clientWidth;
+          var n = max > 0 ? Math.round((track.scrollLeft / max) * (pips.length - 1)) : 0;
+          for (var j = 0; j < pips.length; j++) pips[j].className = j === n ? 'is-on' : '';
+        }, { passive: true });
+
+        window.addEventListener('resize', fit, { passive: true });
+        fit();
+      }
+
+      function init() {
+        var rails = document.querySelectorAll('.onrepeat-offers');
+        for (var i = 0; i < rails.length; i++) wire(rails[i]);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+{%- endif -%}

@@ -1,0 +1,373 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-page",
+      "disabled": true,
+      "settings": {
+        "heading_size": "title-xl",
+        "heading_alignment": "text-left",
+        "heading_tag": "h1",
+        "text_size": "text-base",
+        "padding_top": 72,
+        "padding_bottom": 120,
+        "divider": false,
+        "narrow": true,
+        "rounded": false
+      }
+    },
+    "rich-text": {
+      "type": "rich-text",
+      "blocks": {
+        "heading": {
+          "type": "heading",
+          "settings": {
+            "heading": "FAQ's",
+            "heading_size": "title-xl tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Welcome to our FAQ, we are so happy to have you here and as a customer. <br/>We have tried to answer the most common questions.</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "heading",
+        "text"
+      ],
+      "settings": {
+        "text_alignment": "left",
+        "text_alignment_mobile": "left",
+        "heading": "",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_width": "small",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 0,
+        "divider": false,
+        "narrow": false,
+        "rounded": false
+      }
+    },
+    "empty-space": {
+      "type": "empty-space",
+      "settings": {
+        "desktop_height": 120,
+        "mobile_height": 44,
+        "color_background": "",
+        "gradient_background": ""
+      }
+    },
+    "faq": {
+      "type": "faq",
+      "blocks": {
+        "rich-text-1": {
+          "type": "rich-text",
+          "settings": {
+            "heading": "Shipping & Returns",
+            "text": "<p>Below are some common questions about shipping, returns, and exchanges</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-1": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>How long does shipping take?</strong>",
+            "text": "<p>Orders are shipped within <strong>1–2 business days</strong>. Delivery within India usually takes <strong>3–7 business days</strong>, depending on your location.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-2": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Do you charge for shipping?</strong>",
+            "text": "<p>We offer <strong>free shipping</strong> across India on all prepaid orders. COD orders may include a small service fee.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-4": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Do you offer international shipping?</strong>",
+            "text": "<p>Not yet — but we’re working on it. Stay tuned!</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-5": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>What’s your return and exchange policy?</strong>",
+            "text": "<p>We accept exchanges within <strong>7 days of delivery</strong>, as long as the item is <strong>unused, unwashed</strong>, and in original packaging.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "rich-text-2": {
+          "type": "rich-text",
+          "settings": {
+            "heading": "Orders",
+            "text": "<p>Below are some of are common questions about orders</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-6": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Can I cancel or edit my order after placing it?</strong>",
+            "text": "<p>If your order hasn’t been shipped yet, we’ll do our best to help. Reach out to us ASAP at <a><strong>support@theonrepeat.co</strong></a>.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-7": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>How do I track my order?</strong>",
+            "text": "<p>You’ll receive a tracking link via email once your order is dispatched. You can also DM us on Instagram with your order number for updates.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-8": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>My order hasn’t arrived. What should I do?</strong>",
+            "text": "<p>If it’s been over 7 days and you haven’t received your package, contact us and we’ll follow up with our delivery partner.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "rich-text-3": {
+          "type": "rich-text",
+          "settings": {
+            "heading": "Products",
+            "text": "<p>Below are some common questions about our products</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-10": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>How do I find the right size?</strong>",
+            "text": "<p>Each product page has a <strong>size guide</strong> and fit description. Most of our styles are <strong>oversized</strong> — if unsure, feel free to DM or email us for help.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-11": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Are your products made in India?</strong>",
+            "text": "<p>Yes! All ONREPEAT pieces are proudly <strong>designed and produced in Bharat</strong>, with a focus on premium fabrics and ethical production.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-12": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Will sold-out items restock?</strong>",
+            "text": "<p>Some pieces are limited-run and may not return. If you're eyeing something, we recommend grabbing it while it's available. Follow us for restock alerts.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question_YMjeVt": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>How do I care for my ONREPEAT garments?</strong>",
+            "text": "<p>We recommend <strong>cold washing, inside out</strong>, and avoiding tumble drying to preserve quality. Each item has specific care instructions on its label.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "rich-text-about": {
+          "type": "rich-text",
+          "settings": {
+            "heading": "About THE ONREPEAT",
+            "text": "<p>Common questions about our brand, philosophy, and what makes us different.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-1": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>What is THE ONREPEAT?</strong>",
+            "text": "<p>THE ONREPEAT is a <strong>premium Indian apparel brand</strong> founded in 2024 by Paras Soni. The name comes from the Sanskrit word शून्य (OnRepeat / Shunya), meaning “zero” or “void” — a philosophical concept representing infinite potential arising from emptiness. Our slogan is <em>From Zero to Infinite</em>. We create premium hoodies, t-shirts, shirts, and sweatshirts inspired by Sanskrit philosophy and fifth-century Indian art.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-2": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Who founded THE ONREPEAT?</strong>",
+            "text": "<p>THE ONREPEAT was founded in <strong>2024 by Paras Soni</strong>. The brand was built on the belief that Indian youth deserve apparel rooted in their own cultural identity — premium quality that connects to Sanskrit heritage and Indian art.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-3": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>What does OnRepeat mean in Hindi / Sanskrit?</strong>",
+            "text": "<p><strong>शून्य (OnRepeat / Shunya)</strong> is a Sanskrit word meaning <em>zero</em>, <em>void</em>, or <em>emptiness</em>. In Indian philosophy — particularly in Buddhism and Advaita Vedanta — this concept represents infinite potential. It is also the origin of the mathematical concept of zero, developed in ancient India. Our slogan <em>From Zero to Infinite</em> embodies this philosophy.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-4": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Is THE ONREPEAT a premium brand?</strong>",
+            "text": "<p>Yes — THE ONREPEAT is a <strong>premium Indian apparel brand</strong>. We use high-quality fabrics, craft oversized silhouettes with attention to fit and construction, and design each piece to carry cultural meaning. We are not fast fashion. Every ONREPEAT piece is built to last and worn with intention.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-5": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>What materials are THE ONREPEAT products made from?</strong>",
+            "text": "<p>THE ONREPEAT products are crafted from <strong>premium cotton and cotton-blend fabrics</strong> — chosen for comfort, durability, and a premium feel. Specific material composition (GSM, fabric type) is listed on each product page. All materials are selected to hold their shape and colour through extended wear and washing.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-6": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>How is THE ONREPEAT different from fast fashion?</strong>",
+            "text": "<p>THE ONREPEAT is the <strong>opposite of fast fashion</strong>. We design limited, intentional collections rather than constantly chasing trends. Our pieces are made from premium fabrics built to last, priced to reflect real quality, and rooted in Sanskrit heritage — not throwaway aesthetics. We believe clothing should carry meaning, not just fill a wardrobe quickly and cheaply.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-7": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Is THE ONREPEAT available on Amazon or Flipkart?</strong>",
+            "text": "<p>No. THE ONREPEAT is available <strong>exclusively on our official website</strong> at theonrepeat.co. We do not sell on Amazon, Flipkart, Meesho, or any other marketplace. Buying directly from us ensures you receive authentic ONREPEAT products at the best price, with our full shipping and return guarantees.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "contact": {
+          "type": "contact",
+          "settings": {
+            "heading": "Didn’t find your answer?",
+            "text": "<p>Don’t hestitate to contact us</p>",
+            "show_phone": false,
+            "avatar_height": 60,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "rich-text-1",
+        "question-1",
+        "question-2",
+        "question-4",
+        "question-5",
+        "rich-text-2",
+        "question-6",
+        "question-7",
+        "question-8",
+        "rich-text-3",
+        "question-10",
+        "question-11",
+        "question-12",
+        "question_YMjeVt",
+        "rich-text-about",
+        "question-geo-1",
+        "question-geo-2",
+        "question-geo-3",
+        "question-geo-4",
+        "question-geo-5",
+        "question-geo-6",
+        "question-geo-7",
+        "contact"
+      ],
+      "settings": {
+        "style": "with-border",
+        "heading": "",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "color_overlay": "#ffffff",
+        "overlay_opacity": 4,
+        "padding_top": 0,
+        "padding_bottom": 120,
+        "divider": false,
+        "narrow": false,
+        "rounded": false
+      }
+    }
+  },
+  "order": [
+    "main",
+    "rich-text",
+    "empty-space",
+    "faq"
+  ]
+}

@@ -1,0 +1,66 @@
+{%- comment -%}
+  The highest quantity a cart line may actually be set to. Outputs a bare
+  number, or nothing at all when the line is genuinely uncapped.
+
+  WHY THIS EXISTS
+  Both cart surfaces rendered `max` from `variant.quantity_rule.max` alone —
+  the merchant's per-order limit, which is null on every product in this
+  store. So the input had no ceiling, the stepper's + never disabled, and
+  asking for more than exists went all the way to the server, which answered
+  422 "Only 1 item was added to your cart due to availability" and left the
+  number the shopper typed sitting in a box the cart had already refused.
+
+  Stock is knowable here, so the ceiling belongs here: prevention instead of
+  an apology after a round-trip.
+
+  WHAT COUNTS AS A CEILING
+    · the merchant's order limit, when one is set
+    · available stock, but ONLY when Shopify is tracking it and the variant
+      is not set to continue selling when sold out — the same two-part test
+      the buy module uses for its scarcity dots. A variant that oversells on
+      purpose has no ceiling, and saying otherwise would block a sale the
+      merchant wants to make.
+  The lower of the two wins when both apply.
+
+  NEVER BELOW WHAT IS ALREADY IN THE BAG
+  Stock can fall after a line is added — someone else buys the last one, or
+  the merchant corrects a count. Emitting a max under the current quantity
+  would mark a line the shopper already holds as invalid and make the browser
+  fight them over a number they cannot change. The floor is the line's own
+  quantity: no increase is possible (the stepper's + disables itself at max),
+  and nothing already in the bag is called an error.
+
+  Accepts:
+  - item: {Object} a cart line item, required
+
+  Usage:
+  {%- capture q_max -%}{%- render 'cart-quantity-max', item: item -%}{%- endcapture -%}
+  {%- assign q_max = q_max | strip -%}
+  {%- if q_max != blank %} max="{{ q_max }}"{% endif -%}
+{%- endcomment -%}
+
+{%- liquid
+  assign qm_ceiling = nil
+
+  assign qm_rule = item.variant.quantity_rule.max
+  if qm_rule != blank and qm_rule != null
+    assign qm_ceiling = qm_rule
+  endif
+
+  if item.variant.inventory_management == 'shopify' and item.variant.inventory_policy != 'continue'
+    comment
+      A sold-out or oversold variant reports 0 or a negative number. Clamped
+      to 0 so the comparison below is against a real floor rather than a
+      negative one; the line's own quantity then lifts it to something sane.
+    endcomment
+    assign qm_stock = item.variant.inventory_quantity | at_least: 0
+    if qm_ceiling == nil or qm_stock < qm_ceiling
+      assign qm_ceiling = qm_stock
+    endif
+  endif
+
+  if qm_ceiling != nil
+    assign qm_ceiling = qm_ceiling | at_least: item.quantity
+  endif
+-%}
+{%- if qm_ceiling != nil -%}{{ qm_ceiling }}{%- endif -%}

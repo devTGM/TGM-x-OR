@@ -1,0 +1,141 @@
+/*
+ * Product details "showcase" (snippets/product-details-cards.liquid).
+ * Short scannable facts render as compact pills (.pdc-chip); longer / sentence-like
+ * facts render as one unified "spec sheet" card (.pdc-rows) whose rows (.pdc-row) are
+ * separated by hairline dividers. Each icon sits in a small crimson-tinted tile.
+ * Scoped .pdc-* classes built on the theme's design tokens so it reflects the brand:
+ * crimson icons (--color-base-button), neutral tiles, Inter type. Premium and compact —
+ * far shorter than the old stacked-card grid, with every value shown in full.
+ */
+
+.pdc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-block-start: var(--sp-2);
+}
+
+/* Screen-reader-only label inside chips (fallback if the theme lacks the utility). */
+.pdc .visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Pills (short facts) ---------- */
+.pdc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pdc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 7px;
+  border: var(--card-border-width, 1px) solid rgb(var(--color-base-button) / 0.16);
+  border-radius: 999px;
+  background-color: rgb(var(--color-foreground) / 0.015);
+  line-height: 1;
+}
+
+.pdc-chip__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background-color: rgb(var(--color-base-button) / 0.07);
+  color: rgb(var(--color-base-button));
+}
+
+.pdc-chip__icon .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.pdc-chip__v {
+  font-family: var(--font-body-family);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgb(var(--color-foreground));
+  white-space: nowrap;
+}
+
+/* ---------- Rows (longer facts) → unified spec-sheet card ---------- */
+.pdc-rows {
+  display: block;
+  border: var(--card-border-width, 1px) solid rgb(var(--color-foreground) / 0.10);
+  border-radius: 13px;
+  background-color: rgb(var(--color-foreground) / 0.015);
+  overflow: hidden;
+}
+
+.pdc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 8px 11px;
+  border-block-end: 1px solid rgb(var(--color-foreground) / 0.09);
+}
+
+.pdc-row:last-child {
+  border-block-end: 0;
+}
+
+.pdc-row__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  border-radius: 7px;
+  background-color: rgb(var(--color-base-button) / 0.07);
+  color: rgb(var(--color-base-button));
+  margin-block-start: 1px;
+}
+
+.pdc-row__icon .icon {
+  width: 13.5px;
+  height: 13.5px;
+}
+
+/* Tint the icon silhouette crimson too (overrides the theme's foreground fill). */
+.pdc-chip__icon .icon .fill,
+.pdc-row__icon .icon .fill {
+  fill: rgb(var(--color-base-button) / 0.14);
+}
+
+.pdc-row__body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.pdc-row__k {
+  font-family: var(--font-heading-family);
+  font-style: var(--font-heading-style, normal);
+  font-weight: 800;
+  font-size: 8.5px;
+  line-height: 1.1;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: rgb(var(--color-foreground) / 0.5);
+}
+
+.pdc-row__v {
+  font-family: var(--font-body-family);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.32;
+  color: rgb(var(--color-foreground) / 0.9);
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}

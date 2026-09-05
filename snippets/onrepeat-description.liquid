@@ -1,0 +1,291 @@
+{%- comment -%}
+  Description — clamped, with an inline "Read more" (replaces the old collapsible_tab).
+
+  The copy sits openly on the page, trimmed to a few lines and trailing into an italic
+  underlined "… Read more" on the last line — the same cue the reference uses. Tapping it
+  expands the rest in place (0.25s, matching the theme's accordion reveal) and the control
+  becomes "Read less" at the end of the final paragraph.
+
+  If the description is already short enough, the control removes itself, so a two-line
+  description never carries a pointless affordance.
+
+  CSS and JS are inlined deliberately — see the note in onrepeat-detail-strip.liquid.
+
+  Usage: {%- render 'onrepeat-description', product: product, block: block -%}
+{%- endcomment -%}
+
+{%- liquid
+  assign rm_heading = block.settings.heading | default: 'Description'
+  assign rm_lines = block.settings.lines | default: 3
+-%}
+
+{%- if product.description != blank -%}
+  <div class="onrepeat-rm" {{ block.shopify_attributes }}>
+    <style>
+      .onrepeat-rm {
+        border-block-start: 1px solid rgba(43, 18, 20, 0.10);
+        padding-block-start: 20px;
+      }
+      onrepeat-readmore { display: block; }
+      .onrepeat-rm__ovl {
+        display: block;
+        font-family: var(--font-body-family), sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6c635c;              /* 5.87:1 on white — AA at this size */
+        margin: 0 0 14px;
+      }
+      .onrepeat-rm__wrap { position: relative; }
+      .onrepeat-rm__body {
+        font-family: var(--font-body-family), sans-serif;
+        font-size: 13.5px;
+        font-weight: 400;
+        line-height: 1.7;
+        color: rgba(43, 18, 20, 0.82);
+        text-wrap: pretty;
+      }
+      /* The line count rides on the element, not the stylesheet — two instances on one
+         page would otherwise share whichever rule happened to be parsed last. */
+      .onrepeat-rm__body.is-clamped {
+        max-height: calc(var(--onrepeat-rm-lines, 3) * 1.7em);
+        overflow: hidden;
+      }
+      .onrepeat-rm__body > * { margin: 0 0 12px; }
+      .onrepeat-rm__body > *:last-child { margin-block-end: 0; }
+      .onrepeat-rm__body em { font-style: italic; }
+      .onrepeat-rm__body strong { font-weight: 600; color: #2b1214; }
+      .onrepeat-rm__body a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+      .onrepeat-rm__body ul, .onrepeat-rm__body ol { padding-inline-start: 18px; }
+
+      /* Collapsed: the control sits on the last visible line, with a soft wash behind it so
+         the trimmed sentence reads as trailing off rather than colliding with the label. */
+      .onrepeat-rm__btn {
+        position: absolute;
+        inset-inline-end: 0;
+        inset-block-end: 0;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 2px;
+        min-height: 24px;
+        padding: 0 0 0 46px;
+        border: 0;
+        background: linear-gradient(
+          to right,
+          rgb(var(--color-background, 255 255 255) / 0) 0,
+          rgb(var(--color-background, 255 255 255)) 42px
+        );
+        font-family: var(--font-body-family), sans-serif;
+        font-size: 13px;
+        font-style: italic;
+        font-weight: 500;
+        line-height: 1.7;
+        color: #2b1214;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .onrepeat-rm__btn .onrepeat-rm__lbl {
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 4px;
+      }
+      /* Expanded: it becomes ordinary inline text at the end of the last paragraph. */
+      .onrepeat-rm__btn.is-inline {
+        position: static;
+        min-height: 0;
+        padding: 0;
+        margin-inline-start: 6px;
+        background: none;
+      }
+      .onrepeat-rm__btn.is-inline .onrepeat-rm__el { display: none; }
+      .onrepeat-rm__btn[hidden] { display: none; }
+    </style>
+
+    <onrepeat-readmore>
+      <span class="onrepeat-rm__ovl">{{ rm_heading | escape }}</span>
+      <div class="onrepeat-rm__wrap">
+        <div class="onrepeat-rm__body is-clamped" style="--onrepeat-rm-lines: {{ rm_lines }};" data-rm-body>{{ product.description }}</div>
+        <button type="button" class="onrepeat-rm__btn" data-rm-btn aria-expanded="false">
+          <span class="onrepeat-rm__el" aria-hidden="true">…</span>
+          <span class="onrepeat-rm__lbl" data-rm-label>Read more</span>
+        </button>
+      </div>
+    </onrepeat-readmore>
+
+    <script>
+      (function () {
+        if (customElements.get('onrepeat-readmore')) return;
+
+        // Shared with the care & fabric strip, so the two controls on this page open with
+        // one motion. Fast out, long settle — the copy arrives before the eye chases it.
+        var EASE = 'cubic-bezier(0.2, 0.7, 0.2, 1)';
+        var DUR = 300;
+
+        class OnRepeatReadmore extends HTMLElement {
+          connectedCallback() {
+            if (this._ready) return;
+
+            // An element parsed *after* its definition exists upgrades on its start tag —
+            // before the parser has produced its children. Wait for them rather than
+            // silently doing nothing (which is what a plain early return would do).
+            this.body = this.querySelector('[data-rm-body]');
+            this.wrap = this.querySelector('.onrepeat-rm__wrap');
+            this.btn = this.querySelector('[data-rm-btn]');
+            this.label = this.querySelector('[data-rm-label]');
+            if (!this.body || !this.btn || !this.label) {
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => this.connectedCallback(), { once: true });
+              } else {
+                requestAnimationFrame(() => this.connectedCallback());
+              }
+              return;
+            }
+            this._ready = true;
+
+            this.moreText = this.label.textContent.trim() || 'Read more';
+            this.lessText = 'Read less';
+            this.expanded = false;
+            this._anims = [];
+            this._busy = false;
+
+            this.btn.addEventListener('click', () => this.toggle());
+            this.measure();
+
+            // Re-check on reflow: a wider viewport or a swapped font can make the copy fit.
+            if ('ResizeObserver' in window) {
+              let raf = 0;
+              this._ro = new ResizeObserver(() => {
+                // This observes the element whose height we animate, so every frame of a
+                // collapse looks like a reflow. Re-measuring here re-ran the caret probe
+                // ~15 times per toggle and re-applied .is-clamped, whose max-height then
+                // fought the animated height — the stutter this control was known for.
+                if (this._busy) return;
+                cancelAnimationFrame(raf);
+                raf = requestAnimationFrame(() => { if (!this.expanded && !this._busy) this.measure(); });
+              });
+              this._ro.observe(this.body);
+            }
+          }
+
+          disconnectedCallback() {
+            if (this._ro) this._ro.disconnect();
+            if (this._anims) { this._anims.forEach((a) => a.cancel()); this._anims = []; }
+            this._busy = false;
+          }
+
+          // Short copy needs no control — drop the affordance rather than show a dead one.
+          measure() {
+            const overflows = this.body.scrollHeight > this.body.clientHeight + 2;
+            this.btn.hidden = !overflows;
+            this.body.classList.toggle('is-clamped', overflows);
+            if (overflows) this.refineEllipsis();
+          }
+
+          // The "…" only earns its place when the clamp cuts mid-sentence. When the last
+          // visible character already ends one, a trailing dot reads as a typo — so probe
+          // the character under the fade and hide it. Falls back to keeping the ellipsis.
+          refineEllipsis() {
+            const el = this.btn.querySelector('.onrepeat-rm__el');
+            if (!el) return;
+            el.hidden = false;   // re-probe from scratch, or a hidden ellipsis never returns
+            try {
+              const box = this.btn.getBoundingClientRect();
+              const body = this.body.getBoundingClientRect();
+              if (!box.width || !body.height) return;
+              // Sample just outside the control's own box, otherwise the caret lands in the
+              // button's text instead of the paragraph it is sitting on top of.
+              const lh = parseFloat(getComputedStyle(this.body).lineHeight) || 22;
+              const x = box.left - 3;
+              const y = body.bottom - lh / 2;
+              let node = null;
+              let offset = 0;
+              if (document.caretRangeFromPoint) {
+                const r = document.caretRangeFromPoint(x, y);
+                if (r) { node = r.startContainer; offset = r.startOffset; }
+              } else if (document.caretPositionFromPoint) {
+                const pos = document.caretPositionFromPoint(x, y);
+                if (pos) { node = pos.offsetNode; offset = pos.offset; }
+              }
+              if (!node || node.nodeType !== 3 || this.btn.contains(node)) return;
+              const before = node.textContent.slice(0, offset).replace(/\s+$/, '');
+              el.hidden = /[.!?…]$/.test(before.slice(-1));
+            } catch (e) { /* keep the ellipsis if the probe is unavailable */ }
+          }
+
+          toggle() {
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            // Read before cancelling, so a mid-flight reversal starts from what is on
+            // screen rather than snapping to the resting height first.
+            const from = this.body.getBoundingClientRect().height;
+            this._anims.forEach((a) => a.cancel());
+            this._anims = [];
+
+            this.expanded = !this.expanded;
+            this.btn.setAttribute('aria-expanded', this.expanded ? 'true' : 'false');
+            this.label.textContent = this.expanded ? this.lessText : this.moreText;
+
+            if (this.expanded) {
+              this.body.classList.remove('is-clamped');
+              const last = this.body.lastElementChild;
+              // Only paragraphs can safely host inline content; anything else keeps it outside.
+              if (last && last.tagName === 'P') last.appendChild(this.btn);
+              else this.wrap.appendChild(this.btn);
+              this.btn.classList.add('is-inline');
+            } else {
+              this.btn.classList.remove('is-inline');
+              this.wrap.appendChild(this.btn);
+              this.body.classList.add('is-clamped');
+            }
+
+            // Measure the resting height with the final classes applied, then take the
+            // clamp back off for the duration. .is-clamped carries a max-height equal to
+            // that resting height, so leaving it on caps every frame of the collapse at
+            // its destination — the panel shut instantly instead of animating.
+            const to = this.body.getBoundingClientRect().height;
+            const reclamp = this.body.classList.contains('is-clamped');
+            if (reclamp) this.body.classList.remove('is-clamped');
+
+            const settle = () => {
+              this._busy = false;
+              if (reclamp) this.body.classList.add('is-clamped');
+              this._anims.forEach((a) => a.cancel());   // release fill onto the real state
+              this._anims = [];
+              this.body.style.overflow = '';
+              this.btn.style.opacity = '';
+              if (!this.expanded) this.refineEllipsis();
+            };
+
+            if (reduce || !this.body.animate || Math.abs(to - from) < 1) { settle(); return; }
+
+            this._busy = true;
+            this.body.style.overflow = 'hidden';
+
+            // Held forwards so the class swap in settle() lands before the height is
+            // released, otherwise the copy flashes to full height for a frame.
+            const grow = this.body.animate(
+              [{ height: from + 'px' }, { height: to + 'px' }],
+              { duration: DUR, easing: EASE, fill: 'both' }
+            );
+            // The control changes home and label at the same instant; without this it
+            // teleports from the fade overlay to the end of the paragraph mid-slide.
+            const fade = this.btn.animate(
+              [{ opacity: 0 }, { opacity: 1 }],
+              { duration: DUR * 0.55, delay: DUR * 0.45, easing: 'ease-out', fill: 'backwards' }
+            );
+
+            const anims = [grow, fade];
+            this._anims = anims;
+            Promise.all(anims.map((a) => a.finished))
+              .then(() => { if (this._anims === anims) settle(); })
+              .catch(() => { /* superseded by a newer toggle, which owns the cleanup */ });
+          }
+        }
+
+        customElements.define('onrepeat-readmore', OnRepeatReadmore);
+      })();
+    </script>
+  </div>
+{%- endif -%}

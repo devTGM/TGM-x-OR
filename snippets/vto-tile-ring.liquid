@@ -1,0 +1,29 @@
+{%- comment -%}
+  Progress ring for the minimised try-on tile.
+
+  Rendered into the buy bar's 48px thumbnail (snippets/vto-button.liquid,
+  placement 'tile'), which is the minimised try-on's only home. It used to be
+  rendered into a floating copy as well; there is no floating copy any more.
+  assets/vto.css styles it; assets/vto.js drives it by setting --vto-pct.
+
+  The path is traced from TOP CENTRE clockwise, deliberately. An SVG <rect>
+  begins its path at (x + rx, y) — the end of the top-left corner — so partial
+  progress rendered as a bar hanging off the left rather than a sweep from the
+  top, which is what every other progress indicator a shopper has ever seen
+  does.
+
+  Geometry, for a 48x48 tile with a 10px radius:
+    stroke 2.5 centred at inset 1.25, so it spans 0..2.5 and sits exactly on
+    the tile's own border line; radius 10 - 1.25 = 8.75; corner runs therefore
+    begin at 10 and end at 38; top centre is 24.
+
+  pathLength="100" normalises the perimeter to 100 units whatever the pixel
+  size, which is what lets `stroke-dasharray: <pct> 100` mean percent directly
+  and keeps the existing paced-progress maths unchanged.
+{%- endcomment -%}
+<svg class="vto-tile__ring" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+  <path class="vto-tile__track" pathLength="100"
+        d="M24 1.25 H38 A8.75 8.75 0 0 1 46.75 10 V38 A8.75 8.75 0 0 1 38 46.75 H10 A8.75 8.75 0 0 1 1.25 38 V10 A8.75 8.75 0 0 1 10 1.25 Z"/>
+  <path class="vto-tile__fill" pathLength="100"
+        d="M24 1.25 H38 A8.75 8.75 0 0 1 46.75 10 V38 A8.75 8.75 0 0 1 38 46.75 H10 A8.75 8.75 0 0 1 1.25 38 V10 A8.75 8.75 0 0 1 10 1.25 Z"/>
+</svg>

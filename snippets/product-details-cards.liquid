@@ -1,0 +1,133 @@
+{%- comment -%}
+  Product details → branded "showcase" layout.
+
+  Renders the rich-text metafield `product.metafields.custom.product_details` (a single
+  unordered list whose items are a bold "Label: " followed by a value) as a compact,
+  scannable showcase:
+    • short, single-token values (e.g. Colour, Fit, Neckline, Sizes) become wrap-around
+      pills at the top;
+    • longer / sentence-like values (e.g. Fabric, Print, Care) become compact icon rows
+      below.
+  This keeps the block roughly a third of the old stacked-card height while staying on
+  brand (crimson icons, Inter type) and showing every value in full.
+
+  The chip-vs-row split is data-driven (value length + punctuation), so it adapts to any
+  product: all-short data becomes a tidy pill cloud, all-long data becomes a clean row
+  list. Each label maps to an on-brand icon (reusing snippets/icon-guarantee.liquid where
+  possible, with a neutral `tag` fallback).
+
+  Safety: if the metafield is blank, nothing is output. If the expected list markup isn't
+  found, the raw metafield is rendered verbatim so content is never lost.
+
+  Usage: {% render 'product-details-cards', product: product %}
+{%- endcomment -%}
+
+{%- assign md = product.metafields.custom.product_details -%}
+{%- if md != blank -%}
+  {{ 'product-details-cards.css' | asset_url | stylesheet_tag }}
+  {%- capture details_html -%}{{ md | metafield_tag }}{%- endcapture -%}
+  {%- assign items = details_html | split: '<li>' -%}
+  {%- if items.size > 1 -%}
+    {%- assign chips_html = '' -%}
+    {%- assign rows_html = '' -%}
+    {%- for item in items offset: 1 -%}
+      {%- liquid
+        assign inner = item | split: '</li>' | first
+        assign label = ''
+        assign value = ''
+        if inner contains '<strong>'
+          assign label = inner | split: '</strong>' | first | split: '<strong>' | last | strip_html | strip
+          assign value = inner | split: '</strong>' | last | strip
+        else
+          assign txt = inner | strip_html | strip
+          assign label = txt | split: ':' | first | strip
+          assign value = txt | remove_first: label | remove_first: ':' | strip
+        endif
+        assign label = label | replace: ':', '' | strip
+        assign key = label | downcase
+        assign plain = value | strip_html | strip
+        assign vlen = plain | size
+      -%}
+      {%- if label != blank or value != blank -%}
+        {%- comment -%} Decide chip (short, scannable) vs row (longer / sentence-like). {%- endcomment -%}
+        {%- assign is_chip = false -%}
+        {%- if value != blank and vlen <= 22 -%}
+          {%- assign is_chip = true -%}
+          {%- if plain contains '·' or plain contains '—' or plain contains ',' or plain contains ';' -%}
+            {%- assign is_chip = false -%}
+          {%- endif -%}
+        {%- endif -%}
+
+        {%- capture icon_html -%}
+          {%- case key -%}
+            {%- when 'fabric', 'material' -%}{%- render 'icon-guarantee', icon: 'swatchbook', size: 'lg' -%}
+            {%- when 'style' -%}{%- render 'icon-guarantee', icon: 'shirt', size: 'lg' -%}
+            {%- when 'detail', 'details' -%}{%- render 'icon-guarantee', icon: 'star', size: 'lg' -%}
+            {%- when 'features', 'feature' -%}{%- render 'icon-guarantee', icon: 'clipboard', size: 'lg' -%}
+            {%- when 'fit' -%}{%- render 'icon-guarantee', icon: 'ruler', size: 'lg' -%}
+            {%- when 'sizes', 'size' -%}{%- render 'icon-guarantee', icon: 'ruler_2', size: 'lg' -%}
+            {%- when 'care', 'wash' -%}{%- render 'icon-guarantee', icon: 'wash', size: 'lg' -%}
+            {%- when 'colour', 'color' -%}
+              <svg class="icon icon-lg" viewBox="0 0 24 24" stroke="currentColor" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="fill" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z"/>
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            {%- when 'print' -%}
+              <svg class="icon icon-lg" viewBox="0 0 24 24" stroke="currentColor" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="fill" d="M5 10h14a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2z"/>
+                <polyline points="7 9 7 3 17 3 17 9" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 18H4a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="7" y="15" width="10" height="6" rx="1" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            {%- when 'neckline', 'collar' -%}
+              <svg class="icon icon-lg" viewBox="0 0 24 24" stroke="currentColor" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="fill" d="M12 13L5 7l3-3 4 4 4-4 3 3z"/>
+                <path d="M12 13L5 7l3-3 4 4 4-4 3 3z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            {%- when 'closure' -%}
+              <svg class="icon icon-lg" viewBox="0 0 24 24" stroke="currentColor" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect class="fill" x="10" y="3" width="4" height="18" rx="2"/>
+                <path d="M12 3v18" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 6h2M13 8h2M9 10h2M13 12h2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="10" y="15" width="4" height="5" rx="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            {%- else -%}{%- render 'icon-guarantee', icon: 'tag', size: 'lg' -%}
+          {%- endcase -%}
+        {%- endcapture -%}
+
+        {%- if is_chip -%}
+          {%- capture chip -%}
+            <span class="pdc-chip" title="{{ label | escape }}">
+              <span class="pdc-chip__icon" aria-hidden="true">{{ icon_html }}</span>
+              {%- if label != blank -%}<span class="visually-hidden">{{ label | escape }}: </span>{%- endif -%}
+              <span class="pdc-chip__v">{{ value }}</span>
+            </span>
+          {%- endcapture -%}
+          {%- assign chips_html = chips_html | append: chip -%}
+        {%- else -%}
+          {%- capture row -%}
+            <div class="pdc-row">
+              <span class="pdc-row__icon" aria-hidden="true">{{ icon_html }}</span>
+              <span class="pdc-row__body">
+                {%- if label != blank -%}<span class="pdc-row__k">{{ label }}</span>{%- endif -%}
+                {%- if value != blank -%}<span class="pdc-row__v">{{ value }}</span>{%- endif -%}
+              </span>
+            </div>
+          {%- endcapture -%}
+          {%- assign rows_html = rows_html | append: row -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endfor -%}
+
+    {%- if chips_html != blank or rows_html != blank -%}
+      <div class="pdc">
+        {%- if chips_html != blank -%}<div class="pdc-chips">{{ chips_html }}</div>{%- endif -%}
+        {%- if rows_html != blank -%}<div class="pdc-rows">{{ rows_html }}</div>{%- endif -%}
+      </div>
+    {%- else -%}
+      {{ md | metafield_tag }}
+    {%- endif -%}
+  {%- else -%}
+    {{ md | metafield_tag }}
+  {%- endif -%}
+{%- endif -%}

@@ -1,0 +1,423 @@
+/*
+ * Gallery try-on pill (snippets/vto-button.liquid, placement 'gallery').
+ *
+ * A glass pill pinned to the PDP gallery's bottom-right corner, directly above
+ * the rating pill: the action on top, the reassurance beneath it, one right
+ * edge, one visual stack. It speaks the same frosted dark-crimson language as
+ * the rating and model-fit pills so it reads as part of the gallery's furniture
+ * rather than as an ad dropped on top of the photograph.
+ *
+ * WHY THIS IS A SEPARATE FILE
+ * The rest of the try-on lives in assets/vto.css, which layout/theme.liquid
+ * loads with media="print" and swaps to all on load — correct for a modal
+ * nobody sees until they ask for it, and wrong for a pill painted over the hero
+ * image on first paint. Unstyled, it would flash as a bare button in the middle
+ * of the badge layer. This file is served by the gallery snippet itself,
+ * alongside its two sibling pills, so it arrives with them.
+ *
+ * STATE
+ * Driven entirely by data-vto-tile-state / -offline / -carried and the
+ * --vto-pct custom property, all written by assets/vto.js's tile state machine.
+ * There is no gallery-specific JavaScript: this placement carries
+ * data-vto-tile, which is the machine's entire enrolment test, so it and the
+ * buy bar's 48px thumbnail move together or not at all.
+ */
+
+.vto-gpill {
+  position: absolute;
+  z-index: 4;
+  inset-block-end: var(--sp-3, 0.75rem);
+  inset-inline-end: var(--sp-3, 0.75rem);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* 5px at the start rather than 11px: the disc is a 22px circle and needs the
+     tighter inset to sit at the same optical distance from the edge as the
+     text does at the other end. */
+  padding: 5px 11px 5px 5px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(28, 8, 10, 0.55);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  backdrop-filter: blur(8px) saturate(1.2);
+
+  color: #f5f2ee;
+  font-family: var(--font-heading-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.5);
+
+  /* The badge layer is pointer-events:none so taps reach the slider; the pill
+     opts back in, like the rating pill beside it. */
+  pointer-events: auto;
+  cursor: pointer;
+  /* The ring sits ON the pill's edge and the dot hangs off its corner, so
+     nothing here may clip. */
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+/* Lifted clear of the rating pill when there is one. The offset is that pill's
+   own height plus an 11px gap — 25px + 11 on mobile, 28px + 11 from 768px,
+   where its padding and type both step up. Products with no reviews render no
+   rating pill, and the try-on pill drops into the corner slot itself rather
+   than floating above nothing. snippets/product-media-gallery.liquid decides
+   which case applies, from the same test the rating snippet uses. */
+.vto-gpill--stacked {
+  inset-block-end: calc(var(--sp-3, 0.75rem) + 36px);
+}
+
+.vto-gpill:hover {
+  background: rgba(28, 8, 10, 0.7);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+.vto-gpill:active {
+  transform: scale(0.96);
+}
+.vto-gpill:focus-visible {
+  outline: 2px solid #f5b301;
+  outline-offset: 2px;
+}
+
+/* ── The disc: icon at rest, meter while working ────────────────────────── */
+.vto-gpill__disc {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+.vto-gpill__ring {
+  position: absolute;
+  inset: 0;
+  width: 22px;
+  height: 22px;
+  /* Start the sweep at twelve o'clock. A circle's path begins at three, and a
+     meter that fills from the right is one nobody has seen before. */
+  transform: rotate(-90deg);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.vto-gpill__track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 2.5;
+}
+.vto-gpill__fill {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: var(--vto-pct, 0) 100;
+  transition: stroke-dasharray 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.vto-gpill__ico {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  color: #fff;
+}
+
+/* ── The label ──────────────────────────────────────────────────────────── */
+/* Positioned, and explicitly above, because the attention glow paints its wash
+   and its sweeping highlight on an absolutely-positioned ::before. Left in the
+   normal flow the label would sit UNDER that — positioned descendants paint
+   above unpositioned content — and the bright band crossing the pill washed
+   "Try on" out to nearly unreadable for the whole second it took to travel.
+   The icon disc escaped it only because it was already position:relative. */
+.vto-gpill__lab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-inline-end: 2px;
+}
+/* Tabular figures: the percentage reads once per second and a proportional
+   font would make the pill twitch on every tick. */
+.vto-gpill__pct {
+  display: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  opacity: 0.82;
+}
+.vto-gpill__ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 5px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.vto-gpill__ai svg {
+  flex: none;
+  width: 8px;
+  height: 8px;
+}
+
+.vto-gpill__dot {
+  position: absolute;
+  top: -3px;
+  inset-inline-end: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--vto-red, #5c1011);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+  display: none;
+}
+
+/* ── States, driven by data-vto-tile-state ──────────────────────────────── */
+.vto-gpill[data-vto-tile-state] .vto-gpill__ring {
+  opacity: 1;
+}
+/* The "AI" chip is an invitation, and an invitation is over once the shopper
+   has accepted it. It gives up its room to the percentage instead.
+   [hidden] is not used here on purpose: it is only a presentation hint and
+   loses to the display rule above it. */
+.vto-gpill[data-vto-tile-state] .vto-gpill__ai {
+  display: none;
+}
+.vto-gpill[data-vto-tile-state="generating"] .vto-gpill__pct {
+  display: inline;
+}
+
+.vto-gpill[data-vto-tile-state="generating"] {
+  background: rgba(92, 16, 17, 0.72);
+  border-color: rgba(255, 255, 255, 0.3);
+  animation: vto-gpill-breathe 1.9s ease-in-out infinite;
+}
+@keyframes vto-gpill-breathe {
+  0%, 100% { box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.5); }
+  50%      { box-shadow: 0 4px 18px -4px rgba(92, 16, 17, 0.85); }
+}
+
+/* ready and error are CLOSED loops and must never be drawn as a dash: at
+   exactly 100 the two round linecaps land on the same point and render as a
+   bump beside a hairline gap. */
+.vto-gpill[data-vto-tile-state="ready"] .vto-gpill__fill,
+.vto-gpill[data-vto-tile-state="error"] .vto-gpill__fill {
+  stroke-dasharray: none;
+}
+.vto-gpill[data-vto-tile-state="ready"] {
+  background: var(--vto-red, #5c1011);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+.vto-gpill[data-vto-tile-state="ready"] .vto-gpill__dot {
+  display: block;
+}
+
+/* Amber, not the brand crimson. A failure must not read as the brand accent —
+   the same rule the modal's error surfaces follow. */
+.vto-gpill[data-vto-tile-state="error"] {
+  background: rgba(138, 90, 18, 0.86);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.vto-gpill[data-vto-tile-state="error"] .vto-gpill__fill {
+  stroke: #ffe2a8;
+}
+
+/* Connection lost mid-render. The pill says it by going still and cold: a
+   meter that keeps pulsing while nothing is happening is the one thing a
+   progress indicator must never do. */
+.vto-gpill[data-vto-tile-offline="true"] {
+  animation: none;
+  background: rgba(28, 8, 10, 0.5);
+}
+.vto-gpill[data-vto-tile-offline="true"] .vto-gpill__fill {
+  stroke: rgba(255, 255, 255, 0.45);
+}
+
+/* The session belongs to a garment the shopper has walked away from. The
+   accessible name says whose it is (vto.js writes it); this is the visual
+   half — lifted and outlined, so it reads as something brought along rather
+   than as this page's own. */
+.vto-gpill[data-vto-tile-carried="true"] {
+  border-color: rgba(255, 255, 255, 0.42);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vto-gpill[data-vto-tile-state="generating"] { animation: none; }
+  .vto-gpill__fill { transition: none; }
+  .vto-gpill { transition: none; }
+}
+
+/* From tablet up the gallery frame is larger and the sibling pills step up
+   with it; this one keeps their rhythm. */
+@media screen and (min-width: 768px) {
+  .vto-gpill {
+    inset-block-end: var(--sp-4, 1rem);
+    inset-inline-end: var(--sp-4, 1rem);
+    font-size: 12px;
+    padding: 6px 12px 6px 6px;
+  }
+  .vto-gpill--stacked {
+    inset-block-end: calc(var(--sp-4, 1rem) + 39px);
+  }
+}
+
+/* Contrast insurance where backdrop-blur is unsupported — the pill sits on a
+   photograph and cannot rely on the blur to separate its text from it. */
+@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .vto-gpill {
+    background: rgba(28, 8, 10, 0.74);
+  }
+}
+
+/* ══ The one-time attention glow ═══════════════════════════════════════════
+   A single bloom that says "this is here", once, and then never again — the
+   job a tooltip notifier does, without a tooltip's box to dismiss.
+
+   assets/vto.js adds data-vto-hint and takes it away when the animation is
+   over. It is never added while the pill is carrying a session: drawing
+   attention to a control that is already visibly working is noise, and the
+   glow would fight the generating state's own breathing shadow for the same
+   box-shadow property.
+
+   Built from two halves so neither has to compromise:
+     ::before is the pill's own face lighting up: a warm crimson wash with a
+              bright gradient band sweeping across it. This is what carries the
+              hint. An outer glow alone was tried first and it is nearly
+              invisible here — this is a dark pill on a pale studio photograph,
+              and a soft warm bloom spreading into a cream background has
+              almost nothing to contrast against. The pill changing colour has
+              everything to contrast against: itself, a moment ago.
+     ::after  is the halo around it, two brand colours at different blur radii
+              and spreads — crimson tight, gold wide — which is how box-shadow
+              approximates a gradient bloom. It plays a supporting part, and it
+              carries the scale so the pill's own transform stays free for
+              :active and for the entrance animation.
+
+   Both are inset to the border box and inherit the pill's radius, and the
+   gradient MOVES INSIDE ::before rather than the element moving: the pill is
+   overflow:visible — the progress ring sits on its edge and the ready dot
+   hangs off its corner — so a translating highlight would slide straight out
+   over the photograph. */
+.vto-gpill[data-vto-hint] {
+  /* The halo and the sheen are painted by children, and a child cannot be
+     stacked behind a parent that has its own backdrop-filter. So the halo
+     spreads outward instead of sitting underneath, and nothing needs to
+     escape the pill's stacking context. */
+  isolation: isolate;
+}
+
+.vto-gpill[data-vto-hint]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: vto-gpill-hint-halo 1.9s cubic-bezier(0.33, 0, 0.2, 1) 0.7s both;
+}
+
+.vto-gpill[data-vto-hint]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* Two layers: the sweeping band on top, the warm wash beneath it. Only the
+     band's position is animated — the wash's second value holds it still. */
+  background-image:
+    linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(255, 255, 255, 0.16) 41%,
+      rgba(255, 238, 199, 0.62) 50%,
+      rgba(255, 255, 255, 0.16) 59%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(100deg, rgba(140, 32, 30, 0.88), rgba(92, 16, 17, 0.88));
+  background-size: 260% 100%, 100% 100%;
+  background-position: 150% 0, 0 0;
+  animation: vto-gpill-hint-face 2.1s cubic-bezier(0.33, 0, 0.2, 1) 0.7s both;
+}
+
+/* One rise, one fall. The wash is a large change and a second beat on it would
+   read as a flicker rather than as emphasis, so the double heartbeat lives on
+   the halo alone — where it is subtle enough to be felt rather than counted. */
+@keyframes vto-gpill-hint-face {
+  0%   { opacity: 0;    background-position: 150% 0, 0 0; }
+  18%  { opacity: 1;    background-position: 92% 0, 0 0; }
+  62%  { opacity: 0.96; background-position: 6% 0, 0 0; }
+  100% { opacity: 0;    background-position: -70% 0, 0 0; }
+}
+
+@keyframes vto-gpill-hint-halo {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+    box-shadow: 0 0 0 0 rgba(92, 16, 17, 0), 0 0 0 0 rgba(245, 179, 1, 0);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.06);
+    box-shadow: 0 0 18px 4px rgba(92, 16, 17, 0.72), 0 0 40px 13px rgba(245, 179, 1, 0.46);
+  }
+  46% {
+    opacity: 0.6;
+    transform: scale(1.005);
+    box-shadow: 0 0 11px 1px rgba(92, 16, 17, 0.3), 0 0 26px 7px rgba(245, 179, 1, 0.16);
+  }
+  66% {
+    opacity: 0.92;
+    transform: scale(1.042);
+    box-shadow: 0 0 15px 3px rgba(92, 16, 17, 0.52), 0 0 33px 10px rgba(245, 179, 1, 0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(92, 16, 17, 0), 0 0 0 0 rgba(245, 179, 1, 0);
+  }
+}
+
+/* Reduced motion still gets told. Suppressing the hint entirely would hide the
+   feature from the people who asked only that it hold still — so the halo
+   cross-fades in place with no travel, no scale and no second beat. */
+@media (prefers-reduced-motion: reduce) {
+  .vto-gpill[data-vto-hint]::after {
+    animation: vto-gpill-hint-halo-still 1.8s ease-in-out 0.7s both;
+  }
+  /* The wash still happens — a colour change is not motion, and it is the half
+     that actually gets noticed. What goes is the travelling band and the
+     scaling halo. */
+  .vto-gpill[data-vto-hint]::before {
+    background-position: 50% 0, 0 0;
+    animation: vto-gpill-hint-face-still 1.8s ease-in-out 0.7s both;
+  }
+  @keyframes vto-gpill-hint-halo-still {
+    0%, 100% { opacity: 0; box-shadow: 0 0 0 0 rgba(92, 16, 17, 0), 0 0 0 0 rgba(245, 179, 1, 0); }
+    30%, 62% { opacity: 1; box-shadow: 0 0 18px 4px rgba(92, 16, 17, 0.66), 0 0 38px 12px rgba(245, 179, 1, 0.4); }
+  }
+  @keyframes vto-gpill-hint-face-still {
+    0%, 100% { opacity: 0; }
+    30%, 62% { opacity: 1; }
+  }
+}
+
+/* One non-looping entrance, matched to the rating pill's so the stack settles
+   as a unit. Delayed by its 420ms so the pills arrive bottom-up. */
+@media (prefers-reduced-motion: no-preference) {
+  .vto-gpill {
+    animation: vto-gpill-in 420ms ease-out 160ms both;
+  }
+  @keyframes vto-gpill-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: none; }
+  }
+}

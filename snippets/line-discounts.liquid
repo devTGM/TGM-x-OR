@@ -1,0 +1,130 @@
+{%- comment -%}
+  Line-item discount display — shared by the cart (`cart-item-price.liquid`) and
+  the order/account page (`sections/main-order.liquid`).
+
+  Renders real money discounts as compact tags and never prints a −₹0.00 amount.
+  Background: some automatic discounts (e.g. a Buy-X-Get-Y promo) attach a ₹0
+  allocation to the qualifying lines, which would otherwise show a verbose,
+  meaningless "… −₹0.00" tag on an item the shopper is fully paying for.
+
+  The visible label is shortened to the REWARD only — "₹300 Off", not
+  "₹300 Off — Spend ₹3000" — because the qualifying condition is both already met
+  and restated by the reward ladder. The full title and exact amount stay
+  available to assistive tech and as the element's title attribute.
+
+  Styled by assets/line-discounts.css, loaded globally from layout/theme.liquid.
+  The CSS cannot live in a {% stylesheet %} block here: Shopify only compiles those
+  for sections and blocks, so in a snippet it is silently never served and the 12px
+  icon expands to fill its container.
+
+  @param {object} item - a cart line item OR an order line item (both expose
+                         line_level_discount_allocations, final_line_price,
+                         properties).
+  @param {boolean} force_inr - order history is a record of an INR charge, so
+                         main-order passes true to keep every figure INR even
+                         for a US-context visitor. Cart surfaces omit it.
+
+  @example
+  {% render 'line-discounts', item: item %}
+{%- endcomment -%}
+
+{%- comment -%}
+  Skip lines that are actually free (the green FREE badge in cart-item-price owns
+  them) and carousel gift lines. For paid lines, render only real money discounts —
+  a ₹0 allocation artifact (the BXGY "buy"-side) is suppressed entirely, so there's
+  never a "−₹0.00" or a stray freebie chip on an item the shopper is paying for.
+{%- endcomment -%}
+{%- liquid
+  assign is_free_line = false
+  if item.final_line_price == 0 and item.original_line_price > 0
+    assign is_free_line = true
+  elsif item.properties['_free_gift'] != blank
+    assign is_free_line = true
+  endif
+
+  assign real_count = 0
+  if is_free_line == false
+    for allocation in item.line_level_discount_allocations
+      if allocation.amount > 0
+        assign real_count = real_count | plus: 1
+      endif
+    endfor
+  endif
+-%}
+
+{%- if real_count > 0 -%}
+  <ul class="discounts discounts--line list-unstyled" role="list" aria-label="{{ 'customer.order.discount' | t | escape }}">
+    {%- for allocation in item.line_level_discount_allocations -%}
+      {%- if allocation.amount > 0 -%}
+        {%- liquid
+          comment
+            Admin names these discounts for the merchant's benefit — "₹300 Off —
+            Spend ₹3000". In a cart line that is far too long for the narrow
+            details column: it truncated mid-word and then wrapped the orphaned
+            tail onto its own line. Everything after the dash is the QUALIFYING
+            condition, which the shopper has by definition already met, and the
+            reward ladder above states it anyway. Keep only the reward.
+          endcomment
+          assign disc_title = allocation.discount_application.title
+          assign disc_short = disc_title | split: '—' | first
+          assign disc_short = disc_short | split: '–' | first
+          assign disc_short = disc_short | split: ' - ' | first
+          assign disc_short = disc_short | strip
+
+          comment
+            These titles already name their amount, so printing it again beside
+            them just says "₹300 Off  −₹300". Show the amount only when the title
+            does not already carry it (a "Bundle deal" style discount).
+
+            The test has to be on a WORD boundary. `contains` is a substring
+            match, and allocation.amount is this LINE's share, not the whole
+            discount: a ₹300 order-class discount spread over lines gives a ₹30
+            allocation, and "₹300 Off" contains "₹30" — so the amount was
+            suppressed and the row rendered a bare "₹300 Off" on a line that had
+            actually received ₹30. Appending a space to both sides makes "₹30 "
+            fail against "₹300 Off " while "₹300 " still matches.
+          endcomment
+          assign disc_amount = allocation.amount | money_without_trailing_zeros
+          assign disc_probe = disc_amount | append: ' '
+          assign disc_haystack = disc_short | append: ' '
+          assign disc_shows_amount = false
+          if disc_haystack contains disc_probe
+            assign disc_shows_amount = true
+          endif
+
+          comment
+            US context: every printed surface — the visible pill, the title
+            tooltip and the sr-only sentence — converts its ladder figures to
+            USD via usd-inr-text. This runs AFTER the suppression probe above,
+            which must keep comparing INR strings: Admin titles are INR-worded.
+          endcomment
+          if force_inr
+            assign disc_short_display = disc_short
+            assign disc_title_display = disc_title
+            capture disc_amount_display
+              echo allocation.amount | money
+            endcapture
+          else
+            capture disc_short_display
+              render 'usd-inr-text', text: disc_short
+            endcapture
+            capture disc_title_display
+              render 'usd-inr-text', text: disc_title
+            endcapture
+            capture disc_amount_display
+              render 'money-display', amount: allocation.amount
+            endcapture
+          endif
+        -%}
+        <li class="discounts__discount" title="{{ disc_title_display | escape }}">
+          <svg class="discounts__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 7.6V3.3a.8.8 0 0 1 .8-.8h4.3a.8.8 0 0 1 .57.24l5.3 5.3a.8.8 0 0 1 0 1.13l-4.3 4.3a.8.8 0 0 1-1.13 0l-5.3-5.3a.8.8 0 0 1-.24-.57Z" stroke="currentColor" stroke-width="1.3"/><circle cx="5.6" cy="5.6" r="1" fill="currentColor"/></svg>
+          <span class="discounts__title">{{ disc_short_display }}</span>
+          {%- unless disc_shows_amount -%}
+            <span class="discounts__amount">&minus;{{ disc_amount_display }}</span>
+          {%- endunless -%}
+          <span class="sr-only">, {{ disc_title_display | escape }}, &minus;{{ disc_amount_display }}</span>
+        </li>
+      {%- endif -%}
+    {%- endfor -%}
+  </ul>
+{%- endif -%}

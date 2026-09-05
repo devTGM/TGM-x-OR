@@ -1,0 +1,234 @@
+{%- comment -%}
+  Tap-to-mute for PDP gallery videos.
+
+  The gallery's videos autoplay silently with NO native controls — Safari's
+  control bar carried a dark scrim across the footage and buried the
+  garment. This restores the one control that matters, the way Instagram
+  does it: tap anywhere on the video to toggle sound, with a badge that
+  flashes the new state in the middle of the frame.
+
+  Behaviour:
+  - Tap (not swipe) anywhere on a video: toggles mute. A pointer that moves
+    more than 10px, or lingers past 600ms, is a gallery swipe or a long
+    press and is ignored, so paging through the gallery never toggles sound.
+  - While a video is paused — autoplay blocked by iOS Low Power Mode, say —
+    the first tap plays it instead; sound follows on the next tap.
+  - A small speaker chip sits in the frame's top-right corner (free on video
+    slides; the zoom button only renders for images). It states the current
+    state, and being a real <button> it carries the keyboard and screen
+    reader path that a tap gesture alone cannot.
+  - Volume is per video and survives paging away and back; a video that
+    scrolls out of view is paused by video-media's own in-view observer.
+
+  Scoped to <media-gallery> on purpose: product cards autoplay with the same
+  no-controls flag, and a product page renders cards below it — a card tap
+  must open the product, never toggle sound.
+
+  Self-contained: markup, styles and behaviour ship together in the page
+  render, so a cached page can never pair this markup with a stale copy of
+  its script.
+{%- endcomment -%}
+
+<style>
+  .sv-tap__chip,
+  .sv-tap__flash {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: 0;
+    pointer-events: none;
+  }
+  .sv-tap__chip {
+    inset-block-start: var(--sp-3, 0.75rem);
+    inset-inline-end: var(--sp-3, 0.75rem);
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(28, 8, 10, 0.5);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
+    backdrop-filter: blur(8px) saturate(1.2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: opacity 0.2s ease, transform 0.12s ease;
+  }
+  .sv-tap__chip:active {
+    transform: scale(0.92);
+  }
+  .sv-tap__chip:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+  .sv-tap__chip svg,
+  .sv-tap__flash svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* The centre badge: scales up and fades out on every toggle. */
+  .sv-tap__flash {
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    width: 62px;
+    height: 62px;
+    margin: -31px 0 0 -31px;
+    border-radius: 50%;
+    background: rgba(28, 8, 10, 0.55);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  .sv-tap__flash svg {
+    width: 26px;
+    height: 26px;
+  }
+  .sv-tap__flash.is-on {
+    animation: sv-tap-pop 0.75s ease forwards;
+  }
+  @keyframes sv-tap-pop {
+    0% { opacity: 0; transform: scale(0.7); }
+    18% { opacity: 1; transform: scale(1); }
+    62% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.08); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sv-tap__flash.is-on {
+      animation: sv-tap-fade 0.75s ease forwards;
+    }
+    @keyframes sv-tap-fade {
+      0%, 70% { opacity: 1; transform: none; }
+      100% { opacity: 0; transform: none; }
+    }
+    .sv-tap__chip {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    'use strict';
+
+    var SPEAKER = '<path d="M4 9v6h4l5 4V5L8 9H4z"/>';
+    var ON = SPEAKER + '<path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/>';
+    var OFF = SPEAKER + '<path d="M17 9.5l4 5"/><path d="M21 9.5l-4 5"/>';
+    var svg = function (paths) {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + paths + '</svg>';
+    };
+
+    function decorate(host) {
+      if (host.dataset.svTap === '1') return;
+      var video = host.querySelector('video');
+      if (!video) return;               // host videos (YouTube/Vimeo) keep their own player
+      host.dataset.svTap = '1';
+
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'sv-tap__chip';
+
+      var flash = document.createElement('span');
+      flash.className = 'sv-tap__flash';
+
+      function paint() {
+        var muted = video.muted;
+        chip.innerHTML = svg(muted ? OFF : ON);
+        chip.setAttribute('aria-pressed', muted ? 'true' : 'false');
+        chip.setAttribute('aria-label', muted ? 'Unmute video' : 'Mute video');
+      }
+
+      function toggle() {
+        video.muted = !video.muted;
+        if (!video.muted) video.volume = 1;
+        paint();
+        flash.innerHTML = svg(video.muted ? OFF : ON);
+        flash.classList.remove('is-on');
+        void flash.offsetWidth;         // restart the animation on rapid taps
+        flash.classList.add('is-on');
+      }
+
+      // A paused video (autoplay blocked, e.g. iOS Low Power Mode) plays on
+      // the first tap; sound is the next tap's job.
+      function act() {
+        if (video.paused) {
+          var p = video.play();
+          if (p && p.catch) p.catch(function () {});
+          return;
+        }
+        toggle();
+      }
+
+      chip.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        act();
+      });
+
+      // Tap vs swipe: the gallery pages by horizontal drag, so only a
+      // near-stationary, short press counts as a tap on the video.
+      var sx = 0, sy = 0, st = 0, tracking = false;
+      host.addEventListener('pointerdown', function (e) {
+        if (e.target.closest('.sv-tap__chip')) return;
+        tracking = true; sx = e.clientX; sy = e.clientY; st = Date.now();
+      }, { passive: true });
+      host.addEventListener('pointerup', function (e) {
+        if (!tracking) return;
+        tracking = false;
+        if (e.target.closest('.sv-tap__chip')) return;
+        var moved = Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy);
+        if (moved <= 10 && Date.now() - st <= 600) act();
+      }, { passive: true });
+      host.addEventListener('pointercancel', function () { tracking = false; }, { passive: true });
+
+      paint();
+      host.appendChild(flash);
+      host.appendChild(chip);
+    }
+
+    // Gallery videos only. Product cards carry no-controls too, and a product
+    // page renders cards below (cross-sell, recently viewed) — decorating those
+    // would put a mute chip on them and make a tap toggle sound instead of
+    // opening the product, which is what a card tap must do.
+    var SCOPE = 'media-gallery';
+
+    function scan() {
+      document.querySelectorAll(SCOPE + ' video-media[no-controls]').forEach(decorate);
+    }
+
+    // One scan per frame at most: decorate() appends to the DOM, which retriggers
+    // the observer, and a product page mutates constantly (lazy images, sliders).
+    var queued = false;
+    function schedule() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(function () { queued = false; scan(); });
+    }
+
+    function start() {
+      scan();
+      // The <video> only exists once video-media clones its deferred template,
+      // and the gallery re-renders on variant change — so watch rather than
+      // assume the element is ready at parse time. Scoped to the galleries so
+      // unrelated page mutations cost nothing.
+      if (!('MutationObserver' in window)) return;
+      var galleries = document.querySelectorAll(SCOPE);
+      if (!galleries.length) return;
+      var mo = new MutationObserver(schedule);
+      galleries.forEach(function (g) { mo.observe(g, { childList: true, subtree: true }); });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', start);
+    } else {
+      start();
+    }
+  })();
+</script>

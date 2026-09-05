@@ -1,0 +1,120 @@
+{%- comment -%}
+  ─────────────────────────────────────────────────────────────────────────────
+  Size-chart resolver — maps a product to its chart key
+  ─────────────────────────────────────────────────────────────────────────────
+  Outputs the chart key (defined in snippets/size-chart-data.liquid) INLINE, or an
+  empty string when the product has no override and should use the global
+  /pages/size-chart. Use it directly inside a data attribute:
+
+      data-sc-chart="{%- render 'size-chart-key', product: product -%}"
+
+  This is the ONE place matching lives. To add a category later, add its chart to
+  size-chart-data.liquid and a rule here.
+
+  Matching rules, in order:
+    • Cuban-collar shirts (moksha / vinelet / blaze / gulabi) → shirt-cuban-no-yoke
+    • Joggers (tag/type "Joggers", or the Joggers collection) → jogger-corduroy
+    • Knit polos (tag "POLOS" / "KNIT POLO", type "Polos")     → polo-knit
+    • Hoodies + sweatshirts (tag "Hoodie" / "Sweat Shirts")    → hoodie-sweatshirt
+    • Any T-shirt (sleeveless / half sleeve / full sleeve)    → tshirt-roundneck
+
+  Joggers are tested FIRST, ahead of every top. They are the only bottoms we
+  stock, so nothing below them can be a correct answer for one — and a bottom
+  that fell through to a top chart would be measured across the chest, which is
+  the worst failure this file can produce.
+
+  Joggers are also the one rule that reads collections, as a fallback after
+  tag and type. That is not a reversal of the hoodie reasoning below: the
+  Sweatshirts collection is unsafe because five of its seven products are not
+  sweatshirts, whereas the Joggers collection is the six jogger colourways and
+  nothing else. The tag/type test still runs first and is what actually matches
+  today; the collection test only catches a bottom that someone adds to the
+  collection without tagging it.
+
+  Why tag/type matching for tees: the store's product types are inconsistent —
+  tees live under "T Shirts", "T-Shirts", "half sleeve", "Sleeve less" and even
+  "Shirts" — so the reliable signal is the tag ("T SHIRTS" / "sleeve less").
+  Matching uses exact comma-delimited tokens so "shirts" (the cuban shirts' tag)
+  and words like "sweatshirt" can never false-match a tee.
+
+  Polos are checked BEFORE tees. Exact-token matching already keeps "polos" and
+  "knit polo" from colliding with any tee token, but ordering the polo test first
+  means a polo can never fall through to the round-neck tee chart if someone later
+  adds a tee-ish tag to a polo. Hoodies sit between them for the same reason.
+
+  Why the hoodie rule reads tags and NOT collections: the Sweatshirts collection
+  contains seven products, but only maun and haven are actually sweatshirts. The
+  other five — lions-majesty, nor-memories, tragic-bloom, rebirth-phoenix and
+  vibrant-hamsa — are 240 GSM French Terry full-sleeve TEES (their shopify.fabric
+  is Cotton, not Fleece; their own copy calls them "a full-sleeve, drop-shoulder
+  tee"; they are ₹1599–1999 against a flat ₹3999 for the fleece six). Keying off
+  that collection would put five t-shirts on the hoodie chart and tell those
+  customers to buy a garment eleven inches too wide. Tags "Hoodie" and
+  "Sweat Shirts" are each exactly right for their products, so the rule uses
+  those and the five tees keep the t-shirt chart they already resolve to.
+  ─────────────────────────────────────────────────────────────────────────────
+{%- endcomment -%}
+{%- liquid
+  assign sc_key = ''
+  assign hkey = product.handle | downcase | prepend: ',' | append: ','
+  if ',moksha,vinelet,blaze,gulabi,' contains hkey
+    assign sc_key = 'shirt-cuban-no-yoke'
+  else
+    assign tag_str = product.tags | join: ',' | downcase | prepend: ',' | append: ','
+    assign type_str = product.type | downcase | prepend: ',' | append: ','
+    assign haystack = tag_str | append: type_str
+
+    assign jog_tokens = 'joggers,jogger,bottom wear,bottom-wear,bottomwear,bottoms' | split: ','
+    for tok in jog_tokens
+      assign needle = tok | prepend: ',' | append: ','
+      if haystack contains needle
+        assign sc_key = 'jogger-corduroy'
+        break
+      endif
+    endfor
+
+    if sc_key == ''
+      for col in product.collections
+        assign col_h = col.handle | downcase
+        if col_h == 'joggers' or col_h == 'bottom-wear' or col_h == 'bottomwear'
+          assign sc_key = 'jogger-corduroy'
+          break
+        endif
+      endfor
+    endif
+
+    if sc_key == ''
+      assign polo_tokens = 'polos,polo,knit polo,knit-polo,knit polos,polo shirt' | split: ','
+      for tok in polo_tokens
+        assign needle = tok | prepend: ',' | append: ','
+        if haystack contains needle
+          assign sc_key = 'polo-knit'
+          break
+        endif
+      endfor
+    endif
+
+    if sc_key == ''
+      assign hood_tokens = 'hoodie,hoodies,sweatshirt,sweatshirts,sweat shirt,sweat shirts' | split: ','
+      for tok in hood_tokens
+        assign needle = tok | prepend: ',' | append: ','
+        if haystack contains needle
+          assign sc_key = 'hoodie-sweatshirt'
+          break
+        endif
+      endfor
+    endif
+
+    if sc_key == ''
+      assign tee_tokens = 't shirts,t-shirts,tshirts,t shirt,t-shirt,tshirt,tee,tees,sleeve less,sleeveless,half sleeve,half-sleeve,full sleeve,full-sleeve' | split: ','
+      for tok in tee_tokens
+        assign needle = tok | prepend: ',' | append: ','
+        if haystack contains needle
+          assign sc_key = 'tshirt-roundneck'
+          break
+        endif
+      endfor
+    endif
+  endif
+  echo sc_key
+-%}

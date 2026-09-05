@@ -1,0 +1,106 @@
+/*
+  OnRepeat — animated "Sold Out" label
+  Shown when a product is out of stock in all sizes (product.available == false).
+  Styled with brand tokens from the OnRepeat Design System: crimson gradient, Inter 700
+  uppercase, pill radius and crimson offset shadow.
+*/
+
+.sold-out-badge {
+  --sold-out-bg-top: #5c1011; /* Crimson — primary */
+  --sold-out-bg-bottom: #3d0809; /* Deep Crimson — gradient bottom */
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: var(--sp-2, 0.5rem) var(--sp-4, 1rem);
+  background: linear-gradient(180deg, var(--sold-out-bg-top), var(--sold-out-bg-bottom));
+  color: #ffffff;
+  font-family: var(--font-heading-family, 'Inter', sans-serif);
+  font-weight: 700;
+  font-size: var(--text-2xs, 0.6875rem);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 9999px; /* pill */
+  box-shadow: 4px 4px 0 rgba(92, 16, 17, 0.15); /* crimson offset */
+  transform-origin: top left;
+  animation: sold-out-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Light shimmer that periodically sweeps across the label */
+.sold-out-badge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  transform: translateX(-150%);
+  animation: sold-out-shimmer 3.2s ease-in-out 0.6s infinite;
+  pointer-events: none;
+}
+
+/* Keep the text above the shimmer overlay */
+.sold-out-badge__text {
+  position: relative;
+  z-index: 1;
+}
+
+/* Product page / media gallery overlay — larger; positioned by its parent
+   .onrepeat-rtag-column (top-left, stacked below the rotating tag) */
+.sold-out-badge--page {
+  padding: var(--sp-3, 0.75rem) var(--sp-5, 1.25rem);
+  font-size: var(--text-sm, 0.875rem);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+/* Sold-out product card — the state should read before any word does.
+   Desaturating the photograph carries it, which is what lets the card state
+   "sold out" exactly once (the badge) instead of three times. Scoped to the
+   media only: the title, price and colour swatches stay at full contrast so
+   the card is still legible and the sibling colourways still invite a click. */
+.product-card--soldout .product-card__media img,
+.product-card--soldout .product-card__media video {
+  filter: grayscale(0.62) brightness(0.94);
+  opacity: 0.88;
+}
+
+@keyframes sold-out-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes sold-out-shimmer {
+  0% {
+    transform: translateX(-150%);
+  }
+  60%,
+  100% {
+    transform: translateX(150%);
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .sold-out-badge {
+    animation: none;
+  }
+
+  .sold-out-badge::after {
+    display: none;
+    animation: none;
+  }
+}

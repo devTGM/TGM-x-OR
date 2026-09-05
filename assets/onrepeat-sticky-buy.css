@@ -1,0 +1,658 @@
+/* FROZEN — kept only so old cached renders that still reference old ?v= URLs
+   keep their matching bytes. The live source is snippets/onrepeat-sticky-buy-css.liquid,
+   inlined by sections/main-product.liquid. Do not edit here. */
+/* =============================================================
+   STICKY BUY BAR + SIZE-GUIDE SHEET (product pages)
+   Extracted from mobile-dock.css when the bottom dock was removed —
+   these styles belong to the permanent PDP buy bar rendered by
+   sections/main-product.liquid (which loads this file), not to the
+   dock. Also carries the footer runway reserve so the fixed bar
+   never covers the footer copyright on mobile.
+   ============================================================= */
+
+@media screen and (max-width: 767px) {
+  /* The permanent sticky buy bar would otherwise cover the bottom of
+     the footer. Reserve runway at the end of the page equal to the
+     bar's real height (measured into --onrepeat-sticky-reserve by
+     main-product.liquid) plus the 12px float gap + iOS safe area the
+     bar now sits above. The fallback covers the moment before the
+     script runs. */
+  body:has(.product-sticky-form) .footer-copyright {
+    padding-block-end: calc(
+      var(--sp-5) + var(--onrepeat-sticky-reserve, 10rem) + 12px + env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+
+/* ── Floating bar (approved final mockup) ──────────────────────────
+   The bar was pinned flush to the glass (left 0 · right 0 · bottom 0),
+   so rounded iPhone display corners cut into Buy Now and the price,
+   and the bar sat inside the home-indicator zone. The wrapper now
+   insets the card 12px from each side and 12px + safe-area from the
+   bottom; the card is rounded on all four corners so no screen curve
+   can intersect it. Runs to 767px — theme.css docks the 550px wrapper
+   bottom-right from 768px up — so no width is left with a flush bar. */
+@media screen and (max-width: 767px) {
+  .product-sticky-form {
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Sticky Buy Bar v2 — inline quick-add ──────────────────────── */
+.product-sticky-form__card.sticky-buy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* a little more translucent frosted glass than before (was 0.97) */
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 28px rgba(46, 14, 15, 0.16), 0 1px 0 rgba(0, 0, 0, 0.04);
+  padding: 9px 16px 12px;
+  border-radius: 20px; /* matches the desktop card exactly */
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .product-sticky-form__card.sticky-buy {
+    background: rgba(255, 255, 255, 0.98);
+  }
+}
+@media (min-width: 750px) {
+  .product-sticky-form__card.sticky-buy {
+    max-width: 520px;
+    padding: 16px 22px 20px;
+    border-radius: 20px;
+    margin: 0 auto 14px;
+  }
+}
+
+/* Top row: thumb · price stack · size guide */
+.sticky-buy__top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sticky-buy__thumb {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.sticky-buy__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sticky-buy__price-stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+.sticky-buy__price-current {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+}
+.sticky-buy__price-compare {
+  font-size: 0.85rem;
+  color: #999;
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+.sticky-buy__price-off {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #2e7d32;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+/* Automatic-discount row — rendered by sections/main-product.liquid only when the
+   selected variant already clears the discount's minimum subtotal on its own.
+   Sits below the price row rather than inside it, so a compare-at sale keeps its
+   own struck price and % badge untouched. */
+.sticky-buy__offer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(var(--color-base-button, 92 16 17), 0.06);
+  border: 0.5px solid rgba(var(--color-base-button, 92 16 17), 0.14);
+}
+
+/* display:flex would otherwise beat the hidden attribute. */
+.sticky-buy__offer[hidden] {
+  display: none;
+}
+
+.sticky-buy__offer-badge {
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgb(var(--color-base-button, 92 16 17));
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.sticky-buy__offer-text {
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: #4a4340;
+}
+
+.sticky-buy__offer-text b {
+  color: rgb(var(--color-base-button, 92 16 17));
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sticky-buy__sizeguide-link {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(var(--color-base-button, 107 29 42));
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: opacity .18s ease;
+}
+.sticky-buy__sizeguide-link:hover { opacity: 0.7; }
+
+/* Pills row */
+.sticky-buy__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+.sticky-buy__pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #333;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .18s ease, color .18s ease, background .18s ease, box-shadow .18s ease, transform .1s ease;
+  letter-spacing: 0.02em;
+}
+.sticky-buy__pill:hover:not(.is-soldout):not(.is-selected),
+.sticky-buy__pill:focus-visible {
+  border-color: rgb(var(--color-base-button, 107 29 42));
+  color: rgb(var(--color-base-button, 107 29 42));
+  outline: none;
+}
+.sticky-buy__pill:active:not(.is-soldout) {
+  transform: scale(0.96);
+}
+.sticky-buy__pill.is-selected {
+  border-color: rgb(var(--color-base-button, 107 29 42));
+  color: rgb(var(--color-base-button, 107 29 42));
+  background: rgba(var(--color-base-button, 107 29 42), 0.08);
+  box-shadow: 0 0 0 1px rgb(var(--color-base-button, 107 29 42)) inset;
+}
+.sticky-buy__pill.is-soldout {
+  color: #bbb;
+  border-color: #ececec;
+  cursor: not-allowed;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  background: #fafafa;
+}
+@media (min-width: 750px) {
+  .sticky-buy__pill {
+    min-width: 48px;
+    min-height: 42px;
+  }
+}
+
+.sticky-buy__lowstock {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #d97706;
+  letter-spacing: 0.02em;
+}
+
+/* CTA */
+.sticky-buy__cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--color-base-button-text, 255 255 255));
+  /* a hint of translucency + glass, kept bold for contrast; an inner top
+     highlight adds depth. Solidifies on hover (intent) and dips on press. */
+  background: rgb(var(--color-base-button, 107 29 42) / 0.9);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  backdrop-filter: blur(6px) saturate(140%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 14px rgba(92,16,17,0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: transform .16s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, background .25s ease, opacity .2s ease;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.sticky-buy__cta:hover:not(:disabled) {
+  background: rgb(var(--color-base-button, 107 29 42) / 0.97);
+  box-shadow: 0 6px 20px rgba(92,16,17,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.sticky-buy__cta:active:not(:disabled) {
+  transform: scale(0.975);
+}
+.sticky-buy__cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sticky-buy__cta {
+    background: rgb(var(--color-base-button, 107 29 42));
+  }
+}
+
+/* ── Sticky Buy Bar v3 — permanent + dual action (Add to cart · Buy now) ───── */
+
+/* Permanent: always visible (overrides the scroll-in/out JS animation). */
+.product-sticky-form__card.sticky-buy {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+/* Size pills + low-stock line are no longer used here — size is chosen in the
+   slide-in sheet. Kept in the DOM (hidden) so the sticky-form JS never errors. */
+.sticky-buy__pills,
+.sticky-buy__lowstock {
+  display: none !important;
+}
+
+.sticky-buy__actions {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.sticky-buy__action {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, background 0.25s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.sticky-buy__action:active {
+  transform: scale(0.975);
+}
+
+/* Add to cart — secondary (outlined brand maroon). */
+.sticky-buy__action--cart {
+  background: #fff;
+  color: rgb(var(--color-base-button, 92 16 17));
+  border: 1.5px solid rgb(var(--color-base-button, 92 16 17));
+}
+.sticky-buy__action--cart:hover {
+  background: rgba(var(--color-base-button, 92 16 17), 0.05);
+}
+.sticky-buy__action-ico {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* Buy now — primary (filled), shows the live price; slightly wider. */
+.sticky-buy__action--buy {
+  flex: 1.25 1 0;
+  flex-direction: column;
+  gap: 0;
+  background: rgb(var(--color-base-button, 92 16 17));
+  color: #fff;
+  border: 1.5px solid rgb(var(--color-base-button, 92 16 17));
+  box-shadow: 0 3px 12px rgba(92, 16, 17, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.sticky-buy__action--buy:hover {
+  box-shadow: 0 5px 16px rgba(92, 16, 17, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.sticky-buy__action--buy .sticky-buy__action-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+}
+.sticky-buy__action--buy .sticky-buy__action-price {
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
+}
+
+/* ── Sticky Size Guide modal ──────────────────────────────────── */
+sticky-size-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s .35s, opacity .3s ease;
+}
+sticky-size-guide[open] {
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0s;
+}
+.sticky-sg__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.sticky-sg__sheet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform .35s cubic-bezier(.16,1,.3,1);
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.18);
+}
+sticky-size-guide[open] .sticky-sg__sheet {
+  transform: translateY(0);
+}
+.sticky-sg__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+.sticky-sg__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+}
+.sticky-sg__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #666;
+  transition: background .2s ease, color .2s ease, transform .2s ease;
+}
+.sticky-sg__close:hover {
+  background: #eee;
+  color: #000;
+  transform: rotate(90deg);
+}
+.sticky-sg__body {
+  padding: 18px 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.sticky-sg__body .sc-wrap {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.sticky-sg__body .sc-header { display: none; }
+.sticky-sg__body .sc-tab.active {
+  background: rgb(var(--color-base-button, 107 29 42));
+}
+.sticky-sg__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
+.sticky-sg__spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #eee;
+  border-top-color: rgb(var(--color-base-button, 107 29 42));
+  border-radius: 50%;
+  animation: stickysgSpin .6s linear infinite;
+}
+@keyframes stickysgSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (min-width: 750px) {
+  sticky-size-guide { align-items: center; }
+  .sticky-sg__sheet {
+    max-width: 520px;
+    border-radius: 20px;
+    transform: translateY(20px) scale(.96);
+    opacity: 0;
+    transition: transform .35s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+  }
+  sticky-size-guide[open] .sticky-sg__sheet {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Sticky Buy Bar v4 — compact single row ──────────────────────────────────
+   Approved PDP redesign: the bar stays permanently visible but drops from
+   ~150px of stacked rows (thumbnail · price · size-guide link · offer sentence
+   · two full-width buttons) to one ~64px row:
+
+       ₹1,472            [bag+]  [ BUY NOW ]
+       ₹1,549 5% OFF applied
+
+   Everything the page already says once is no longer repeated here: no
+   thumbnail, no second size-chart link, no "auto-applied at checkout" sentence
+   (the offer line above the colour row carries it). The hidden elements stay
+   in the DOM — the sticky-form JS writes into them without null guards.
+
+   Both actions keep their data-sleek-open hooks, so add-to-cart AND buy-now
+   open the size sheet when no size is chosen (the size gate) — the bag icon
+   is not a direct add. */
+
+.product-sticky-form__card.sticky-buy {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px 11px;
+}
+
+@media (min-width: 750px) {
+  .product-sticky-form__card.sticky-buy {
+    padding: 12px 18px 14px;
+  }
+}
+
+/* The old top row dissolves into the bar's single flex row. */
+.sticky-buy__top {
+  display: contents;
+}
+
+/* Repeated chrome: present for the JS, invisible to the shopper. */
+.sticky-buy__thumb,
+.sticky-buy__sizeguide-link {
+  display: none !important;
+}
+
+.sticky-buy__price-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Offer row IS the price now — strip the old chip styling. */
+.sticky-buy__offer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+}
+
+.sticky-buy__net {
+  font-size: 1.06rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #2b1214;
+  white-space: nowrap;
+}
+
+.sticky-buy__offer-tail {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.sticky-buy__was {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #a4968f;
+}
+
+/* Badge unboxed: small crimson text beside the struck price. */
+.sticky-buy__offer-badge {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: rgb(var(--color-base-button, 92 16 17));
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.sticky-buy__applied {
+  font-size: 0.64rem;
+  font-weight: 500;
+  color: #a4968f;
+  letter-spacing: 0.02em;
+}
+
+/* The plain price stack is the fallback face of the bar: shown only when the
+   offer row is hidden (variant under the discount minimum). */
+.sticky-buy__price-stack {
+  display: none;
+}
+
+.sticky-buy__offer[hidden] + .sticky-buy__price-stack {
+  display: flex;
+}
+
+/* Actions: icon add-to-cart + one Buy Now. */
+.sticky-buy__actions {
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.sticky-buy__action--cart {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.sticky-buy__action--cart > span {
+  display: none;
+}
+
+.sticky-buy__action--cart .sticky-buy__action-ico {
+  width: 19px;
+  height: 19px;
+}
+
+.sticky-buy__action--buy {
+  flex: 0 0 auto;
+  flex-direction: row;
+  min-width: 138px;
+  height: 46px;
+  padding: 0 20px;
+}
+
+.sticky-buy__action--buy .sticky-buy__action-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  opacity: 1;
+}
+
+.sticky-buy__action--buy .sticky-buy__action-price {
+  display: none;
+}
+
+/* The inline error message may still be toggled by the form JS — when it
+   shows, let it sit above the row without breaking the single-row layout. */
+.product-sticky-form__card.sticky-buy > .product-form__error-message {
+  position: absolute;
+  inset: auto 14px calc(100% + 6px) 14px;
+}

@@ -1,0 +1,838 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main-product": {
+      "type": "main-product",
+      "blocks": {
+        "breadcrumb_q3Gt4h": {
+          "type": "breadcrumb",
+          "settings": {}
+        },
+        "title": {
+          "type": "title",
+          "settings": {
+            "title_size": "product-title-sm",
+            "title_size_mobile": "product-title-sm",
+            "show_price": true,
+            "show_rating": true
+          }
+        },
+        "rating_w7fyeU": {
+          "type": "rating",
+          "settings": {}
+        },
+        "shipping_info_bar_k6KNnY": {
+          "type": "shipping_info_bar",
+          "settings": {
+            "ships_in_label": "24 Hours",
+            "show_delivery_column": false,
+            "delivery_label": "",
+            "return_label": "Easy 7-Day Return & Exchange"
+          }
+        },
+        "variant_picker_RcfMc7": {
+          "type": "variant_picker",
+          "settings": {
+            "show_variant_labels": true,
+            "picker_type": "button",
+            "enable_color_swatches": true,
+            "color_swatch_type": "color",
+            "size_chart": "size-chart"
+          }
+        },
+        "onrepeat_buy_module": {
+          "type": "onrepeat_buy_module",
+          "settings": {}
+        },
+        "buy_buttons_Vtdrg4": {
+          "type": "buy_buttons",
+          "settings": {
+            "show_quantity_selector": true,
+            "show_dynamic_checkout": true,
+            "show_gift_card_recipient": true,
+            "enable_back_in_stock": false,
+            "show_back_in_stock_name": false,
+            "show_back_in_stock_phone": false
+          }
+        },
+        "liquid_84KaBD": {
+          "type": "liquid",
+          "settings": {
+            "liquid": "{% render 'onrepeat-blackout-countdown' %}"
+          }
+        },
+        "liquid_saptah_promo": {
+          "type": "liquid",
+          "settings": {
+            "liquid": "{% render 'saptah-bundle-promo' %}"
+          }
+        },
+        "text_BVXVgN": {
+          "type": "text",
+          "settings": {
+            "text": "Inclusive of All Taxes",
+            "text_size": "text-sm"
+          }
+        },
+        "complementary": {
+          "type": "complementary",
+          "settings": {
+            "heading": "More From ONREPEAT",
+            "product_limit": 10,
+            "show_vendor": false,
+            "show_price": true
+          }
+        },
+        "countdown": {
+          "type": "countdown",
+          "settings": {
+            "heading": "Hurry up!",
+            "subheading": "Sale end in:",
+            "color_text": "#e11d48",
+            "color_background": "#fff1f2",
+            "gradient_background": ""
+          }
+        },
+        "sticky_buy_button": {
+          "type": "sticky_buy_button",
+          "settings": {}
+        },
+        "onrepeat_details_KJkb3K": {
+          "type": "onrepeat_details",
+          "settings": {
+            "heading": "Details"
+          }
+        },
+        "onrepeat_description_bCURrR": {
+          "type": "onrepeat_description",
+          "settings": {
+            "heading": "Description",
+            "lines": 3
+          }
+        },
+        "collapsible_tab_6XLVr8": {
+          "type": "collapsible_tab",
+          "settings": {
+            "icon": "shield",
+            "heading": "Additional Information",
+            "content": "<h5><strong>Manufactured & Marketed by:</strong></h5><p>SUNYE ATTIRE PRIVATE LIMITED, trading as THE ONREPEAT CLOTHING™<br/><strong>Registered office:</strong> C/O Rajesh Kumar, W. No. 10, Nr. State Bank, Ellenabad, Sirsa, Haryana, India – 125102<br/><strong>Principal place of business:</strong> Ground Floor, 005, Tower B, Sector 132, Noida, Gautam Buddha Nagar, Uttar Pradesh, India – 201304<br/><strong>CIN:</strong> U46419HR2024PTC124013 &nbsp;|&nbsp; <strong>GSTIN:</strong> 09ABOCS0725J1ZZ</p><p><strong>Country of Origin:</strong></p><p>India</p>",
+            "page": "",
+            "liquid": ""
+          }
+        },
+        "share": {
+          "type": "share",
+          "settings": {
+            "share_label": "Share",
+            "show_help_desk": false,
+            "help_label": "Need help?",
+            "help_type": "drawer",
+            "help_page": ""
+          }
+        }
+      },
+      "block_order": [
+        "breadcrumb_q3Gt4h",
+        "title",
+        "rating_w7fyeU",
+        "shipping_info_bar_k6KNnY",
+        "variant_picker_RcfMc7",
+        "onrepeat_buy_module",
+        "buy_buttons_Vtdrg4",
+        "liquid_84KaBD",
+        "liquid_saptah_promo",
+        "text_BVXVgN",
+        "complementary",
+        "countdown",
+        "sticky_buy_button",
+        "onrepeat_details_KJkb3K",
+        "onrepeat_description_bCURrR",
+        "collapsible_tab_6XLVr8",
+        "share"
+      ],
+      "settings": {
+        "enable_sticky_info": true,
+        "media_size": 70,
+        "gallery_layout": "thumbnail",
+        "thumbnail_position": "beside",
+        "image_ratio": "portrait",
+        "image_zoom": "hover",
+        "hide_variants": false,
+        "enable_video_autoplay": true,
+        "enable_video_looping": true,
+        "mobile_layout": "full_width",
+        "image_ratio_mobile": "portrait",
+        "mobile_thumbnail": false,
+        "padding_top": 20,
+        "padding_bottom": 48,
+        "divider": false,
+        "full_width": true,
+        "rounded": true
+      }
+    },
+    "product-recommendations": {
+      "type": "product-recommendations",
+      "settings": {
+        "product_limit": 12,
+        "columns": 5,
+        "carousel_on_desktop": true,
+        "columns_mobile": "2",
+        "swipe_on_mobile": true,
+        "heading": "You may also like",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": true
+      }
+    },
+    "help-drawer": {
+      "type": "help-drawer",
+      "blocks": {
+        "content-1": {
+          "type": "content",
+          "settings": {
+            "icon": "rocket",
+            "heading": "Shipping Information",
+            "text": "<p>At <strong>ONREPEAT</strong>, we aim to get your order to you swiftly, safely, and seamlessly.</p><p>Orders ship within <strong>1–2 business days</strong>.</p><p>All items are packaged in our , designed with care for both your experience and the environment.<br/></p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle",
+            "color_text": "#b45309",
+            "color_background": "#fffbeb",
+            "gradient_background": "",
+            "color_highlight": "#ffddbf",
+            "gradient_highlight": ""
+          }
+        },
+        "content-2": {
+          "type": "content",
+          "settings": {
+            "icon": "headphone",
+            "heading": "Customer Support",
+            "text": "<p>Connect with us via <strong>email, phone, or Instagram DMs</strong> — whichever works best for you.</p><p>🕐 We're available <strong>Monday to Friday | 10 AM – 7 PM IST</strong></p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle",
+            "color_text": "#0369a1",
+            "color_background": "#f0f9ff",
+            "gradient_background": "",
+            "color_highlight": "#ffddbf",
+            "gradient_highlight": ""
+          }
+        },
+        "content-3": {
+          "type": "content",
+          "settings": {
+            "icon": "chat_bubble",
+            "heading": "FAQ’s",
+            "text": "<p>For quick answers to common questions — from sizing and shipping to returns and care — <strong>visit the </strong><a href=\"/pages/faq\" title=\"FAQ\"><strong>FAQ</strong></a><strong> Page</strong><br/><br/>We’ve got you covered.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle",
+            "color_text": "#be123c",
+            "color_background": "#fff1f2",
+            "gradient_background": "",
+            "color_highlight": "#ffddbf",
+            "gradient_highlight": ""
+          }
+        },
+        "content-4": {
+          "type": "content",
+          "settings": {
+            "icon": "phone",
+            "heading": "Contact Us",
+            "text": "<p>We’d love to hear from you. Whether it’s feedback, inquiries, or just saying hi — our team is here to help.<br/><br/>Head over to our <a href=\"/pages/contact\" title=\"Contact\"><strong>Contact page</strong></a> to send us a message.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle",
+            "color_text": "#4d7c0f",
+            "color_background": "#f7fee7",
+            "gradient_background": "",
+            "color_highlight": "#ffddbf",
+            "gradient_highlight": ""
+          }
+        }
+      },
+      "block_order": [
+        "content-1",
+        "content-2",
+        "content-3",
+        "content-4"
+      ],
+      "settings": {
+        "heading": "Need help?",
+        "description": "<p>If you have any questions, you are always welcome to contact us. We'll get back to you as soon as possible, within 24 hours on weekdays.</p>"
+      }
+    },
+    "17404810416fe99476": {
+      "type": "apps",
+      "blocks": {
+        "judge_me_reviews_review_widget_Kb3Twn": {
+          "type": "shopify://apps/judge-me-reviews/blocks/review_widget/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8",
+          "settings": {
+            "review_data": "sample_data",
+            "max_width": 1200,
+            "show_shop_reviews": false,
+            "empty_state": "empty_widget"
+          }
+        }
+      },
+      "block_order": [
+        "judge_me_reviews_review_widget_Kb3Twn"
+      ],
+      "settings": {
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "enable_collapsible": true,
+        "collapsible_heading": "Reviews",
+        "collapsible_default_open": false,
+        "padding_top": 16,
+        "padding_bottom": 12,
+        "divider": false,
+        "full_width": false,
+        "rounded": false
+      }
+    },
+    "recently-viewed": {
+      "type": "recently-viewed",
+      "settings": {
+        "product_limit": 6,
+        "columns": 4,
+        "carousel_on_desktop": true,
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "heading": "Recently Viewed",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": false
+      }
+    },
+    "collage": {
+      "type": "collage",
+      "blocks": {
+        "image-1": {
+          "type": "image",
+          "settings": {
+            "subheading": "<strong>Intricately designed graphics that tell a story, bringing meaning and creativity to every piece.</strong>",
+            "heading": "",
+            "link": "",
+            "invert_subheading_heading": false,
+            "image": "shopify://shop_images/5S3A4724.jpg",
+            "image_ratio": "adapt",
+            "content_position": "md:items-end md:justify-center",
+            "text_alignment": "center",
+            "image_ratio_mobile": "adapt",
+            "content_position_mobile": "items-end justify-center",
+            "text_alignment_mobile": "center",
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle",
+            "color_text": "#ffffff",
+            "color_highlight": "#ffffff",
+            "gradient_highlight": "",
+            "color_overlay": "#5c1011",
+            "overlay_opacity": 100
+          }
+        },
+        "image-2": {
+          "type": "image",
+          "settings": {
+            "subheading": "",
+            "heading": "<em><strong>Wear Your Expression</strong></em>",
+            "link": "",
+            "invert_subheading_heading": false,
+            "image": "shopify://shop_images/5S3A4387.jpg",
+            "image_ratio": "portrait",
+            "content_position": "md:items-end md:justify-start",
+            "text_alignment": "center",
+            "image_ratio_mobile": "portrait",
+            "content_position_mobile": "items-end justify-start",
+            "text_alignment_mobile": "center",
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle",
+            "color_text": "#ff7e00",
+            "color_highlight": "#fafafa",
+            "gradient_highlight": "radial-gradient(rgba(255, 228, 49, 1), rgba(249, 32, 32, 1) 100%)",
+            "color_overlay": "#ff7e00",
+            "overlay_opacity": 100
+          }
+        },
+        "image-4": {
+          "type": "image",
+          "settings": {
+            "subheading": "<em>Minimalist yet bold, our designs are made to elevate your everyday wardrobe effortlessly.</em>",
+            "heading": "",
+            "link": "",
+            "invert_subheading_heading": true,
+            "image": "shopify://shop_images/5S3A2332.jpg",
+            "image_ratio": "adapt",
+            "content_position": "md:items-end md:justify-end",
+            "text_alignment": "left",
+            "image_ratio_mobile": "adapt",
+            "content_position_mobile": "items-end justify-end",
+            "text_alignment_mobile": "left",
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle",
+            "color_text": "#e11d1d",
+            "color_highlight": "#ffffff",
+            "gradient_highlight": "",
+            "color_overlay": "#780e09",
+            "overlay_opacity": 100
+          }
+        }
+      },
+      "block_order": [
+        "image-1",
+        "image-2",
+        "image-4"
+      ],
+      "settings": {
+        "heading": "Designed for <em>Expression</em>. Crafted for <em>Comfort.</em>",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "<p>Every ONREPEAT piece is thoughtfully designed to blend art, comfort, and sustainability. Wear something that tells a story—yours.</p>",
+        "button_label": "View more",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "scribble",
+        "highlighted_scribble": "basic-underline",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": false,
+        "rounded": false,
+        "enable_parallax": true
+      }
+    },
+    "image-with-text-1": {
+      "type": "image-with-text",
+      "blocks": {
+        "image": {
+          "type": "image",
+          "settings": {
+            "image_width": "custom",
+            "image_max_width": 50,
+            "image_max_width_mobile": 50
+          }
+        },
+        "heading": {
+          "type": "heading",
+          "settings": {
+            "heading": "<strong>Thoughtfully Designed, Purposefully Made</strong>",
+            "heading_size": "title-md",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text": {
+          "type": "text",
+          "settings": {
+            "text": "<p>At ONREPEAT, every piece is a fusion of artistry and craftsmanship. We create timeless designs that elevate your everyday wardrobe while staying true to sustainability and ethical production.</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "image",
+        "heading",
+        "text"
+      ],
+      "settings": {
+        "image": "shopify://shop_images/luxelens-creative-4_2.jpg",
+        "image_height": "adapt",
+        "image_width": "medium",
+        "layout": "image_first",
+        "text_alignment": "left",
+        "content_position": "align-self-center",
+        "image_height_mobile": "adapt",
+        "text_alignment_mobile": "left",
+        "color_text": "#171717",
+        "color_background": "",
+        "gradient_background": "",
+        "color_background_2": "#fafafa",
+        "gradient_background_2": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": false,
+        "enable_parallax": true,
+        "parallax_direction": "vertical"
+      }
+    },
+    "image-with-text-2": {
+      "type": "image-with-text",
+      "blocks": {
+        "image": {
+          "type": "image",
+          "settings": {
+            "image_width": "custom",
+            "image_max_width": 50,
+            "image_max_width_mobile": 50
+          }
+        },
+        "heading": {
+          "type": "heading",
+          "settings": {
+            "heading": "<strong>Precision in Every Stitch – German Threading </strong><em><strong>Excellence</strong></em>",
+            "heading_size": "title-md",
+            "heading_tag": "h2",
+            "highlighted_text": "scribble",
+            "highlighted_scribble": "squiggle-underline"
+          }
+        },
+        "text": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Experience unmatched durability and craftsmanship with our premium <strong>German Threading</strong>. Designed for longevity, comfort, and a flawless finish, every stitch enhances the quality and feel of your favorite ONREPEAT pieces.</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "image",
+        "heading",
+        "text"
+      ],
+      "settings": {
+        "image": "shopify://shop_images/5S3A2966.jpg",
+        "image_height": "adapt",
+        "image_width": "large",
+        "layout": "text_first",
+        "text_alignment": "left",
+        "content_position": "align-self-center",
+        "image_height_mobile": "adapt",
+        "text_alignment_mobile": "left",
+        "color_text": "#171717",
+        "color_background": "",
+        "gradient_background": "",
+        "color_background_2": "#fafafa",
+        "gradient_background_2": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": false,
+        "enable_parallax": true,
+        "parallax_direction": "vertical"
+      }
+    },
+    "product-details": {
+      "type": "product-details",
+      "blocks": {
+        "collapsible_tab-1": {
+          "type": "collapsible_tab",
+          "settings": {
+            "icon": "none",
+            "icon_width": 24,
+            "heading": "Collapsible row 1",
+            "content": "<p>Use this text to share information about your brand with your customers. Describe a product, share announcements, or welcome customers to your store.</p>",
+            "metafields": ""
+          }
+        },
+        "collapsible_tab-2": {
+          "type": "collapsible_tab",
+          "settings": {
+            "icon": "none",
+            "icon_width": 24,
+            "heading": "Collapsible row 2",
+            "content": "<p>Use this text to share information about your brand with your customers. Describe a product, share announcements, or welcome customers to your store.</p>",
+            "metafields": ""
+          }
+        },
+        "collapsible_tab-3": {
+          "type": "collapsible_tab",
+          "settings": {
+            "icon": "none",
+            "icon_width": 24,
+            "heading": "Collapsible row 3",
+            "content": "<p>Use this text to share information about your brand with your customers. Describe a product, share announcements, or welcome customers to your store.</p>",
+            "metafields": ""
+          }
+        },
+        "collapsible_tab-4": {
+          "type": "collapsible_tab",
+          "settings": {
+            "icon": "none",
+            "icon_width": 24,
+            "heading": "Collapsible row 4",
+            "content": "<p>Use this text to share information about your brand with your customers. Describe a product, share announcements, or welcome customers to your store.</p>",
+            "metafields": ""
+          }
+        }
+      },
+      "block_order": [
+        "collapsible_tab-1",
+        "collapsible_tab-2",
+        "collapsible_tab-3",
+        "collapsible_tab-4"
+      ],
+      "disabled": true,
+      "settings": {
+        "style": "with-border",
+        "open_first_row": true,
+        "specifications_heading": "",
+        "heading": "Product details",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "#000000",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 28,
+        "padding_bottom": 28,
+        "divider": false,
+        "full_width": false,
+        "rounded": false
+      }
+    },
+    "faq": {
+      "type": "faq",
+      "blocks": {
+        "question-1": {
+          "type": "question",
+          "settings": {
+            "title": "Q: What size should I choose?",
+            "text": "<p>A: Most of our pieces have an oversized or relaxed fit. Check the size chart on the product page or DM us for personalized sizing help.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-2": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: What materials do you use?</strong>",
+            "text": "<p>A: We use premium fabrics like heavyweight cotton, denim, and blends — all selected for durability, comfort, and style. Fabric details are listed under each product.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-3": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: How do I care for this piece?</strong>",
+            "text": "<p>A: Most items are best washed cold and inside out. Avoid tumble drying to preserve prints and structure. Specific care instructions are included on the garment label.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-4": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: Is this item restocking?</strong>",
+            "text": "<p>A: Many of our drops are limited. If it’s marked \"sold out,\" it may not return. Follow us on Instagram or sign up for restock alerts to stay updated.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-5": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: How long will it take to arrive?</strong>",
+            "text": "<p>A: Orders are dispatched in 1–2 business days. Standard delivery within India usually takes 3–7 business days.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "contact": {
+          "type": "contact",
+          "settings": {
+            "heading": "Didn’t find your answer?",
+            "text": "<p>Don't hestitate to contact us</p>",
+            "show_phone": false,
+            "avatar_height": 60,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-1": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: What is THE ONREPEAT?</strong>",
+            "text": "<p>A: THE ONREPEAT is a <strong>premium Indian apparel brand</strong> founded in 2024 by Paras Soni. The name comes from the Sanskrit word शून्य (OnRepeat / Shunya), meaning \"zero\" or \"void\" — representing infinite potential. Our slogan is <em>From Zero to Infinite</em>. Every piece is inspired by Sanskrit philosophy and fifth-century Indian art.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-2": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: Is THE ONREPEAT a premium brand?</strong>",
+            "text": "<p>A: Yes. THE ONREPEAT is a <strong>premium Indian apparel brand</strong> — not fast fashion. We use high-quality fabrics, craft oversized silhouettes with attention to fit and construction, and design each piece to carry cultural meaning rooted in Sanskrit heritage.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-3": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: What does OnRepeat / Shunya mean?</strong>",
+            "text": "<p>A: <strong>शून्य (OnRepeat / Shunya)</strong> is a Sanskrit word meaning <em>zero</em>, <em>void</em>, or <em>emptiness</em>. In Indian philosophy — particularly in Buddhism and Advaita Vedanta — this concept represents infinite potential. It is also the origin of the mathematical concept of zero, developed in ancient India. <em>From Zero to Infinite.</em></p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-4": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: Who founded THE ONREPEAT?</strong>",
+            "text": "<p>A: THE ONREPEAT was founded in <strong>2024 by Paras Soni</strong>. The brand was built on the belief that Indian youth deserve premium apparel rooted in their own cultural identity — connecting Sanskrit heritage and Indian art to contemporary global style.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "question-geo-5": {
+          "type": "question",
+          "settings": {
+            "title": "<strong>Q: Is THE ONREPEAT available on Amazon or Flipkart?</strong>",
+            "text": "<p>A: No. THE ONREPEAT sells <strong>exclusively on our official website</strong> theonrepeat.co. We are not available on Amazon, Flipkart, Meesho, or any other marketplace. Buying directly ensures authentic products, the best price, and our full shipping and return guarantees.</p>",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "question-1",
+        "question-2",
+        "question-3",
+        "question-4",
+        "question-5",
+        "question-geo-1",
+        "question-geo-2",
+        "question-geo-3",
+        "question-geo-4",
+        "question-geo-5",
+        "contact"
+      ],
+      "settings": {
+        "style": "with-background",
+        "heading": "FAQs",
+        "heading_size": "title-lg tracking-heading",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "<p>Please read our <a href=\"#\" title=\"FAQ's\">FAQs</a> page to find out more.</p>",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "#ffffff",
+        "color_background": "#171717",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "#ffffff",
+        "color_button_background": "#780e09",
+        "color_button_gradient": "",
+        "color_overlay": "#ffffff",
+        "overlay_opacity": 4,
+        "padding_top": 84,
+        "padding_bottom": 84,
+        "divider": false,
+        "narrow": false,
+        "rounded": false
+      }
+    }
+  },
+  "order": [
+    "main-product",
+    "product-recommendations",
+    "help-drawer",
+    "17404810416fe99476",
+    "recently-viewed",
+    "collage",
+    "image-with-text-1",
+    "image-with-text-2",
+    "product-details",
+    "faq"
+  ]
+}

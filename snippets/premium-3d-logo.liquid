@@ -1,0 +1,111 @@
+{%- comment -%}
+  Premium 3D Model Viewer Component
+  Accepts:
+  - model_url:       (String)  URL of the .glb 3D model (required)
+  - width:           (Number)  Desktop size in px (default 100)
+  - width_mobile:    (Number)  Mobile size in px  (default 80)
+  - offset_y:        (Number)  Vertical offset in px (default 0)
+  - auto_rotate:     (Boolean) Continuously rotate (default true)
+  - rotation_speed:  (Number)  Degrees per second (default 30)
+  - camera_controls: (Boolean) Drag to orbit (default true)
+  - enable_float:    (Boolean) Floating bob animation (default true)
+  - section_id:      (String)  Used to scope CSS to the host section
+{%- endcomment -%}
+
+{%- assign size = width | default: 100 -%}
+{%- assign size_mobile = width_mobile | default: 80 -%}
+{%- assign offset = offset_y | default: 0 -%}
+{%- assign rps = rotation_speed | default: 30 -%}
+{%- if auto_rotate == nil -%}{%- assign auto_rotate = true -%}{%- endif -%}
+{%- if camera_controls == nil -%}{%- assign camera_controls = true -%}{%- endif -%}
+{%- if enable_float == nil -%}{%- assign enable_float = true -%}{%- endif -%}
+{%- assign scope_id = section_id | default: 'global' -%}
+<script>
+  (function() {
+    var loaded = false;
+    function loadModelViewer() {
+      if (loaded) return;
+      loaded = true;
+      var script = document.createElement('script');
+      script.type = 'module';
+      script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js';
+      document.head.appendChild(script);
+      removeListeners();
+    }
+    
+    var events = ['mouseover', 'keydown', 'touchstart', 'touchmove', 'click', 'scroll'];
+    function removeListeners() {
+      events.forEach(function(e) {
+        window.removeEventListener(e, loadModelViewer, { passive: true });
+      });
+      window.removeEventListener('load', loadModelViewerDeferred);
+    }
+    events.forEach(function(e) {
+      window.addEventListener(e, loadModelViewer, { passive: true });
+    });
+
+    function loadModelViewerDeferred() {
+      setTimeout(loadModelViewer, 2000);
+    }
+    if (document.readyState === 'complete') {
+      loadModelViewerDeferred();
+    } else {
+      window.addEventListener('load', loadModelViewerDeferred);
+    }
+  })();
+</script>
+<style>
+  .premium-3d-logo[data-scope="{{ scope_id }}"] {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: {{ size }}px;
+    height: {{ size }}px;
+    transform: translate(-50%, calc(-50% + {{ offset }}px));
+  }
+  .premium-3d-logo[data-scope="{{ scope_id }}"] model-viewer {
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    --poster-color: transparent;
+    outline: none;
+  }
+  {%- if enable_float -%}
+    .premium-3d-logo[data-scope="{{ scope_id }}"] {
+      animation: premium3dLogoFloat-{{ scope_id }} 3.2s ease-in-out infinite alternate;
+    }
+    @keyframes premium3dLogoFloat-{{ scope_id }} {
+      0%   { transform: translate(-50%, calc(-50% + {{ offset }}px)); }
+      100% { transform: translate(-50%, calc(-50% + {{ offset | minus: 10 }}px)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .premium-3d-logo[data-scope="{{ scope_id }}"] { animation: none; }
+    }
+  {%- endif -%}
+  @media screen and (max-width: 767px) {
+    .premium-3d-logo[data-scope="{{ scope_id }}"] {
+      width: {{ size_mobile }}px;
+      height: {{ size_mobile }}px;
+    }
+  }
+</style>
+
+<premium-3d-logo
+  class="premium-3d-logo absolute top-1/2 left-1/2 z-10 pointer-events-auto cursor-pointer flex justify-center items-center"
+  data-scope="{{ scope_id }}"
+>
+  <model-viewer
+    src="{{ model_url }}"
+    alt="3D logo"
+    {% if camera_controls %}camera-controls touch-action="pan-y"{% endif %}
+    {% if auto_rotate %}auto-rotate auto-rotate-delay="0" rotation-per-second="{{ rps }}deg"{% endif %}
+    interaction-prompt="none"
+    disable-zoom
+    disable-pan
+    shadow-intensity="0"
+    environment-image="neutral"
+    exposure="1.0"
+    loading="lazy"
+    reveal="auto"
+  ></model-viewer>
+</premium-3d-logo>

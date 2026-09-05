@@ -1,0 +1,1106 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "images_with_text_overlay_gtYKUU": {
+      "type": "images-with-text-overlay",
+      "blocks": {
+        "text_GVGcnP": {
+          "type": "text",
+          "settings": {
+            "text": "<p><em><strong>शून्य</strong></em></p>",
+            "text_size": "subtext-custom",
+            "text_max_size": 74,
+            "text_font": "heading",
+            "secondary_color": false,
+            "highlighted_text": "scribble",
+            "highlighted_scribble": "basic-underline"
+          }
+        },
+        "heading_4H9gxX": {
+          "type": "heading",
+          "settings": {
+            "heading": "The OnRepeat · Est. 2024 · Bharat",
+            "heading_size": "title-sm",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "subheading_QtiK73": {
+          "type": "subheading",
+          "settings": {
+            "subheading": "OnRepeat .  Shunya  .  SUन्य",
+            "subheading_size": "subtitle-md",
+            "secondary_color": true
+          }
+        },
+        "text_LqJft8": {
+          "type": "text",
+          "settings": {
+            "text": "",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "scribble",
+            "highlighted_scribble": "basic-underline"
+          }
+        }
+      },
+      "block_order": [
+        "text_GVGcnP",
+        "heading_4H9gxX",
+        "subheading_QtiK73",
+        "text_LqJft8"
+      ],
+      "settings": {
+        "transparent_header": true,
+        "image_height": "650px",
+        "content_width": "small",
+        "content_position": "md:items-center md:justify-center",
+        "text_alignment": "center",
+        "image_1": "shopify://shop_images/OnRepeat_Logo.ai_100_x_100_px_copy.png",
+        "image_2": "shopify://shop_images/4.png",
+        "image_3": "shopify://shop_images/1_ef08f45a-6097-4fb6-8f63-047aa9a65768.png",
+        "image_4": "shopify://shop_images/5.png",
+        "image_5": "shopify://shop_images/3_3750e95e-6811-495d-9669-9ad56cde48f6.png",
+        "image_height_mobile": "300px",
+        "content_position_mobile": "items-center justify-center",
+        "text_alignment_mobile": "center",
+        "color_text": "#2e0202",
+        "color_highlight": "#e0a580",
+        "gradient_highlight": "",
+        "color_button_text": "#171717",
+        "color_button_background": "#ffffff",
+        "color_button_gradient": "",
+        "color_overlay": "#ffffff",
+        "overlay_opacity": 100,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": true,
+        "enable_parallax": true
+      }
+    },
+    "rich_text_bYh3Rg": {
+      "type": "rich-text",
+      "blocks": {
+        "text_nNaYeE": {
+          "type": "text",
+          "settings": {
+            "text": "<p><em>01</em>| THE NAME</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_HrrWxD": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>Shunya is not nothing.<br/>Shunya is everything<br/>before it becomes something.</strong></p>",
+            "text_size": "subtext-custom",
+            "text_max_size": 38,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "basic-underline"
+          }
+        },
+        "text_mkUMdV": {
+          "type": "text",
+          "settings": {
+            "text": "<p><em>शून्य</em> — <em>śūnya</em> — is the Sanskrit word for <em>zero</em>. In the original language it carries far more weight than a numeral. It means <em>void</em>. Emptiness. The open space from which all things emerge.</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 38,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_WcUPpJ": {
+          "type": "text",
+          "settings": {
+            "text": "<p>The point before creation. The breath before the word. The silence that holds the sound. We took the name because it describes a method, not a mood: begin from nothing on purpose, and let everything that follows have a reason to exist.</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 38,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "button_xcANE6": {
+          "type": "button",
+          "settings": {
+            "button_label": "OnRepeat",
+            "button_link": "",
+            "button_style": "primary",
+            "button_size": "sm",
+            "button_external": false,
+            "button_icon": false
+          }
+        },
+        "text_khXbRy": {
+          "type": "text",
+          "settings": {
+            "text": "<p>The simplified transliteration. It lives in our domain and our <em>URLs.</em></p>",
+            "text_size": "subtext-sm",
+            "text_max_size": 16,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "button_wmUMYW": {
+          "type": "button",
+          "settings": {
+            "button_label": "Shunya",
+            "button_link": "",
+            "button_style": "primary",
+            "button_size": "sm",
+            "button_external": false,
+            "button_icon": false
+          }
+        },
+        "text_XzWN6j": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Phonetically accurate <em>— श</em> is a palatal sibilant, closer to the spoken Sanskrit.</p>",
+            "text_size": "subtext-sm",
+            "text_max_size": 16,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "button_HynAdH": {
+          "type": "button",
+          "settings": {
+            "button_label": "SUन्य",
+            "button_link": "",
+            "button_style": "primary",
+            "button_size": "sm",
+            "button_external": false,
+            "button_icon": false
+          }
+        },
+        "text_Ca38np": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Our mark. Latin and Devanagari inside <em>one</em> word.</p><p></p>",
+            "text_size": "subtext-sm",
+            "text_max_size": 16,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "text_nNaYeE",
+        "text_HrrWxD",
+        "text_mkUMdV",
+        "text_WcUPpJ",
+        "button_xcANE6",
+        "text_khXbRy",
+        "button_wmUMYW",
+        "text_XzWN6j",
+        "button_HynAdH",
+        "text_Ca38np"
+      ],
+      "name": "t:sections.rich-text.presets.name",
+      "settings": {
+        "text_alignment": "left",
+        "text_alignment_mobile": "left",
+        "heading": "",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_width": "small",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 28,
+        "padding_bottom": 36,
+        "divider": false,
+        "narrow": true,
+        "rounded": false
+      }
+    },
+    "main-page": {
+      "type": "main-page",
+      "disabled": true,
+      "settings": {
+        "heading_size": "title-xl tracking-heading",
+        "heading_alignment": "text-left",
+        "heading_tag": "h1",
+        "text_size": "text-base",
+        "padding_top": 72,
+        "padding_bottom": 120,
+        "divider": false,
+        "narrow": true,
+        "rounded": false
+      }
+    },
+    "video_hero_U8h77m": {
+      "type": "video-hero",
+      "blocks": {
+        "slide_c9QnUi": {
+          "type": "slide",
+          "settings": {
+            "heading": "<em>02  </em>| THE LINEAGE",
+            "heading_size": "title-sm",
+            "heading_tag": "h2",
+            "highlighted_text": "stencil",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "slide_MyKQxr": {
+          "type": "slide",
+          "settings": {
+            "heading": "India did not discover zero.",
+            "heading_size": "title-lg tracking-heading",
+            "heading_tag": "h2",
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "slide_c9QnUi",
+        "slide_MyKQxr"
+      ],
+      "name": "t:sections.video-hero.presets.name",
+      "settings": {
+        "transparent_header": false,
+        "video": "shopify://files/videos/onrepeat about_f1734b32-6acf-4159-a605-9fbee681fc42.mp4",
+        "video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+        "description": "",
+        "enable_video_autoplay": true,
+        "enable_video_looping": true,
+        "content_width": "small",
+        "video_mobile": "shopify://files/videos/onrepeat about_f1734b32-6acf-4159-a605-9fbee681fc42.mp4",
+        "video_url_mobile": "",
+        "color_text": "#ffffff",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_overlay": "#5f0606",
+        "overlay_opacity": 87,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": false
+      }
+    },
+    "timeline_z8chrE": {
+      "type": "timeline",
+      "blocks": {
+        "content_kYtDFJ": {
+          "type": "content",
+          "settings": {
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_8_2026_08_57_16_PM.png",
+            "subheading": "628 CE",
+            "heading": "",
+            "heading_tag": "h2",
+            "text": "<p><strong>Brahmagupta </strong>writes the <em>Brāhmasphuṭasiddhānta</em>— the first text to give zero its own arithmetic. Not a placeholder in a column. A number you could add, subtract, multiply.</p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "primary",
+            "button_external": false,
+            "button_icon": false,
+            "highlighted_text": "full_text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "content_eLYDyd": {
+          "type": "content",
+          "settings": {
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_8_2026_09_02_47_PM.png",
+            "subheading": "9th century",
+            "heading": "",
+            "heading_tag": "h2",
+            "text": "<p><strong>al-Khwārizmī</strong> carries the system west into the Arab world. His name survives in English as the word <em>algorithm.</em></p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "link",
+            "button_external": false,
+            "button_icon": false,
+            "highlighted_text": "full_text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "content_nWmRxJ": {
+          "type": "content",
+          "settings": {
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_8_2026_09_12_04_PM.png",
+            "subheading": "13th century",
+            "heading": "",
+            "heading_tag": "h2",
+            "text": "<p>Europe adopts the numerals it still calls <strong>Hindu-Arabic</strong> — <em>0 1 2 3 4 5 6 7 8 9.</em></p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "primary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "full_text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "content_DFPHNK": {
+          "type": "content",
+          "settings": {
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_8_2026_09_16_51_PM.png",
+            "subheading": "Now",
+            "heading": "",
+            "heading_tag": "h2",
+            "text": "<p>Every line of binary ever written rests on it. Every calculation, every device, every image on this <em>page.</em></p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "primary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "full_text",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "content_kYtDFJ",
+        "content_eLYDyd",
+        "content_nWmRxJ",
+        "content_DFPHNK"
+      ],
+      "name": "t:sections.timeline.presets.name",
+      "settings": {
+        "image_ratio": "portrait",
+        "image_ratio_mobile": "wide",
+        "heading": "India defined it.",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "#ffffff",
+        "color_background": "#0c0709",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "#ffffff",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": true
+      }
+    },
+    "rich_text_c8mMDx": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_YB9nga": {
+          "type": "heading",
+          "settings": {
+            "heading": "<em>03 </em>| THE FOUNDING",
+            "heading_size": "title-sm",
+            "heading_tag": "h2",
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_aMLaPW": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>I </strong>grew up being told our philosophy was history. Something to study in a classroom, recite at a festival, and leave there. Something to be proud of from a distance.</p><p><strong>I </strong>didn't want to sell heritage as costume. Printing a deity on a hoodie is not reverence, it's decoration. <strong>I </strong>wanted to make clothing that could hold an idea the way the idea itself works — quiet from across the room, deep when you look closer.</p><p>So <em>we</em> started with the hardest word <em>we</em> had. <em>We</em> began from zero. Not as a slogan. As a method.</p>",
+            "text_size": "subtext-sm",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_49BhqR": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>Paras Soni</strong><br/><em>Founder</em> · Bharat, 2024</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "heading_YB9nga",
+        "text_aMLaPW",
+        "text_49BhqR"
+      ],
+      "name": "t:sections.rich-text.presets.name",
+      "settings": {
+        "text_alignment": "left",
+        "text_alignment_mobile": "left",
+        "heading": "",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_width": "small",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 100,
+        "divider": false,
+        "narrow": true,
+        "rounded": false
+      }
+    },
+    "image_with_text_overlay_ckf4FC": {
+      "type": "image-with-text-overlay",
+      "blocks": {
+        "subheading_B9hjj4": {
+          "type": "subheading",
+          "settings": {
+            "subheading": "ĀRAMBH — आरम्भ — the beginning",
+            "subheading_size": "subtitle-sm",
+            "secondary_color": true
+          }
+        }
+      },
+      "block_order": [
+        "subheading_B9hjj4"
+      ],
+      "name": "t:sections.image-with-text-overlay.presets.name",
+      "settings": {
+        "transparent_header": false,
+        "image": "shopify://shop_images/arambh_back_4.png",
+        "image_height": "650px",
+        "content_width": "small",
+        "content_position": "md:items-end md:justify-start",
+        "text_alignment": "left",
+        "image_height_mobile": "auto",
+        "content_position_mobile": "items-end justify-start",
+        "text_alignment_mobile": "left",
+        "color_text": "#ffffff",
+        "color_highlight": "#ffffff",
+        "gradient_highlight": "",
+        "color_button_text": "#171717",
+        "color_button_background": "#ffffff",
+        "color_button_gradient": "",
+        "color_overlay": "#ffffff",
+        "overlay_opacity": 0,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": true,
+        "enable_parallax": true,
+        "parallax_direction": "vertical"
+      }
+    },
+    "rich_text_ym4Pn6": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_yUg9RW": {
+          "type": "heading",
+          "settings": {
+            "heading": "<em>04</em>| THE METHOD",
+            "heading_size": "title-sm",
+            "heading_tag": "h2",
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_kL8HbE": {
+          "type": "text",
+          "settings": {
+            "text": "<p>We don't decorate garments with Indian symbols.<br/>We let the symbols <em>inform</em> the garment.</p>",
+            "text_size": "subtext-custom",
+            "text_max_size": 36,
+            "text_font": "heading",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_mdgQEH": {
+          "type": "text",
+          "settings": {
+            "text": "<p><em>Every collection begins from a zero point — a blank page and a clear intention.</em></p><p>The Sanskrit, the Devanagari, the fifth-century geometry: none of it is applied at the end to make a plain garment sell. It decides the cut. The weight of the cloth. Where the eye lands, and where it is left alone.</p><p>The result reads minimal from a distance and reveals itself up close — which is exactly how <em>śūnya</em> works. You are meant to find the second layer yourself.</p>",
+            "text_size": "subtext-sm",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "heading_yUg9RW",
+        "text_kL8HbE",
+        "text_mdgQEH"
+      ],
+      "name": "t:sections.rich-text.presets.name",
+      "settings": {
+        "text_alignment": "left",
+        "text_alignment_mobile": "left",
+        "heading": "",
+        "heading_size": "title-md",
+        "heading_alignment": "text-left md:items-end md:flex-row",
+        "heading_width": "small",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "none",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 48,
+        "padding_bottom": 24,
+        "divider": false,
+        "narrow": true,
+        "rounded": false
+      }
+    },
+    "multicolumn_gHp4jA": {
+      "type": "multicolumn",
+      "blocks": {
+        "column_WhGtpN": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image_ratio": "adapt",
+            "video": "shopify://files/videos/onrepeat about_f1734b32-6acf-4159-a605-9fbee681fc42.mp4",
+            "heading": "We publish the <em>numbers</em>, because the <em>numbers</em> are the argument.",
+            "heading_size": "text-2xl lg:text-3xl",
+            "text": "",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_zDzVyY": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_9_2026_03_13_01_PM.png",
+            "image_ratio": "adapt",
+            "heading": "<em><strong>240</strong></em>",
+            "heading_size": "text-2xl lg:text-3xl",
+            "text": "<p>GSM French terry, for the tees</p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_LRGiMR": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_9_2026_03_17_56_PM.png",
+            "image_ratio": "adapt",
+            "heading": "<em><strong>350</strong></em>",
+            "heading_size": "text-2xl lg:text-3xl",
+            "text": "<p>GSM cotton fleece, for the heavyweights</p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_9H64T7": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_9_2026_05_20_18_PM.png",
+            "image_ratio": "adapt",
+            "heading": "<em><strong>100% ORGANIC</strong></em>",
+            "heading_size": "text-2xl lg:text-3xl",
+            "text": "<p>Long-staple cotton, spun for durability</p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_NQBi3G": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_9_2026_05_25_12_PM.png",
+            "image_ratio": "adapt",
+            "heading": "<em><strong>GERMAN</strong></em>",
+            "heading_size": "text-2xl lg:text-3xl",
+            "text": "<p>Threaded construction at every seam</p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_dbAcpm": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/ChatGPT_Image_Aug_9_2026_08_26_59_PM.png",
+            "image_ratio": "adapt",
+            "heading": "<em><strong>BHARAT</strong></em>",
+            "heading_size": "text-2xl lg:text-3xl",
+            "text": "<p>Made here, start to finish</p>",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": true,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "column_WhGtpN",
+        "column_zDzVyY",
+        "column_LRGiMR",
+        "column_9H64T7",
+        "column_NQBi3G",
+        "column_dbAcpm"
+      ],
+      "name": "t:sections.multicolumn.presets.name",
+      "settings": {
+        "gap": "large",
+        "columns": 3,
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "heading": "<em>05</em>| THE MAKING",
+        "heading_size": "title-sm",
+        "heading_alignment": "text-center md:items-center",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "text",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 36,
+        "padding_bottom": 64,
+        "divider": false,
+        "full_width": false,
+        "rounded": false
+      }
+    },
+    "multicolumn_7tF4bk": {
+      "type": "multicolumn",
+      "blocks": {
+        "column_4bEiib": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/Aham_Brahmasmi_back_2.jpg",
+            "image_ratio": "portrait",
+            "heading": "<em>अहं ब्रह्मास्मि</em>",
+            "heading_size": "text-base-xl",
+            "text": "<p>“I am the universe.” One of the four mahāvākyas — the great statements of Vedanta.</p>",
+            "button_label": "AHAM BRAHMASMI",
+            "button_link": "shopify://products/aham",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_6UMbtY": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/Moksha_back_3.png",
+            "image_ratio": "portrait",
+            "heading": "<em>मोक्ष</em>",
+            "heading_size": "text-base-xl",
+            "text": "<p>Liberation. Release from the cycle. Tonal embroidery — quiet far away, intricate up close.</p>",
+            "button_label": "MOKSHA",
+            "button_link": "shopify://products/moksha",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_PQL8yd": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/trinetra_front_4.png",
+            "image_ratio": "portrait",
+            "heading": "<em>त्रिनेत्र</em>",
+            "heading_size": "text-base-xl",
+            "text": "<p>The third eye. Inner sight — <br/>the seeing that does not depend on <br/>light.</p>",
+            "button_label": "TRINETRA",
+            "button_link": "shopify://products/trinetra",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_GeptdQ": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/maun_front_4.png",
+            "image_ratio": "portrait",
+            "heading": "<em>मौन</em>",
+            "heading_size": "text-base-xl",
+            "text": "<p>Silence as a practice, not an absence. <br/>A single emblem; the cut does the <br/>talking.</p>",
+            "button_label": "MAUN",
+            "button_link": "shopify://products/maun",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "column_6RhPez": {
+          "type": "column",
+          "settings": {
+            "show_border": false,
+            "text_alignment": "left",
+            "text_alignment_mobile": "left",
+            "image": "shopify://shop_images/arambh_front_1.png",
+            "image_ratio": "portrait",
+            "heading": "<em>आरम्भ</em>",
+            "heading_size": "text-base-xl",
+            "text": "<p>Beginning. The first step. <br/>Where every collection is required to start.</p>",
+            "button_label": "Ārambh",
+            "button_link": "shopify://products/arambh",
+            "button_style": "secondary",
+            "button_external": false,
+            "button_icon": false,
+            "highlighted_text": "text",
+            "highlighted_scribble": "circle"
+          }
+        }
+      },
+      "block_order": [
+        "column_4bEiib",
+        "column_6UMbtY",
+        "column_PQL8yd",
+        "column_GeptdQ",
+        "column_6RhPez"
+      ],
+      "name": "t:sections.multicolumn.presets.name",
+      "settings": {
+        "gap": "large",
+        "columns": 4,
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "heading": "<em>06</em>| THE VOCABULARY",
+        "heading_size": "title-sm",
+        "heading_alignment": "text-center md:items-center",
+        "heading_tag": "h2",
+        "subheading": "Five words we have put on cloth, and what we owed them.",
+        "description": "",
+        "button_label": "",
+        "button_link": "",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "text",
+        "highlighted_scribble": "circle",
+        "color_text": "",
+        "color_background": "",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 72,
+        "padding_bottom": 72,
+        "divider": false,
+        "full_width": false,
+        "rounded": false
+      }
+    },
+    "logo_list_MfGzhE": {
+      "type": "logo-list",
+      "blocks": {
+        "logo_qKNmjN": {
+          "type": "logo",
+          "settings": {
+            "image": "shopify://shop_images/1_67281949-baf5-46dd-8701-7d8df27af922.png",
+            "height": 80,
+            "link": "https://www.tribuneindia.com/news/business/onrepeat-the-streetwear-revolution-indias-been-waiting-for/"
+          }
+        },
+        "logo_HenLrz": {
+          "type": "logo",
+          "settings": {
+            "image": "shopify://shop_images/2_948c58e9-006b-4708-8449-d9961c22f8ee.png",
+            "height": 60,
+            "link": "https://theprint.in/ani-press-releases/onrepeat-the-streetwear-revolution-indias-been-waiting-for/2723867/"
+          }
+        },
+        "logo_XWnBwY": {
+          "type": "logo",
+          "settings": {
+            "image": "shopify://shop_images/3_43ddf6d8-e36c-449c-8ac4-abe94ad77518.png",
+            "height": 80,
+            "link": "https://www.lokmattimes.com/business/onrepeat-the-streetwear-revolution-indias-been-waiting-for/"
+          }
+        },
+        "logo_waTm9k": {
+          "type": "logo",
+          "settings": {
+            "image": "shopify://shop_images/4_70d8572c-836a-4f71-b6de-3f2aa479414d.png",
+            "height": 80,
+            "link": "https://www.bignewsnetwork.com/news/278518827/onrepeat-the-streetwear-revolution-india-been-waiting-for#google_vignette"
+          }
+        },
+        "logo_X8NbLH": {
+          "type": "logo",
+          "settings": {
+            "image": "shopify://shop_images/5_5798e9ab-ca7f-49ac-a7e7-8d8ed90a3efa.png",
+            "height": 80,
+            "link": "https://jantaserishta.com/business/onrepeat-the-streetwear-revolution-india-has-been-waiting-for-4219109"
+          }
+        }
+      },
+      "block_order": [
+        "logo_qKNmjN",
+        "logo_HenLrz",
+        "logo_XWnBwY",
+        "logo_waTm9k",
+        "logo_X8NbLH"
+      ],
+      "name": "t:sections.logo-list.presets.name",
+      "settings": {
+        "layout": "default",
+        "grid_horizontal": 50,
+        "direction": "left",
+        "speed": 6,
+        "heading": "Our launch <em>press release</em>",
+        "heading_size": "title-md",
+        "heading_alignment": "text-center md:items-center",
+        "heading_tag": "h2",
+        "subheading": "",
+        "description": "<p>Distributed through ANI in August 2025 and carried by the publications below.</p>",
+        "button_label": "",
+        "button_link": "shopify://pages/about-us",
+        "button_external": false,
+        "button_icon": true,
+        "highlighted_text": "text",
+        "highlighted_scribble": "circle",
+        "color_text": "#ffffff",
+        "color_background": "rgba(0,0,0,0)",
+        "gradient_background": "",
+        "color_highlight": "",
+        "gradient_highlight": "linear-gradient(180deg, rgba(95, 8, 8, 1), rgba(125, 12, 23, 1) 100%)",
+        "color_button_text": "",
+        "color_button_background": "",
+        "color_button_gradient": "",
+        "padding_top": 20,
+        "padding_bottom": 56,
+        "divider": false,
+        "full_width": false,
+        "rounded": true
+      }
+    },
+    "video_with_text_overlay_mXmeMj": {
+      "type": "video-with-text-overlay",
+      "blocks": {
+        "text_V4NAQ8": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>शून्य</strong></p>",
+            "text_size": "subtext-custom",
+            "text_max_size": 60,
+            "text_font": "heading",
+            "secondary_color": false,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "text_eC88Mf": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Every collection begins from a zero point. <br/>So does every wardrobe.</p>",
+            "text_size": "subtext-md",
+            "text_max_size": 32,
+            "text_font": "body",
+            "secondary_color": false,
+            "highlighted_text": "none",
+            "highlighted_scribble": "circle"
+          }
+        },
+        "button_bRYP9K": {
+          "type": "button",
+          "settings": {
+            "button_label": "START AT THE BEGINNING",
+            "button_link": "shopify://collections/best-sellers",
+            "button_style": "secondary",
+            "button_size": "sm",
+            "button_external": false,
+            "button_icon": false
+          }
+        }
+      },
+      "block_order": [
+        "text_V4NAQ8",
+        "text_eC88Mf",
+        "button_bRYP9K"
+      ],
+      "name": "t:sections.video-with-text-overlay.presets.name",
+      "settings": {
+        "transparent_header": false,
+        "video": "shopify://files/videos/onrepeat about.mp4",
+        "video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+        "description": "ONREPEAT",
+        "enable_video_autoplay": true,
+        "enable_video_looping": true,
+        "image_height": "550px",
+        "content_width": "small",
+        "content_position": "md:items-center md:justify-center",
+        "text_alignment": "center",
+        "video_url_mobile": "",
+        "image_height_mobile": "auto",
+        "content_position_mobile": "items-center justify-center",
+        "text_alignment_mobile": "center",
+        "color_text": "#ffffff",
+        "color_highlight": "#e0a580",
+        "gradient_highlight": "",
+        "color_button_text": "#171717",
+        "color_button_background": "#ffffff",
+        "color_button_gradient": "",
+        "color_overlay": "#2b0e0e",
+        "overlay_opacity": 99,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "divider": false,
+        "full_width": true,
+        "rounded": true
+      }
+    }
+  },
+  "order": [
+    "images_with_text_overlay_gtYKUU",
+    "rich_text_bYh3Rg",
+    "main-page",
+    "video_hero_U8h77m",
+    "timeline_z8chrE",
+    "rich_text_c8mMDx",
+    "image_with_text_overlay_ckf4FC",
+    "rich_text_ym4Pn6",
+    "multicolumn_gHp4jA",
+    "multicolumn_7tF4bk",
+    "logo_list_MfGzhE",
+    "video_with_text_overlay_mXmeMj"
+  ]
+}

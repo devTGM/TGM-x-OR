@@ -1,0 +1,237 @@
+/* ============================================================
+   OnRepeat — product card, info block and image chrome.
+
+   Two jobs.
+
+   1. The info block gained a colour line, an inline rating and a size row
+      (see snippets/product-card.liquid), so those need styling.
+   2. The image chrome was shouting. Three crimson objects — the rotating
+      tag, the rating chip and the quick-add button — sat on every photograph
+      at once. The rating has moved into the info block; the rotating tag and
+      the quick-add button are quietened here so the photography leads. The
+      SAVE % pill and the SOLD OUT badge stay crimson: those are the two that
+      genuinely need to interrupt.
+
+   Loaded by snippets/product-card.liquid itself, the way onrepeat-rotating-tag,
+   onrepeat-gsm-badge, buy-buttons and six other snippets in this theme load
+   theirs. The tag repeats per card and the browser dedupes it to a single
+   request, and the card stays self-contained — restyling it never means
+   editing layout/theme.liquid, where every app embed on the site lives.
+   ============================================================ */
+
+/* --- Info block ----------------------------------------------------------
+
+   One vertical rhythm for the whole block. Every row is spaced from the one
+   above by an explicit margin rather than inheriting a flex `gap`, so the
+   distances stay equal no matter which rows a given product actually has —
+   plenty have no colourway, no rating, or no sizes, and a shared gap made
+   those cards fall out of step with their neighbours in the grid.
+
+     title
+       4px   (colour belongs to the title, so it sits closer)
+     colour                     price
+       8px
+     rating
+      10px  ── hairline ──  10px
+     sizes
+      10px  (6px here + the swatch's own 4px of padding)
+     swatches
+   ------------------------------------------------------------------------ */
+
+/* The theme sets this uppercase and crimson ("Card v3"). At mixed case in ink
+   the family name reads as a product rather than a label, and the crimson is
+   freed up for the things that should interrupt — the NEW IN pill and price. */
+.product-card .product-card__title {
+  text-transform: none;
+  letter-spacing: -0.005em;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: rgb(var(--color-foreground));
+}
+
+/* Colour left, price right. */
+.product-card__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-block-start: var(--sp-1);
+}
+
+/* No colourway — the tees and hoodies, whose titles carry no em dash. The row
+   then holds only the price, and `space-between` on a single child left it
+   flush under the title, which read as a stray line rather than a price.
+
+   The block becomes a two-column grid so the price moves up onto the title's
+   line and sits right-aligned there, matching the cards that do have a
+   colourway. Everything else — rating, sizes, the volume-pricing note —
+   spans both columns and keeps the vertical rhythm; only the title and the
+   price are pinned to the first row.
+
+   `minmax(0, 1fr)` rather than `1fr`: a grid track's default minimum is its
+   content, so a long name like "Aham Brahmasmi" would otherwise push the
+   price off the card instead of wrapping. */
+.product-card .product-card__details--no-colour {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: var(--sp-2);
+}
+
+.product-card .product-card__details--no-colour > * {
+  grid-column: 1 / -1;
+}
+
+.product-card .product-card__details--no-colour > p:first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.product-card .product-card__details--no-colour > .product-card__meta {
+  grid-column: 2;
+  grid-row: 1;
+  margin-block-start: 0;
+}
+
+.product-card__colour {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  line-height: 1.3;
+  color: rgb(var(--color-foreground) / 0.55);
+}
+
+/* Rating, now beside the price rather than over the photograph. */
+.product-card__rating-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-block-start: var(--sp-2);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(var(--color-foreground) / 0.68);
+}
+
+/* The review count is context, not a second number to read. */
+.product-card__rating-count {
+  color: rgb(var(--color-foreground) / 0.5);
+  font-weight: 500;
+}
+
+.product-card__rating-inline b {
+  font-weight: 700;
+  color: rgb(var(--color-foreground));
+}
+
+.product-card__rating-inline .icon {
+  width: var(--sp-3);
+  height: var(--sp-3);
+  color: #f5b301;
+  fill: #f5b301;
+}
+
+/* Sizes. A hairline separates them from the identity above, so the row reads
+   as stock information rather than more product copy. */
+.product-card__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-block-start: var(--sp-2d5);
+  padding-block-start: var(--sp-2d5);
+  border-block-start: 1px solid rgb(var(--color-foreground) / 0.09);
+}
+
+.product-card__size {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  color: rgb(var(--color-foreground) / 0.8);
+}
+
+/* Struck, not hidden — that a size existed and sold out is worth knowing. */
+.product-card__size.is-out {
+  color: rgb(var(--color-foreground) / 0.32);
+  text-decoration: line-through;
+}
+
+/* Closes the rhythm: 6px here plus the swatch item's own 4px of block padding
+   reads as the same ~10px step as the rows above. The theme's default 4px sat
+   the swatches visibly tighter than everything else in the block. */
+.product-card .colour-swatches {
+  margin-block-start: var(--sp-1d5);
+}
+
+/* --- Image chrome -------------------------------------------------------- */
+
+/* The rotating tag carries neutral information (100% COTTON, FLAT KNIT, NEW
+   IN, POLO COLLAR). On a white translucent chip it still reads at a glance
+   without painting a crimson lozenge across the model's chest. */
+.product-card .onrepeat-rtag--card .onrepeat-rtag__pill {
+  background: rgb(255 255 255 / 0.92);
+  color: #3d0809;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-radius: var(--sp-1d5);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  padding: 4px 8px;
+  min-height: 0;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+}
+
+/* Two exceptions stay crimson, because both are claims rather than specs and
+   are meant to interrupt: a discount, and a new arrival. 100% COTTON, FLAT
+   KNIT and POLO COLLAR keep the quiet chip above. */
+.product-card .onrepeat-rtag--card .onrepeat-rtag__pill--save,
+.product-card .onrepeat-rtag--card .onrepeat-rtag__pill--new {
+  background: linear-gradient(180deg, #5c1011 0%, #7b1e3a 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgb(92 16 17 / 0.28);
+}
+
+/* Quick add, mobile only. Desktop keeps the theme's text button ("Add to
+   cart"), which appears on hover — the icon-only circle exists solely on
+   touch, where the label is hidden by `md:hidden` in the markup. Restyling
+   both would collapse that text button into a 34px disc. */
+@media screen and (max-width: 767px) {
+  .product-card .quick-add .button--primary {
+    width: 2.125rem;
+    height: 2.125rem;
+    min-height: 0;
+    padding: 0;
+    border-radius: var(--rounded-full);
+    background: rgb(255 255 255 / 0.94);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    color: #3d0809;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  }
+
+  /* .btn-fill is the maroon disc the theme slides up on tap; against a white
+     button it would flash the old crimson back in. */
+  .product-card .quick-add .button--primary .btn-fill {
+    display: none;
+  }
+
+  /* The theme draws every button's outline as an ::after rather than a border
+     on the element, and that pseudo-element carries `--buttons-radius` (12px).
+     Rounding the button to a circle therefore left a 2px rounded-SQUARE ring
+     sitting on top of a round disc — the corners poking out on the diagonals,
+     the disc bulging past the ring on the axes, which read as the button being
+     trapped inside a second shape.
+
+     `inherit` ties it to whatever radius the button itself has, so the two can
+     never disagree again. The ring is dropped entirely: it is the crimson
+     brand outline, which does not belong on a white disc, and the shadow
+     already lifts the button off the photograph. */
+  .product-card .quick-add .button--primary::after {
+    border-radius: inherit;
+    border: 0;
+  }
+
+  .product-card .quick-add .button--primary .icon {
+    width: var(--sp-4);
+    height: var(--sp-4);
+  }
+}

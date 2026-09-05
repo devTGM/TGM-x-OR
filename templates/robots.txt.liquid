@@ -1,0 +1,62 @@
+{% comment %}
+  Custom robots.txt that explicitly allows AI crawlers alongside the standard Shopify rules.
+  OAI-SearchBot powers ChatGPT live search (distinct from GPTBot which is training-only).
+  PerplexityBot powers Perplexity AI search — India's #1 AI search platform.
+  Google-Extended feeds Google AI Overviews / Gemini.
+  ClaudeBot enables Anthropic/Claude citations.
+  Bingbot feeds Microsoft Copilot.
+
+  llms.txt brand context for AI crawlers: {{ shop.url }}/pages/llms-txt
+{% endcomment %}
+
+# THE ONREPEAT — robots.txt
+# AI crawler access: explicitly allowed for GEO/AEO optimization
+
+# ChatGPT live search (OAI-SearchBot) — powers product recommendations in ChatGPT
+User-agent: OAI-SearchBot
+Allow: /
+
+# ChatGPT model training (GPTBot) — allowed for brand signal training data
+User-agent: GPTBot
+Allow: /
+
+# Perplexity AI search — India's #1 AI search platform
+User-agent: PerplexityBot
+Allow: /
+
+# Google AI Overviews, Gemini, and AI training
+User-agent: Google-Extended
+Allow: /
+
+# Anthropic Claude / Claude.ai search
+User-agent: ClaudeBot
+Allow: /
+
+# Microsoft Copilot (via Bing index)
+User-agent: Bingbot
+Allow: /
+
+# Amazon Alexa AI assistant
+User-agent: Amazonbot
+Allow: /
+
+# Meta AI (Facebook/Instagram AI search)
+User-agent: FacebookBot
+Allow: /
+
+# Apple AI features
+User-agent: Applebot
+Allow: /
+
+# Standard Shopify rules for all other bots
+{% for group in robots.default_groups %}
+User-agent: {{ group.user_agent }}
+{% for rule in group.rules %}
+{{ rule.directive }}: {{ rule.value }}
+{% endfor %}
+{% unless forloop.last %}
+
+{% endunless %}
+{% endfor %}
+
+Sitemap: {{ shop.url }}/sitemap.xml

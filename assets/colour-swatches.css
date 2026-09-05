@@ -1,0 +1,244 @@
+/*! colour-swatches — sibling colourway links rendered from custom.colour_siblings.
+    Pure CSS: no JavaScript is involved in showing, linking or styling a swatch.
+    Per-swatch values (--cs-fill, --cs-strike) are set inline by snippets/colour-swatches.liquid. */
+
+.colour-swatches {
+  display: block;
+}
+
+/* Matches the PDP variant-picker label rhythm (.product-form__input .form__label). */
+.colour-swatches__label {
+  margin-block-end: var(--sp-3);
+}
+
+.colour-swatches__row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  max-inline-size: 100%;
+}
+
+.colour-swatches__item {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  text-decoration: none;
+  /* The hit target is padding around a small dot — never a bigger dot. */
+  padding: var(--cs-pad-block, var(--sp-1)) var(--cs-pad-inline, var(--sp-1d5));
+}
+
+.colour-swatches__dot {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  inline-size: var(--cs-dot, 14px);
+  block-size: var(--cs-dot, 14px);
+  border-radius: 50%;
+  background-color: var(--cs-fill, #d9d6d1);
+  /* Every dot carries a hairline so pale and dark fills are the same size. */
+  border: 1px solid rgb(var(--color-foreground) / 0.16);
+}
+
+/* Pale fills (Cream and anything else above the brightness threshold) get a
+   border strong enough to stay visible against a white card. */
+.colour-swatches__dot.is-light {
+  border-color: rgb(var(--color-foreground) / 0.42);
+}
+
+/* Current colourway — rendered as a non-interactive <span> by the snippet. */
+.colour-swatches__item.is-active .colour-swatches__dot {
+  box-shadow:
+    0 0 0 2px rgb(var(--color-background)),
+    0 0 0 3px rgb(var(--color-foreground));
+}
+
+/* Sold out — diagonal strike. Still clickable; --cs-strike is picked per fill
+   so the line reads on both #EFE9DC and #1A1A1A. */
+.colour-swatches__item.is-soldout .colour-swatches__dot::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.75px),
+    var(--cs-strike, #fff) calc(50% - 0.75px),
+    var(--cs-strike, #fff) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
+}
+
+/* theme.css sets `*:focus-visible { outline: none }` globally, so the focus
+   ring has to be restated here or keyboard users get nothing. */
+.colour-swatches__item:focus-visible {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: -3px;
+}
+
+.colour-swatches__more {
+  flex: 0 0 auto;
+  padding-inline-start: var(--sp-1);
+  color: rgb(var(--color-foreground) / 0.65);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* --- PDP: photo tiles ----------------------------------------------------- */
+
+.colour-swatches--image .colour-swatches__row {
+  gap: var(--sp-2);
+}
+
+/* Tiles flex down to fit whatever width the column has, so six colourways never
+   wrap or scroll on a 390px phone, and cap out at 72px on desktop. The tile IS
+   the hit target — always well past 44 x 44. */
+.colour-swatches--image .colour-swatches__item {
+  flex: 1 1 0;
+  min-inline-size: 44px;
+  max-inline-size: 72px;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-border));
+  border-radius: var(--rounded-block);
+  background-color: rgb(var(--color-background));
+}
+
+.colour-swatches--image .colour-swatches__img,
+.colour-swatches--image .colour-swatches__tile {
+  display: block;
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* Fallback when a colourway has no photography yet. */
+.colour-swatches--image .colour-swatches__tile {
+  background-color: var(--cs-fill, #d9d6d1);
+}
+
+.colour-swatches--image .colour-swatches__item.is-active {
+  border-color: rgb(var(--color-foreground));
+  box-shadow: inset 0 0 0 1px rgb(var(--color-foreground));
+}
+
+/* Sold out: dim the photo back towards the page, then rule through it. Dimming
+   first is what guarantees the line reads, whatever the photo behind it. */
+.colour-swatches--image .colour-swatches__item.is-soldout .colour-swatches__img,
+.colour-swatches--image .colour-swatches__item.is-soldout .colour-swatches__tile {
+  opacity: 0.45;
+}
+
+.colour-swatches--image .colour-swatches__item.is-soldout::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.5px),
+    rgb(var(--color-foreground) / 0.75) calc(50% - 0.5px),
+    rgb(var(--color-foreground) / 0.75) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+}
+
+@media (hover: hover) {
+  .colour-swatches--image .colour-swatches__item:not(.is-active):hover {
+    border-color: rgb(var(--color-foreground) / 0.45);
+    opacity: 1;
+  }
+}
+
+/* --- PDP: colour discs (used when display: 'dot' is forced) ---------------- */
+
+.colour-swatches--large.colour-swatches--dot .colour-swatches__item {
+  --cs-dot: 26px;
+  --cs-pad-block: var(--sp-2d5);
+  --cs-pad-inline: var(--sp-2d5);
+}
+
+/* 26px dot + 2 × 10px padding = 46 × 46 hit target on every pointer type. */
+
+/* --- Product card --------------------------------------------------------- */
+
+.product-card .colour-swatches {
+  margin-block-start: var(--sp-1);
+}
+
+/* Card swatches sit tighter than the PDP's so a full colour family fits on one
+   line. 14px dot + 2 × 4px = 22px per item, so six come to 132px — comfortably
+   inside the ~135–150px of content width a 2-up card has across the phone range,
+   with clear space left at the end. At the previous 6px the row came to 156px
+   and ran past the card edge. */
+.colour-swatches--small .colour-swatches__item {
+  --cs-dot: 14px;
+  --cs-pad-block: var(--sp-1);
+  --cs-pad-inline: var(--sp-1);
+}
+
+/* One line, never wrapped. Wrapping strands a dot or two on a second row and
+   makes the card taller than the ones beside it; the tighter item padding above
+   is what actually makes a six-colour family fit, so in practice nothing here
+   scrolls at all.
+
+   The overflow is kept purely as a safety net. `.product-card` is
+   `overflow: hidden`, so without it anything that did run long — a seventh
+   colourway, a very narrow device, a large-text setting — would be silently
+   sliced off at the card edge with no way to reach it, which is the bug this
+   replaced. When the row fits, none of this is visible. */
+.colour-swatches--small .colour-swatches__row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  /* `visible` would compute to `auto` on the cross axis once overflow-x is set,
+     which would add a phantom vertical scrollbar; the active swatch's 3px ring
+     still clears the item's 4px block padding, so nothing is cut. */
+  overflow-y: hidden;
+  /* Swiping the swatches must not chain into the page or the card's image
+     gallery once the row hits either end. */
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  /* The scrollbar would sit on top of a 22px-tall row; the dots carry the cue. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.colour-swatches--small .colour-swatches__row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Cards are too narrow for six 44px-wide targets, so on touch the row grows to
+   a full 44px of height and keeps as much width as the card allows. */
+@media (pointer: coarse) {
+  .colour-swatches--small .colour-swatches__item {
+    min-block-size: 44px;
+  }
+}
+
+/* `safe` matters now that the small row scrolls: plain `center` on a scroll
+   container pushes the first items past the left edge where they can never be
+   scrolled back to. `safe` centres only while the row fits and falls back to
+   start-alignment the moment it overflows. Browsers without the keyword drop
+   the declaration and get start-alignment, which is the safe outcome anyway. */
+.product-card__content.text-center .colour-swatches__row {
+  justify-content: safe center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .colour-swatches__item {
+    transition: opacity var(--animation-fast);
+  }
+}
+
+@media (hover: hover) {
+  .colour-swatches__item:not(.is-active):hover {
+    opacity: 0.7;
+  }
+}

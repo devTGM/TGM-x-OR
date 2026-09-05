@@ -1,0 +1,151 @@
+/*
+ * OnRepeat model-fit badge (snippets/onrepeat-model-fit-badge.liquid).
+ *
+ * A clear, compact caption pill pinned to the BOTTOM-LEFT of the PDP gallery
+ * frame, e.g. "Model is 6'0" · wears size L". Deep crimson-black frosted glass
+ * with crimson reserved to a tiny leading glyph, so it reads as neutral helper
+ * info and never competes with the crimson GSM pill in the top-left corner.
+ *
+ * Bottom-left is the one conflict-free zone: diagonally opposite the top-right
+ * zoom button, clear of the top-left GSM/sold-out cluster, above the pagination
+ * dots (which live in a separate strip below the frame), and clear of the
+ * vertically-centred hover-only prev/next arrows — sitting over the dark, empty
+ * lower third of the spotlit photography.
+ */
+
+/* The slider reserves --card-shadow-vertical-offset (4rem on this store) below
+   its track at every breakpoint, so that card shadows are not clipped by
+   overflow-x: auto. The PDP gallery has no shadow on its media — measured
+   box-shadow: none at 402px and 1280px — so the reserve bought nothing there and
+   cost 64px of empty white under the photograph.
+
+   It also broke this layer. The badges are inset to the slider's box, so the
+   bottom-pinned pills (model fit, rating) were landing 64px BELOW the image, on
+   that white strip, instead of over the picture. Reclaiming the space fixes the
+   gap and puts the pills back on the frame in one move.
+
+   Left in place under .no-js, where the slider deliberately shows a real
+   scrollbar that does need the room. */
+html:not(.no-js) .onrepeat-gallery.slider {
+  padding-block-end: 0;
+}
+
+/* Positioning layer over the gallery frame; clicks pass through to the slider. */
+.onrepeat-pdp-badges {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Bottom-left caption pill */
+.onrepeat-fit-pill {
+  position: absolute;
+  inset-block-end: var(--sp-3, 0.75rem);
+  inset-inline-start: var(--sp-3, 0.75rem);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(calc(100% - 24px), 300px);
+  padding: 5px 11px;
+  border-radius: 100px;
+  background: rgba(28, 8, 10, 0.55);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  backdrop-filter: blur(8px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f5f2ee;
+  font-family: var(--font-heading-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.onrepeat-fit-pill__icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: #c8324f; /* the only crimson accent */
+  opacity: 0.95;
+}
+
+.onrepeat-fit-pill__text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.onrepeat-fit-pill__label {
+  font-weight: 500;
+  opacity: 0.86;
+}
+
+.onrepeat-fit-pill__val {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.onrepeat-fit-pill__sep {
+  flex: none;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f5f2ee;
+  opacity: 0.5;
+}
+
+/* Mobile: drop the redundant word "size" so the line stays compact. */
+.onrepeat-fit-pill__size-word {
+  display: none;
+}
+
+@media screen and (min-width: 768px) {
+  .onrepeat-fit-pill {
+    inset-block-end: var(--sp-4, 1rem);
+    inset-inline-start: var(--sp-4, 1rem);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .onrepeat-fit-pill__icon {
+    width: 13px;
+    height: 13px;
+  }
+  .onrepeat-fit-pill__val {
+    font-size: 14px;
+  }
+  .onrepeat-fit-pill__size-word {
+    display: inline;
+  }
+}
+
+/* Contrast insurance where backdrop-blur is unsupported (older Android WebView). */
+@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .onrepeat-fit-pill {
+    background: rgba(28, 8, 10, 0.74);
+  }
+}
+
+/* A single, non-looping fade + slide-up on first render (no shimmer, no loop). */
+@media (prefers-reduced-motion: no-preference) {
+  .onrepeat-fit-pill {
+    animation: onrepeat-fit-in 420ms ease-out both;
+  }
+  @keyframes onrepeat-fit-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

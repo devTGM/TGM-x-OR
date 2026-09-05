@@ -1,0 +1,87 @@
+/* ============================================================
+   Collection filters — size chips.
+
+   The size facet used to render as a vertical checkbox list of full taxonomy
+   names ("Extra small (XS)"), which on a 390px filter sheet cost four rows and
+   still read as unrelated options rather than a scale. As chips it is one or
+   two rows, ordered XS → S → M → L → XL, and it matches the size pills on the
+   product page.
+
+   Loaded globally from layout/theme.liquid; snippets cannot serve their own
+   {% stylesheet %} blocks.
+   ============================================================ */
+.facet-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facet-sizes__item {
+  margin: 0;
+}
+
+/* Selected via the input sibling, not `.facet-sizes__chip` alone, and that is
+   deliberate: theme.css:4188 sets
+
+     input:is([type=checkbox], [type=radio]) + label { display: inline-block }
+
+   which scores (0,1,2) and so outranks a lone (0,1,0) class. The chip fell back
+   to inline-block, `align-items`/`justify-content` stopped applying, and the
+   letter sat in the top-left corner of the box instead of its centre. Matching
+   on the sibling takes this to (0,2,0) and wins without !important — the same
+   shape the :checked / :disabled / :focus-visible rules below already use,
+   which is why the crimson selected state always looked right. */
+.facet-sizes__input + .facet-sizes__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* theme.css pairs its inline-block with vertical-align: top; harmless once
+     this is a flex item, but reset so the chip never rides high in a line box. */
+  vertical-align: middle;
+  min-width: 46px;
+  min-height: 44px; /* full touch target */
+  padding: 0 12px;
+  border: 1px solid rgb(var(--color-foreground) / 0.22);
+  border-radius: 10px;
+  background: transparent;
+  color: rgb(var(--color-foreground));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.facet-sizes__chip:hover {
+  border-color: rgb(var(--color-foreground) / 0.55);
+}
+
+/* Selected — brand crimson, same as the reward and cart surfaces. */
+.facet-sizes__input:checked + .facet-sizes__chip {
+  background: #5c1011;
+  border-color: #5c1011;
+  color: #fff;
+}
+
+/* Nothing would remain if you picked it: struck through, still readable, not
+   hidden — a size that is out of stock is information worth keeping. */
+.facet-sizes__input:disabled + .facet-sizes__chip {
+  opacity: 0.38;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.facet-sizes__input:focus-visible + .facet-sizes__chip {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .facet-sizes__chip {
+    transition: none;
+  }
+}

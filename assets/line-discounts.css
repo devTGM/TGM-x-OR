@@ -1,0 +1,57 @@
+/*! line-discounts — compact per-line discount tags in the cart, cart drawer and
+    the customer order page. Rendered by snippets/line-discounts.liquid.
+
+    These rules previously lived in a {% stylesheet %} block inside that snippet.
+    Shopify only compiles {% stylesheet %} for sections and blocks, never for
+    snippets, so they were never served — the markup rendered completely unstyled
+    and the 16px inline SVG expanded to fill its container. It went unnoticed
+    because the store had no line-level (product-class) automatic discounts until
+    the ₹300 / ₹700 spend tiers were moved to PRODUCT class so they could stack
+    with the 5%. Loaded from layout/theme.liquid so the order page gets it too. */
+
+.discounts.discounts--line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.discounts--line .discounts__discount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  padding: 0.16rem 0.5rem;
+  border-radius: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* The explicit flex-basis matters: without it the inline SVG has no intrinsic
+   width to shrink from and grows to the width of the drawer. */
+.discounts--line .discounts__icon {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  color: #16a34a;
+}
+
+.discounts--line .discounts__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discounts--line .discounts__amount {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #166534;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,52 @@
+{%- comment -%}
+  The theme's size-chart drawer, lifted out of product-variant-picker.
+
+  It was written inline inside the picker's size-option row, which meant the
+  chart only existed on the page when the picker did. Hiding the variant
+  picker on the product page therefore took the size guide with it, and the
+  buy bar's "Size guide" — which opens this by aria-controls — pointed at an
+  id that was no longer in the document.
+
+  Nothing about the markup has changed; it is the same x-modal, the same
+  classes and the same data-size-chart-processed container the theme's own
+  processor picks up (theme.js), so it renders and behaves exactly as it
+  always has. Only its address is now a parameter.
+
+  Accepts:
+  - modal_id  : {String} element id the opener's aria-controls points at
+  - product   : {Object} used to resolve the per-product chart override
+  - chart_page: {Object} page whose content is the chart
+  - title     : {String} drawer heading
+
+  Usage:
+  {% render 'size-chart-modal', modal_id: 'SizeChart-x-y', product: product, chart_page: page, title: 'Size chart' %}
+{%- endcomment -%}
+
+{%- if chart_page != blank -%}
+  <x-modal id="{{ modal_id }}" class="x-modal drawer z-30 fixed bottom-0 left-0 h-full w-full pointer-events-none"
+    role="dialog"
+    aria-modal="true"
+    aria-label="{{ title | escape }}"
+    hidden
+  >
+    <overlay-element class="overlay fixed-modal invisible opacity-0 fixed bottom-0 left-0 w-full h-screen pointer-events-none" aria-controls="{{ modal_id }}" aria-expanded="false"></overlay-element>
+    <div class="drawer__inner z-10 absolute top-0 flex flex-col w-full h-full overflow-hidden">
+      <gesture-element class="drawer__header flex justify-between opacity-0 invisible relative">
+        <span class="drawer__title heading title-md">{{ title | escape }}</span>
+        <button class="button button--secondary button--close drawer__close hidden sm:flex items-center justify-center" type="button" is="hover-button" aria-controls="{{ modal_id }}" aria-expanded="false" aria-label="{{ 'general.accessibility.close' | t | escape }}">
+          <span class="btn-fill" data-fill></span>
+          <span class="btn-text">
+            {%- render 'icon', icon: 'close', size: 'sm' -%}
+          </span>
+        </button>
+      </gesture-element>
+      <div class="drawer__content opacity-0 invisible flex flex-col h-full grow shrink">
+        <div class="drawer__scrollable relative flex flex-col gap-5 md:gap-7 grow shrink">
+          <div class="rte text-base md:text-lg size-chart-processed" data-size-chart-processed data-sc-chart="{%- render 'size-chart-key', product: product -%}">
+            {{ chart_page.content | replace: '<script>', '<script type="text/inert-script">' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </x-modal>
+{%- endif -%}

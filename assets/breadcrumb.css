@@ -1,0 +1,168 @@
+/* ============================================================================
+   Product breadcrumb + product-to-product navigation
+   ============================================================================
+   Markup: snippets/product-breadcrumb.liquid. It renders as the first block
+   inside <product-info>, so it is full-width below the gallery on mobile and
+   sits at the top of the info column on desktop.
+
+   The layout is trail-left / arrows-right with the trail allowed to shrink. The
+   two constraints that shape everything here:
+
+     • The product name is the only part that may truncate. Home and the
+       collection are the two things a shopper actually taps, so they carry
+       `flex-shrink: 0` and keep their full width no matter how long the
+       product title is.
+
+     • The arrow group never changes width. Unavailable arrows render as a
+       dimmed <span> rather than being dropped, because a control that resizes
+       when you reach the first or last product makes the trail reflow under
+       your thumb.
+
+   Palette matches the size guide: crimson #5c1011, cream #f6f2ea, hairline
+   #e4dccc.
+   ========================================================================= */
+
+.onrepeat-bc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.6875rem;
+  border-bottom: 1px solid #ece5da;
+}
+
+.onrepeat-bc__trail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0; /* lets the product name actually truncate inside a flex row */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.onrepeat-bc__crumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* The current product is the only crumb allowed to give up space. */
+.onrepeat-bc__crumb--here {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.onrepeat-bc__trail a {
+  color: #8a8078;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.16s ease;
+}
+
+.onrepeat-bc__trail a:hover,
+.onrepeat-bc__trail a:focus-visible {
+  color: #5c1011;
+}
+
+/* Chevron drawn from two borders — no icon request, and it scales with the
+   text rather than sitting at a fixed pixel size beside it. */
+.onrepeat-bc__sep {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  margin-top: -1px;
+  border-right: 1.2px solid #cfc4b4;
+  border-bottom: 1.2px solid #cfc4b4;
+  transform: rotate(-45deg);
+}
+
+.onrepeat-bc__here {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2320;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.onrepeat-bc__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex: 0 0 auto;
+}
+
+.onrepeat-bc__btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: none;
+  color: #5c1011;
+  text-decoration: none;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.onrepeat-bc__btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) {
+  a.onrepeat-bc__btn:hover {
+    background: #f6f2ea;
+    border-color: #e4dccc;
+  }
+}
+
+/* Placeholder arrow at the ends of a collection: visible, dim, inert. */
+span.onrepeat-bc__btn {
+  color: #d9d0c2;
+  pointer-events: none;
+}
+
+@media screen and (max-width: 749px) {
+  .onrepeat-bc {
+    gap: 0.625rem;
+    margin-bottom: 0.625rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .onrepeat-bc__trail {
+    gap: 0.4375rem;
+    font-size: 0.71875rem;
+  }
+
+  .onrepeat-bc__crumb {
+    gap: 0.4375rem;
+  }
+
+  .onrepeat-bc__btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onrepeat-bc__trail a,
+  .onrepeat-bc__btn {
+    transition-duration: 0.01s;
+  }
+}

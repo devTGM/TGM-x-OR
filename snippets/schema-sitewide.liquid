@@ -1,0 +1,153 @@
+{%- if request.page_type == 'index' -%}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "{{ shop.url }}/#organization",
+      "name": "THE ONREPEAT",
+      "legalName": "SUNYE ATTIRE PRIVATE LIMITED",
+      "alternateName": ["THE ONREPEAT CLOTHING", "ONREPEAT", "OnRepeat", "Shunya", "SUन्य", "शून्य", "theonrepeat"],
+      "url": "{{ shop.url }}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{ settings.logo | image_url: width: 400 | prepend: 'https:' }}",
+        "width": 400
+      },
+      "description": "Premium apparel brand from India, inspired by Sanskrit philosophy and fifth-century Indian art. Founded in 2024 by Paras Soni.",
+      "slogan": "From Zero to Infinite",
+      "foundingDate": "2024-08-07",
+      {%- comment -%}
+        Government-registry identifiers. These are the only facts about this brand that a third party
+        can independently verify today — MCA for the CIN, the GST portal for the GSTIN — so they carry
+        real weight on "is this a real business" queries where no earned coverage exists yet.
+        PAN and TAN are deliberately not published. (The GSTIN embeds the PAN by construction, which
+        is normal and unavoidable in India.)
+      {%- endcomment -%}
+      "identifier": [
+        {
+          "@type": "PropertyValue",
+          "propertyID": "CIN",
+          "name": "Corporate Identity Number (India)",
+          "value": "U46419HR2024PTC124013"
+        },
+        {
+          "@type": "PropertyValue",
+          "propertyID": "GSTIN",
+          "name": "Goods and Services Tax Identification Number (India)",
+          "value": "09ABOCS0725J1ZZ"
+        }
+      ],
+      "taxID": "09ABOCS0725J1ZZ",
+      "founder": {
+        "@type": "Person",
+        "name": "Paras Soni",
+        "jobTitle": "Founder"
+      },
+      "sameAs": [
+        "{{ settings.social_instagram_link }}",
+        "{{ settings.social_facebook_link }}",
+        "{{ settings.social_youtube_link }}",
+        "https://www.linkedin.com/company/the-onrepeat",
+        "https://www.crunchbase.com/organization/the-onrepeat"
+      ],
+      "areaServed": {
+        "@type": "Country",
+        "name": "India",
+        "@id": "https://www.wikidata.org/wiki/Q668"
+      },
+      "countryOfOrigin": {
+        "@type": "Country",
+        "name": "India"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "THE ONREPEAT Apparel Collection",
+        "url": "{{ shop.url }}/collections"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+        "email": "support@theonrepeat.co",
+        "availableLanguage": ["English", "Hindi"],
+        "areaServed": "IN"
+      },
+      {%- comment -%}
+        Two addresses, because they are two different legal things and the site was previously
+        publishing them unlabelled — the Terms carried the registered office, the Privacy Policy
+        carried the operating address, and a reader (or a parser) saw a contradiction.
+        `address` is the registered office on the Certificate of Incorporation; `location` is the
+        principal place of business on the GST registration.
+      {%- endcomment -%}
+      "address": {
+        "@type": "PostalAddress",
+        "name": "Registered office",
+        "streetAddress": "C/O Rajesh Kumar, W. No. 10, Nr. State Bank, Ellenabad",
+        "addressLocality": "Sirsa",
+        "addressRegion": "Haryana",
+        "postalCode": "125102",
+        "addressCountry": "IN"
+      },
+      "location": {
+        "@type": "Place",
+        "name": "Principal place of business",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Ground Floor, 005, Tower B, Sector 132",
+          "addressLocality": "Noida",
+          "addressRegion": "Uttar Pradesh",
+          "postalCode": "201304",
+          "addressCountry": "IN"
+        }
+      },
+      "knowsLanguage": ["en", "hi", "sa"],
+      "knowsAbout": ["Premium Apparel", "Sanskrit Heritage", "Indian Fashion", "Apparel Design", "Youth Fashion India", "Sustainable Fashion India", "Indian Apparel Brand", "Sanskrit Philosophy"]
+      {%- comment -%}
+        subjectOf removed. It asserted three separate Article nodes — "featured in The Tribune",
+        "…The Print", "…WBN" — none of which carried a url, so none could be checked. They were also
+        not three features: all three are the same VMPL press release distributed through ANI on
+        19 Aug 2025, and the outlets label it as such (ThePrint files it under /ani-press-releases/
+        and prints an advertorial disclaimer). Three unverifiable Article claims for one syndicated
+        release reads as inflation to anything that checks. Press is presented, accurately labelled,
+        on the About page instead — where a reader can see what it is.
+      {%- endcomment -%}
+    },
+    {
+      "@type": "WebSite",
+      "@id": "{{ shop.url }}/#website",
+      "url": "{{ shop.url }}",
+      "name": "THE ONREPEAT",
+      "publisher": { "@id": "{{ shop.url }}/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "{{ shop.url }}/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "{{ shop.url }}/#webpage",
+      "url": "{{ shop.url }}",
+      {%- comment -%}
+        Read from page_title rather than repeated by hand, so this node, the <title> tag and the
+        homepage <h1> in snippets/header-logo.liquid all state the same page name. They used to
+        differ by the "| OnRepeat · Shunya" tail, which is one more conflicting name for a search
+        engine choosing what to print above a result.
+      {%- endcomment -%}
+      "name": {{ page_title | default: 'THE ONREPEAT — Premium apparel from India' | json }},
+      "isPartOf": { "@id": "{{ shop.url }}/#website" },
+      "about": { "@id": "{{ shop.url }}/#organization" },
+      "description": "From Zero to Infinite. Premium apparel inspired by Sanskrit philosophy. Hoodies, t-shirts, shirts and sweatshirts. Free shipping in India.",
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": [".heading", ".rte"]
+      }
+    }
+  ]
+}
+</script>
+{%- endif -%}

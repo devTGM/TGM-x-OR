@@ -1,0 +1,591 @@
+{%- comment -%}
+  Care & fabric — the collapsible colophon.
+
+  Renders `product.metafields.custom.product_details`, whose items are authored as
+  "<strong>Key: </strong>Main | Detailed". The main text is what a shopper reads at a
+  glance; tapping it morphs it into the full line, and tapping the full line morphs it
+  back. A row written without a " | " has nothing deeper to say, so it renders as plain
+  text and is not interactive.
+
+  It ships OPEN. The specification is the reason the block exists, and a shopper who
+  has to tap to find out that it is there mostly does not. Tapping the heading closes
+  it; closed, the block is its heading plus a row of the icons it contains — an index
+  of what is inside — and tapping any icon, or the heading, opens it again.
+
+  The default is in the markup, not in a block setting, so every product template that
+  renders this snippet opens the same way and no template can drift out of step.
+
+  Care is the coda: its sentence is split on its own mid-dots and each segment is drawn
+  as its GINETEX / ISO 3758 symbol beside a short phrase.
+
+  Degrades honestly. The block is a real <details>, so it opens and closes with no
+  JavaScript at all; before the script upgrades it, every row shows its full detailed
+  text — the complete specification, just without the morph.
+
+  CSS, JS and icons are inlined on purpose: Shopify's page cache can serve fresh HTML
+  beside a stale immutable asset URL, and a self-contained render cannot fall out of
+  sync with itself.
+
+  Usage: {%- render 'onrepeat-detail-strip', product: product, block: block -%}
+{%- endcomment -%}
+
+{%- liquid
+  assign md = product.metafields.custom.product_details
+  assign dt_heading = block.settings.heading | default: 'Care & fabric'
+-%}
+
+{%- if md != blank -%}
+  {%- capture details_html -%}{{ md | metafield_tag }}{%- endcapture -%}
+  {%- assign items = details_html | split: '<li>' -%}
+
+  {%- if items.size > 1 -%}
+    {%- assign icons_html = '' -%}
+    {%- assign rows_html = '' -%}
+    {%- assign care_html = '' -%}
+    {%- assign care_icon = '' -%}
+    {%- assign n = 0 -%}
+
+    {%- for item in items offset: 1 -%}
+      {%- liquid
+        assign inner = item | split: '</li>' | first
+        assign label = ''
+        assign value = ''
+        if inner contains '<strong>'
+          assign label = inner | split: '</strong>' | first | split: '<strong>' | last | strip_html | strip
+          assign value = inner | split: '</strong>' | last
+        else
+          assign txt = inner | strip_html | strip
+          assign label = txt | split: ':' | first | strip
+          assign value = txt | remove_first: label | remove_first: ':'
+        endif
+        assign label = label | replace: ':', '' | strip
+        assign key = label | downcase
+        assign plain = value | strip_html | replace: '&nbsp;', ' ' | strip
+
+        comment
+          " | " splits the glance from the detail. No pipe means the main text is the
+          whole truth, and the row stays static rather than expanding into itself.
+        endcomment
+        assign main_text = plain | split: ' | ' | first | strip
+        assign detail_text = ''
+        if plain contains ' | '
+          assign detail_text = plain | split: ' | ' | last | strip
+        endif
+        if detail_text == main_text
+          assign detail_text = ''
+        endif
+      -%}
+
+      {%- if label != blank and main_text != blank -%}
+        {%- capture icon_svg -%}
+          {%- case key -%}
+            {%- when 'fabric', 'material', 'yarn' -%}
+              <path d="M7.6 9.9a3.1 3.1 0 0 1 1.2-4.2 3.35 3.35 0 0 1 6.5 0 3.1 3.1 0 0 1 1.2 4.2"/><path d="M7.6 9.9c-.5 2.7 1.4 4.7 4.4 4.7s5-2 4.5-4.7"/><path d="M12 14.6v-4M12 10.6c-.9-.7-1.4-1.8-1.4-3M12 10.6c.9-.7 1.4-1.8 1.4-3"/><path d="M12 14.6v4.5"/>
+            {%- when 'knit', 'weave', 'texture' -%}
+              <path d="M8.4 7.8a3.5 3.5 0 1 0 2.5 5.9l2.2-2.4"/><path d="M15.6 7.8a3.5 3.5 0 1 1-2.5 5.9l-2.2-2.4"/>
+            {%- when 'print', 'artwork', 'graphic', 'embroidery', 'detail', 'details' -%}
+              <path d="M4.6 6.2h14.8v11.6H4.6Z"/><path d="M4.6 14.4c2.6-3.1 4.7-3.1 6.3 0 1.4-2.1 2.9-2.5 4.4-1.2"/><circle cx="9" cy="9.6" r="1.15"/>
+            {%- when 'collar', 'neckline', 'neck' -%}
+              <path d="M6.4 5.1 10.5 6l1.5 4.7-3.5 1.9z"/><path d="M17.6 5.1 13.5 6 12 10.7l3.5 1.9z"/><path d="M12 10.7v6.4"/><circle cx="12" cy="14.1" r=".95"/>
+            {%- when 'sizes', 'size', 'length' -%}
+              <path d="M3.2 9.4h17.6v5.2H3.2Z"/><path d="M7.6 9.4v2.5M12 9.4v2.5M16.4 9.4v2.5"/>
+            {%- when 'closure', 'fastening', 'zip', 'buttons' -%}
+              <path d="M12 3.6v6M9.9 20.4h4.2"/><path d="M12 9.6 10 11.5v6.9a2 2 0 0 0 4 0v-6.9Z"/><path d="M9.6 5.3h1.3M13.1 6.9h1.3M9.6 8.5h1.3"/>
+            {%- when 'fit', 'cut', 'style', 'silhouette' -%}
+              <path d="M8.9 4.4 5 6.6l1.5 3 1.9-.9v9a1 1 0 0 0 1 1h5.2a1 1 0 0 0 1-1v-9l1.9.9 1.5-3-3.9-2.2"/><path d="M8.9 4.4a3.1 3.1 0 0 0 6.2 0"/>
+            {%- when 'colour', 'color', 'shade' -%}
+              <circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/>
+            {%- else -%}
+              <path d="M3.6 5.7A2.1 2.1 0 0 1 5.7 3.6h6.1c.55 0 1.1.22 1.5.62l7 7a2.1 2.1 0 0 1 0 3l-6.1 6.1a2.1 2.1 0 0 1-3 0l-7-7a2.1 2.1 0 0 1-.6-1.5V5.7Z"/><circle cx="8.6" cy="8.6" r="1.4"/>
+          {%- endcase -%}
+        {%- endcapture -%}
+
+        {%- if key == 'care' or key == 'wash' or key == 'washing' -%}
+          {%- comment -%} The coda: one symbol and one short phrase per mid-dot segment. {%- endcomment -%}
+          {%- assign segs = plain | split: '·' -%}
+          {%- for seg in segs -%}
+            {%- liquid
+              assign lc = seg | downcase | strip
+              assign sym = ''
+              assign phrase = ''
+            -%}
+            {%- if lc contains 'hand wash' -%}
+              {%- assign phrase = 'Hand wash' -%}
+              {%- capture sym -%}<path d="M2.9 6.4h18.2"/><path d="M4.5 6.4 6.1 17a2.2 2.2 0 0 0 2.2 1.9h7.4a2.2 2.2 0 0 0 2.2-1.9l1.6-10.6"/><path d="M8.6 13.2c.6-1.4 1.5-2.1 2.6-2.1h3.4"/><path d="M13.2 9.5l1.5 1.6-1.5 1.6"/>{%- endcapture -%}
+            {%- elsif lc contains 'wash' -%}
+              {%- assign temp = '30' -%}
+              {%- if lc contains '40' or lc contains 'warm' -%}{%- assign temp = '40' -%}{%- endif -%}
+              {%- if lc contains '60' -%}{%- assign temp = '60' -%}{%- endif -%}
+              {%- if lc contains 'gentle' or lc contains 'delicate' -%}
+                {%- assign phrase = 'Gentle wash' -%}
+                {%- capture sym -%}<path d="M2.9 6.4h18.2"/><path d="M4.5 6.4 6.1 17a2.2 2.2 0 0 0 2.2 1.9h7.4a2.2 2.2 0 0 0 2.2-1.9l1.6-10.6"/><text x="12" y="15.2" text-anchor="middle">{{ temp }}</text><path d="M6.9 21.4h10.2"/>{%- endcapture -%}
+              {%- else -%}
+                {%- if temp == '30' -%}
+                  {%- assign phrase = 'Cold wash' -%}
+                {%- else -%}
+                  {%- assign phrase = 'Wash ' | append: temp | append: '°' -%}
+                {%- endif -%}
+                {%- capture sym -%}<path d="M2.9 6.4h18.2"/><path d="M4.5 6.4 6.1 17a2.2 2.2 0 0 0 2.2 1.9h7.4a2.2 2.2 0 0 0 2.2-1.9l1.6-10.6"/><text x="12" y="15.2" text-anchor="middle">{{ temp }}</text>{%- endcapture -%}
+              {%- endif -%}
+            {%- elsif lc contains 'bleach' -%}
+              {%- assign phrase = 'No bleach' -%}
+              {%- capture sym -%}<path d="M12 4.6 20.9 19.4H3.1Z"/><path d="M8.9 11.6 15.1 17.7M15.1 11.6 8.9 17.7"/>{%- endcapture -%}
+            {%- elsif lc contains 'dry flat' or lc contains 'flat dry' or lc contains 'lay flat' -%}
+              {%- assign phrase = 'Dry flat' -%}
+              {%- capture sym -%}<path d="M4.2 4.7h15.6v14.6H4.2Z"/><path d="M7.8 12h8.4"/>{%- endcapture -%}
+            {%- elsif lc contains 'line dry' or lc contains 'hang dry' or lc contains 'drip dry' -%}
+              {%- assign phrase = 'Line dry' -%}
+              {%- capture sym -%}<path d="M4.2 4.7h15.6v14.6H4.2Z"/><path d="M12 7.9v8.2"/>{%- endcapture -%}
+            {%- elsif lc contains 'tumble' -%}
+              {%- assign phrase = 'No tumble' -%}
+              {%- capture sym -%}<path d="M4.2 4.7h15.6v14.6H4.2Z"/><circle cx="12" cy="12" r="4.9"/><path d="M5.4 5.9 18.6 18.1M18.6 5.9 5.4 18.1"/>{%- endcapture -%}
+            {%- elsif lc contains 'iron' -%}
+              {%- if lc contains 'not iron' or lc contains 'no iron' -%}
+                {%- assign phrase = 'Do not iron' -%}
+                {%- capture sym -%}<path d="M3.4 17.2c0-4.2 3.4-7.6 7.6-7.6h9.6M6.8 9.6h9.4a3 3 0 0 1 3 3v4.6H3.4"/><path d="M4.4 5.4 19.6 18.6M19.6 5.4 4.4 18.6"/>{%- endcapture -%}
+              {%- else -%}
+                {%- assign phrase = 'Warm iron' -%}
+                {%- capture sym -%}<path d="M3.4 17.2c0-4.2 3.4-7.6 7.6-7.6h9.6M6.8 9.6h9.4a3 3 0 0 1 3 3v4.6H3.4"/><circle cx="9.6" cy="14.2" r=".7"/><circle cx="13" cy="14.2" r=".7"/>{%- endcapture -%}
+              {%- endif -%}
+            {%- elsif lc contains 'dry clean' -%}
+              {%- assign phrase = 'Dry clean' -%}
+              {%- capture sym -%}<circle cx="12" cy="12" r="8.2"/><text x="12" y="15" text-anchor="middle">P</text>{%- endcapture -%}
+            {%- endif -%}
+
+            {%- if phrase != blank -%}
+              {%- if care_icon == blank -%}{%- assign care_icon = sym -%}{%- endif -%}
+              {%- capture c -%}
+                <span class="onrepeat-sp__care-i"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ sym }}</svg>{{ phrase }}</span>
+              {%- endcapture -%}
+              {%- assign care_html = care_html | append: c -%}
+            {%- endif -%}
+          {%- endfor -%}
+
+        {%- else -%}
+          {%- capture ic -%}
+            <button class="onrepeat-sp__ico" type="button" data-sp-open
+              aria-label="{{ label | escape }} — open {{ dt_heading | escape }}">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ icon_svg }}</svg>
+            </button>
+          {%- endcapture -%}
+          {%- assign icons_html = icons_html | append: ic -%}
+
+          {%- capture glyph -%}<span class="onrepeat-sp__ic"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ icon_svg }}</svg></span>{%- endcapture -%}
+
+          {%- if detail_text == blank -%}
+            {%- capture row -%}
+              <li class="onrepeat-sp__row">
+                <span class="onrepeat-sp__k">{{ label | escape }}</span>
+                <span class="onrepeat-sp__flat">{{ glyph }}<span>{{ main_text | escape }}</span></span>
+              </li>
+            {%- endcapture -%}
+          {%- else -%}
+            {%- capture row -%}
+              <li class="onrepeat-sp__row">
+                <span class="onrepeat-sp__k">{{ label | escape }}</span>
+                <span class="onrepeat-sp__morph">
+                  <button class="onrepeat-sp__main" type="button" data-sp-main aria-expanded="false">{{ glyph }}<span class="onrepeat-sp__t">{{ main_text | escape }}</span></button>
+                  <button class="onrepeat-sp__detail" type="button" data-sp-detail aria-expanded="true" tabindex="-1">{{ detail_text | escape }}</button>
+                </span>
+              </li>
+            {%- endcapture -%}
+          {%- endif -%}
+          {%- assign rows_html = rows_html | append: row -%}
+          {%- assign n = n | plus: 1 -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endfor -%}
+
+    {%- if n > 0 -%}
+      <div class="onrepeat-sp" {{ block.shopify_attributes }}>
+        <style>
+          .onrepeat-sp {
+            border-block-start: 1px solid rgba(43, 18, 20, 0.10);
+            --sp-gold: #caa15a;
+            --sp-gold-soft: rgba(202, 161, 90, 0.32);
+            --sp-ink: #2b1214;
+            --sp-muted: #6c635c;
+            --sp-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+          }
+          .onrepeat-sp__d { display: block; }
+          .onrepeat-sp__d summary {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            min-height: 44px; padding-block-start: 16px;
+            list-style: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+          }
+          .onrepeat-sp__d summary::-webkit-details-marker { display: none; }
+          .onrepeat-sp__d summary:focus-visible { outline: 2px solid var(--sp-gold); outline-offset: 3px; border-radius: 3px; }
+          .onrepeat-sp__ovl {
+            font-family: var(--font-body-family), sans-serif;
+            font-size: 11px; font-weight: 600; line-height: 1;
+            letter-spacing: 0.08em; text-transform: uppercase; color: var(--sp-muted);
+          }
+          .onrepeat-sp__mark {
+            flex: none; width: 12px; height: 12px; color: var(--sp-muted);
+            transition: transform 0.32s var(--sp-ease), color 0.32s var(--sp-ease);
+          }
+          .onrepeat-sp__mark svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+          .onrepeat-sp__d[open] .onrepeat-sp__mark { transform: rotate(45deg); color: var(--sp-ink); }
+
+          /* closed: the icons the block contains, as its index */
+          .onrepeat-sp__icons { display: flex; flex-wrap: wrap; gap: 0 19px; margin-block-start: 4px; }
+          /* Keyed to the root rather than to [open], so the strip can be collapsed by the
+             script in step with the body. Bound to [open] it vanished the instant the
+             <details> flipped, popping ~40px of layout before the body had moved at all. */
+          .onrepeat-sp.is-open .onrepeat-sp__icons { display: none; }
+          .onrepeat-sp__ico {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; min-height: 40px; padding: 0; margin: 0;
+            border: 0; background: none; color: var(--sp-gold); cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.28s var(--sp-ease);
+          }
+          .onrepeat-sp__ico svg, .onrepeat-sp__ic svg {
+            width: 19px; height: 19px; fill: none; stroke: currentColor;
+            stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round;
+          }
+          .onrepeat-sp__ico:focus-visible { outline: 2px solid var(--sp-gold); outline-offset: 3px; border-radius: 4px; }
+
+          .onrepeat-sp__list { display: grid; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
+          .onrepeat-sp__row { display: grid; grid-template-columns: 62px 1fr; column-gap: 14px; align-items: start; }
+          .onrepeat-sp__k {
+            text-align: right; padding-block-start: 3px;
+            font-family: var(--font-body-family), sans-serif;
+            font-size: 12px; font-weight: 400; line-height: 20px;
+            letter-spacing: 0.005em; color: var(--sp-muted);
+          }
+
+          .onrepeat-sp__morph { display: block; position: relative; min-width: 0; }
+          .onrepeat-sp__main, .onrepeat-sp__detail {
+            font-family: var(--font-body-family), sans-serif;
+            font-size: 13.5px; font-weight: 400; line-height: 20px;
+            background: none; border: 0; padding: 0; margin: 0;
+            text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+          }
+          .onrepeat-sp__main { display: inline-flex; align-items: center; gap: 8px; color: var(--sp-gold); }
+          .onrepeat-sp__detail { display: block; width: 100%; color: var(--sp-ink); text-wrap: pretty; }
+          .onrepeat-sp__main:focus-visible, .onrepeat-sp__detail:focus-visible {
+            outline: 2px solid var(--sp-gold); outline-offset: 3px; border-radius: 3px;
+          }
+          .onrepeat-sp__ic { flex: none; width: 17px; height: 17px; color: var(--sp-gold); }
+          .onrepeat-sp__ic svg { width: 17px; height: 17px; }
+          .onrepeat-sp__t {
+            text-decoration: underline; text-decoration-color: var(--sp-gold-soft);
+            text-decoration-thickness: 1px; text-underline-offset: 4px;
+            transition: text-decoration-color 0.24s var(--sp-ease);
+          }
+          .onrepeat-sp__flat {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: var(--font-body-family), sans-serif;
+            font-size: 13.5px; font-weight: 400; line-height: 20px; color: var(--sp-gold);
+          }
+
+          /* Before the script upgrades it: no morph, just the full specification. */
+          .onrepeat-sp:not(.is-ready) .onrepeat-sp__main { display: none; }
+          .onrepeat-sp:not(.is-ready) .onrepeat-sp__icons { display: none; }
+
+          /* Exactly one layer is in flow at a time; the other is lifted out of it and
+             faded, and the container's height is animated between the two. The height
+             itself is driven by the script (Web Animations), so there is no CSS
+             transition here to race it. */
+          .onrepeat-sp.is-ready .onrepeat-sp__main,
+          .onrepeat-sp.is-ready .onrepeat-sp__detail {
+            transition: opacity 0.26s var(--sp-ease), transform 0.34s var(--sp-ease);
+          }
+          .onrepeat-sp.is-ready .onrepeat-sp__row .onrepeat-sp__main { position: relative; }
+          .onrepeat-sp.is-ready .onrepeat-sp__row .onrepeat-sp__detail {
+            position: absolute; inset-inline: 0; top: 0;
+            opacity: 0; transform: translateY(5px); pointer-events: none;
+          }
+          .onrepeat-sp.is-ready .onrepeat-sp__row.is-open .onrepeat-sp__main {
+            position: absolute; inset-inline: 0; top: 0;
+            opacity: 0; transform: translateY(-5px); pointer-events: none;
+          }
+          .onrepeat-sp.is-ready .onrepeat-sp__row.is-open .onrepeat-sp__detail {
+            position: relative; opacity: 1; transform: none; pointer-events: auto;
+          }
+          .onrepeat-sp.is-ready .onrepeat-sp__row.is-open .onrepeat-sp__ic { transform: scale(0.9); }
+          .onrepeat-sp__ic { transition: transform 0.34s var(--sp-ease); }
+
+          @media (hover: hover) {
+            .onrepeat-sp__main:hover .onrepeat-sp__t { text-decoration-color: var(--sp-gold); }
+            .onrepeat-sp__main:hover .onrepeat-sp__ic { transform: translateY(-1px); }
+            .onrepeat-sp__ico:hover { transform: translateY(-2px); }
+          }
+
+          .onrepeat-sp__care {
+            display: grid; grid-template-columns: 62px 1fr; column-gap: 14px;
+            margin-block-start: 14px; padding-block-start: 13px;
+            border-block-start: 1px solid rgba(43, 18, 20, 0.10);
+          }
+          .onrepeat-sp__care-k {
+            text-align: right;
+            font-family: var(--font-body-family), sans-serif;
+            font-size: 12px; line-height: 20px; color: var(--sp-muted);
+          }
+          .onrepeat-sp__care-set { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+          .onrepeat-sp__care-i {
+            display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+            font-family: var(--font-body-family), sans-serif;
+            font-size: 13px; line-height: 20px; color: var(--sp-ink);
+          }
+          .onrepeat-sp__care-i svg {
+            flex: none; width: 21px; height: 21px; fill: none; stroke: var(--sp-gold);
+            stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round;
+          }
+          .onrepeat-sp__care-i svg text,
+          .onrepeat-sp__ico svg text {
+            fill: var(--sp-gold); stroke: none;
+            font-family: var(--font-body-family), sans-serif; font-size: 9px; font-weight: 500;
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .onrepeat-sp__mark, .onrepeat-sp__morph, .onrepeat-sp__main,
+            .onrepeat-sp__detail, .onrepeat-sp__ic, .onrepeat-sp__body { transition: none !important; }
+          }
+        </style>
+
+        <onrepeat-spec>
+          {%- comment -%}
+            `open` is the default state — see the header. The script reads it on upgrade
+            (`this.root.classList.toggle('is-open', this.det.open)` and
+            `this._open = this.det.open`), so the animated control starts in step with
+            the markup and the first tap closes rather than re-opening. The icon row is
+            already suppressed before upgrade by `.onrepeat-sp:not(.is-ready)
+            .onrepeat-sp__icons`, so shipping open cannot flash the index and the panel at
+            once.
+          {%- endcomment -%}
+          <details class="onrepeat-sp__d" data-sp-root open>
+            <summary>
+              <span class="onrepeat-sp__ovl">{{ dt_heading | escape }}</span>
+              <span class="onrepeat-sp__mark"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></span>
+            </summary>
+            <div class="onrepeat-sp__body" data-sp-body>
+              <ul class="onrepeat-sp__list">{{ rows_html }}</ul>
+              {%- if care_html != blank -%}
+                <div class="onrepeat-sp__care">
+                  <span class="onrepeat-sp__care-k">Care</span>
+                  <span class="onrepeat-sp__care-set">{{ care_html }}</span>
+                </div>
+              {%- endif -%}
+            </div>
+          </details>
+          <div class="onrepeat-sp__icons">
+            {{ icons_html }}
+            {%- if care_icon != blank -%}
+              <button class="onrepeat-sp__ico" type="button" data-sp-open aria-label="Care — open {{ dt_heading | escape }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ care_icon }}</svg>
+              </button>
+            {%- endif -%}
+          </div>
+        </onrepeat-spec>
+
+        <script>
+          (function () {
+            if (customElements.get('onrepeat-spec')) return;
+
+            // Shared with the description control above, so both open with one motion.
+            var EASE = 'cubic-bezier(0.2, 0.7, 0.2, 1)';
+            var DUR = 340;
+
+            class OnRepeatSpec extends HTMLElement {
+              connectedCallback() {
+                if (this._ready) return;
+
+                // An element parsed after its definition exists upgrades on its start tag,
+                // before the parser has produced its children. Wait for them.
+                this.det = this.querySelector('[data-sp-root]');
+                this.body = this.querySelector('[data-sp-body]');
+                if (!this.det || !this.body) {
+                  if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => this.connectedCallback(), { once: true });
+                  } else {
+                    requestAnimationFrame(() => this.connectedCallback());
+                  }
+                  return;
+                }
+                this._ready = true;
+
+                this.root = this.closest('.onrepeat-sp');
+                this.icons = this.querySelector('.onrepeat-sp__icons');
+                this.root.classList.add('is-ready');
+                this.root.classList.toggle('is-open', this.det.open);
+                this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                this._open = this.det.open;
+                this._anims = [];
+                this._busy = false;
+                this.sizeRows();
+
+                // the <details> already toggles on its own; we only take over the motion
+                this.det.querySelector('summary').addEventListener('click', (e) => {
+                  e.preventDefault();
+                  // Track intent, not det.open — det.open stays true for the whole closing
+                  // animation, so reading it here made a second click restart the close
+                  // instead of reversing it, and the panel could not be re-opened until
+                  // the first one had finished.
+                  this.setOpen(!this._open);
+                });
+
+                this.querySelectorAll('[data-sp-open]').forEach((b) => {
+                  b.addEventListener('click', () => this.setOpen(true));
+                });
+
+                this.addEventListener('click', (e) => {
+                  const btn = e.target.closest('[data-sp-main], [data-sp-detail]');
+                  if (btn) this.morph(btn);
+                });
+
+                if ('ResizeObserver' in window) {
+                  let raf = 0;
+                  this._ro = new ResizeObserver(() => {
+                    // This observes the element we animate, so our own open/close reads as
+                    // a reflow on every frame. Re-pinning the rows mid-flight forced a
+                    // layout per row per frame and overwrote the morph heights underneath
+                    // their own animation.
+                    if (this._busy) return;
+                    cancelAnimationFrame(raf);
+                    raf = requestAnimationFrame(() => { if (!this._busy) this.sizeRows(); });
+                  });
+                  this._ro.observe(this);
+                }
+              }
+
+              disconnectedCallback() {
+                if (this._ro) this._ro.disconnect();
+                this.cancelAnims();
+                this._busy = false;
+              }
+
+              cancelAnims() {
+                if (this._anims) this._anims.forEach((a) => a.cancel());
+                this._anims = [];
+              }
+
+              // each morph is pinned to whichever layer is showing
+              sizeRows() {
+                // One read pass, then one write pass. Interleaving them made the browser
+                // re-layout once per row.
+                const morphs = Array.prototype.slice.call(this.querySelectorAll('.onrepeat-sp__morph'));
+                const heights = morphs.map((m) => {
+                  const row = m.closest('.onrepeat-sp__row');
+                  const live = row.classList.contains('is-open')
+                    ? m.querySelector('[data-sp-detail]') : m.querySelector('[data-sp-main]');
+                  return live.getBoundingClientRect().height;
+                });
+                morphs.forEach((m, i) => { m.style.height = heights[i] + 'px'; });
+              }
+
+              morph(btn) {
+                const row = btn.closest('.onrepeat-sp__row');
+                const m = btn.closest('.onrepeat-sp__morph');
+                const open = !row.classList.contains('is-open');
+                const hadFocus = document.activeElement === btn;
+                const from = m.getBoundingClientRect().height;
+
+                row.classList.toggle('is-open', open);
+
+                // only the visible layer is reachable — two controls, one state
+                const main = m.querySelector('[data-sp-main]');
+                const detail = m.querySelector('[data-sp-detail]');
+                main.tabIndex = open ? -1 : 0;
+                detail.tabIndex = open ? 0 : -1;
+                const live = open ? detail : main;
+                if (hadFocus) live.focus({ preventScroll: true });
+
+                const to = live.getBoundingClientRect().height;
+                m.style.height = to + 'px';
+                if (this.reduced || !m.animate || Math.abs(to - from) < 1) return;
+
+                this._busy = true;
+                if (m._anim) m._anim.cancel();
+                const a = m.animate(
+                  [{ height: from + 'px' }, { height: to + 'px' }],
+                  { duration: DUR, easing: EASE }
+                );
+                m._anim = a;
+                a.finished
+                  .then(() => { if (m._anim === a) { m._anim = null; this._busy = false; } })
+                  .catch(() => { /* superseded */ });
+              }
+
+              setOpen(open) {
+                if (open === this._open) return;
+                const wasBusy = this._busy;
+                this._open = open;
+
+                const body = this.body;
+                const icons = this.icons;
+
+                // Read before anything is cancelled or reclassed, so a reversal picks up
+                // from what is on screen instead of snapping to a resting height first.
+                const liveBody = body.getBoundingClientRect().height;
+                const liveIcons = icons ? icons.getBoundingClientRect().height : 0;
+                this.cancelAnims();
+
+                // Both directions need the panel laid out; the resting state lands at the end.
+                this.det.open = true;
+                this.root.classList.remove('is-open');
+
+                const finish = () => {
+                  this.det.open = open;
+                  this.root.classList.toggle('is-open', open);
+                  body.style.height = ''; body.style.overflow = '';
+                  if (icons) { icons.style.height = ''; icons.style.overflow = ''; }
+                  this._busy = false;
+                  this.sizeRows();
+                };
+
+                if (this.reduced || !body.animate) { this.sizeRows(); finish(); return; }
+
+                this._busy = true;
+                this.sizeRows();
+
+                // Resting heights with the panel laid out, measured before overflow is
+                // pinned so margins still collapse the way they will at rest.
+                body.style.height = '';
+                if (icons) icons.style.height = '';
+                const bodyRest = body.getBoundingClientRect().height;
+                const iconsRest = icons ? icons.getBoundingClientRect().height : 0;
+
+                // A closed <details> still reports its child's full height in Chromium, so
+                // the start of an opening run has to be pinned to zero rather than measured.
+                // Only a mid-flight reversal has a live height worth trusting.
+                const bodyFrom = (open && !wasBusy) ? 0 : liveBody;
+                const bodyTo = open ? bodyRest : 0;
+                const iconsFrom = (!open && !wasBusy) ? 0 : liveIcons;
+                const iconsTo = open ? 0 : iconsRest;
+
+                body.style.overflow = 'hidden';
+                if (icons) icons.style.overflow = 'hidden';
+
+                const anims = [body.animate(
+                  [{ height: bodyFrom + 'px' }, { height: bodyTo + 'px' }],
+                  { duration: DUR, easing: EASE, fill: 'both' }
+                )];
+                // The index strip trades places with the panel rather than blinking out.
+                if (icons) {
+                  anims.push(icons.animate(
+                    [{ height: iconsFrom + 'px', opacity: open ? 1 : 0 },
+                     { height: iconsTo + 'px', opacity: open ? 0 : 1 }],
+                    { duration: DUR, easing: EASE, fill: 'both' }
+                  ));
+                }
+
+                this._anims = anims;
+                Promise.all(anims.map((a) => a.finished))
+                  .then(() => {
+                    if (this._anims !== anims) return;
+                    finish();
+                    this.cancelAnims();   // release the held fill once the real state is in
+                  })
+                  .catch(() => { /* cancelled by a newer toggle, which owns the cleanup */ });
+              }
+            }
+
+            customElements.define('onrepeat-spec', OnRepeatSpec);
+          })();
+        </script>
+      </div>
+    {%- endif -%}
+  {%- endif -%}
+{%- endif -%}

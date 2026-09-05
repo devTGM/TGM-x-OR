@@ -1,0 +1,3073 @@
+<style>
+  #shopify-section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+  }
+
+  @media screen and (min-width: 1024px) {
+    #shopify-section-{{ section.id }} {
+      {%- assign media_ratio = section.settings.media_size | divided_by: 50.0 -%}
+      --product-grid: auto / minmax(0, {{ media_ratio }}fr) minmax(0, {{ 2.0 | minus: media_ratio }}fr);
+    }
+  }
+
+  {%- assign first_media = product.selected_or_first_available_variant.featured_media | default: product.media.first -%}
+  @media screen and (max-width: 767px) {
+    #shopify-section-{{ section.id }} {
+      --aspect-ratio: {{ first_media.aspect_ratio }};
+    }
+  }
+
+  @media screen and (min-width: 768px) {
+    #shopify-section-{{ section.id }} {
+      --aspect-ratio: {{ first_media.aspect_ratio }};
+    }
+  }
+</style>
+
+<style>
+  /* ── OnRepeat Product Page Enhancements ── */
+
+  /* Tax + Free Shipping notice */
+  .onrepeat-tax-notice {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  /* Offer Strip */
+  .onrepeat-offer-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fafafa;
+    border: 1px solid #ede8e8;
+    border-left: 3px solid #5c1011;
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.4;
+    flex-wrap: wrap;
+  }
+  .onrepeat-offer-strip .onrepeat-offer-amount {
+    color: #4d7c0f;
+    font-weight: 800;
+  }
+  .onrepeat-offer-strip .onrepeat-offer-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid #aaa;
+    font-size: 10px;
+    color: #666;
+    cursor: default;
+    flex-shrink: 0;
+    font-style: normal;
+    line-height: 1;
+    margin-left: auto;
+  }
+
+  /* Shipping & returns — static slim strip (no carousel) */
+  /* Trust strip — one hairline row (was an 84px boxed 3-column card).
+     Gold icons, label+value inline; hairlines above and below instead of a
+     card, so it reads as page furniture rather than yet another widget. */
+  .onrepeat-ship-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 8px 0;
+    padding: 10px 2px;
+    border-top: 1px solid rgba(92, 16, 17, 0.10);
+    border-bottom: 1px solid rgba(92, 16, 17, 0.10);
+  }
+  .onrepeat-ship-strip__col {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+  .onrepeat-ship-strip__chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #caa15a;
+    flex-shrink: 0;
+  }
+  .onrepeat-ship-strip__chip svg { width: 13px; height: 13px; }
+  .onrepeat-ship-strip__lab {
+    display: none;
+  }
+  .onrepeat-ship-strip__val {
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #6c635c;
+    letter-spacing: 0.01em;
+  }
+  @media (max-width: 360px) {
+    .onrepeat-ship-strip__val { font-size: 9px; }
+  }
+
+  /* ── Vertical rhythm ────────────────────────────────────────────────
+     Every block used to be exactly 12px from the next, so a label sat as
+     far from its own control as two unrelated blocks sat from each other
+     and nothing grouped. Blocks now get 28px; the label-to-control gap
+     below stays tight (10px) so each block reads as one unit. */
+  .product__info > * + * {
+    margin-block-start: 28px !important;
+  }
+  /* Editorial title block — no card. The title used to sit in its own rounded
+     bordered card, which made it one widget among many; the redesign gives the
+     name and price the page itself, with the theme's heading face. */
+  .product__title {
+    position: relative;
+    margin-bottom: 0 !important;
+    padding: 4px 2px 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .product__title.with-price {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: baseline !important;
+    gap: 4px 12px !important;
+  }
+  .product__title.with-price h1 {
+    grid-column: auto !important;
+  }
+  .product__title h1 {
+    font-family: var(--font-heading-family, inherit);
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    color: #2b1214 !important;
+    line-height: 1.18 !important;
+    text-transform: capitalize;
+    font-size: 1.3rem !important;
+    margin: 0 !important;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .onrepeat-eyebrow {
+    grid-column: 1 / -1;
+    margin: 0 0 2px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #caa15a;
+  }
+
+  /* let the animated title wrap instead of forcing a single non-breaking line */
+  .product__title h1 .split-words,
+  .product__title h1 .split-words .word {
+    white-space: normal !important;
+  }
+
+
+  .product__title .product__price {
+    align-self: center;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .product__title .product__price .price {
+    flex: 0 0 auto;
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-end;
+    font-weight: 800 !important;
+    color: #1a0303 !important;
+    gap: 6px !important;
+  }
+
+  /* Base price — shimmer shine loop */
+  .product__title .product__price .price__regular {
+    font-size: 1.2rem !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.15 !important;
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+  }
+  .product__title .product__price .price__regular::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(123,30,58,0.12) 40%,
+      rgba(123,30,58,0.2) 50%,
+      rgba(123,30,58,0.12) 60%,
+      transparent 100%
+    );
+    animation: onrepeatPriceShimmer 3s ease-in-out infinite;
+    animation-delay: 2s;
+    pointer-events: none;
+  }
+  @keyframes onrepeatPriceShimmer {
+    0% { left: -50%; }
+    100% { left: 150%; }
+  }
+
+  /* Compare-at price — one-time diagonal slash */
+  .product__title .product__price .price__sale {
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    color: #a98a8a !important;
+    text-decoration: none !important;
+    opacity: 0.85;
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+  }
+  .product__title .product__price .price__sale::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 0.6px),
+      #5c1011 calc(50% - 0.6px) calc(50% + 0.6px),
+      transparent calc(50% + 0.6px)
+    );
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: onrepeatSlashIn 0.6s cubic-bezier(0.25, 1, 0.4, 1) 1.5s forwards;
+  }
+  @keyframes onrepeatSlashIn {
+    0% { opacity: 0; transform: scaleX(0); }
+    30% { opacity: 0.7; }
+    100% { opacity: 0.7; transform: scaleX(1); }
+  }
+
+  .onrepeat-usd-hint {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 500;
+    color: #5c1011;
+    opacity: 0.55;
+    letter-spacing: 0.01em;
+  }
+
+  .onrepeat-tax-inline {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 500;
+    font-style: italic;
+    color: #5c1011;
+    opacity: 0.5;
+    letter-spacing: 0.01em;
+    margin-top: 3px;
+    text-align: right;
+    line-height: 1.1;
+  }
+
+  /* Discount tag — pinned to the top-right corner of the card */
+  .onrepeat-save-badge {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: linear-gradient(135deg, #5c1011 0%, #7b1e3a 100%);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 0 13px 0 10px;
+    white-space: nowrap;
+    box-shadow: 0 3px 7px -3px rgba(92,16,17,0.55);
+  }
+
+  /* Reviews badge → tappable, scrolls to the reviews section */
+  .onrepeat-review-link {
+    display: contents;
+  }
+  .product__info .product__rating {
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  .product__info .product__rating:hover {
+    border-color: #d9c7c7 !important;
+    box-shadow: 0 3px 8px rgba(92,16,17,0.08) !important;
+  }
+  .product__info .product__rating:active {
+    transform: scale(0.98);
+  }
+  .product__info .product__rating:focus-visible {
+    outline: 2px solid #5c1011;
+    outline-offset: 2px;
+  }
+  .product__info .product__rating .rating-count {
+    text-decoration: underline;
+    text-decoration-color: rgba(92,16,17,0.28);
+    text-underline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .product__title .product__price .price__regular::after {
+      animation: none;
+      display: none;
+    }
+    .product__title .product__price .price__sale::after {
+      animation: none;
+      opacity: 0.7;
+      transform: scaleX(1);
+    }
+  }
+
+  /* Sleek Gallery Dots (Mobile Only) */
+  @media screen and (max-width: 1023px) {
+    media-dots.product__thumbnails-list {
+      justify-content: center !important;
+      gap: 6px !important;
+      margin-top: 8px !important;
+      margin-bottom: -10px !important;
+    }
+    .product__thumbnails.with-dots .product__thumbnail {
+      border-radius: 99px !important;
+      width: 12px !important;
+      height: 5px !important;
+      background: #e5e5e5 !important;
+      border: none !important;
+      transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), background 0.3s ease !important;
+      padding: 0 !important;
+    }
+    .product__thumbnails.with-dots .product__thumbnail[aria-current="true"] {
+      width: 32px !important;
+      background: #111 !important;
+    }
+    .product__thumbnails.with-dots .product__thumbnail::after,
+    .product__thumbnails.with-dots .product__thumbnail::before {
+      display: none !important;
+    }
+  }
+
+  /* Sleeker Reviews Badge */
+  .product__rating {
+    display: inline-flex !important;
+    align-items: center !important;
+    background: #fdfdfd !important;
+    padding: 4px 10px !important;
+    border-radius: 8px !important;
+    border: 1px solid #f2ecec !important;
+    margin-top: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+  }
+  .product__rating .rating-star {
+    transform: scale(0.85);
+    transform-origin: left center;
+  }
+  .product__rating .rating-text {
+    font-weight: 700 !important;
+    color: #111 !important;
+    font-size: 13px !important;
+    margin-left: -5px !important;
+  }
+  .product__rating .rating-count {
+    font-size: 13px !important;
+    color: #666 !important;
+    position: relative !important;
+    margin-left: 6px !important;
+  }
+  .product__rating .rating-count::before {
+    content: '|';
+    position: absolute;
+    left: -8px;
+    color: #ccc;
+    font-weight: 400;
+  }
+
+  /* ── Option labels as micro-labels ──────────────────────────────────
+     "Colour:" and "Size:" rendered at the theme's default 16px, making
+     them the largest non-hero text on the page — bigger than the chips
+     they label and 60% bigger than the trust chips beside them. They now
+     speak the same 11px uppercase language as the eyebrow and trust row,
+     so the product is loud and the plumbing is quiet. The VALUE stays
+     dark and semibold, because that is the answer the shopper wants. */
+  .product-form__input .form__label,
+  .colour-swatches__label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    /* 0.08em matches the widest measured premium 11px micro-label
+       (Studio Nicholson); 0.13em read as costume rather than considered.
+       #6c635c is 5.87:1 on white — 11px is not "large text", so WCAG AA
+       demands the full 4.5:1 and the lighter grey I first used (2.88:1)
+       failed it. Same grey as the trust chips, so the register is one
+       colour throughout. */
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase;
+    color: #6c635c !important;
+    margin-block-end: 10px !important;
+  }
+  .product-form__input .form__label .font-medium,
+  .product-form__input .form__label span[id],
+  .colour-swatches__label .font-medium {
+    color: #2b1214 !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+  }
+  /* The size-chart trigger sits inside that label row, so it matches the
+     same register instead of competing with it at 14px. Both halves of
+     the wording stay — the fit finder needs to stay discoverable. */
+  .variant-picker .form__label button[aria-controls^='SizeChart'] {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6c635c !important;   /* 5.87:1; #8a8078 was 3.86:1 and failed AA */
+    text-underline-offset: 3px;
+  }
+  .variant-picker .form__label [class*='icon'] {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* ── Accordion rows: quieter text, more air ─────────────────────── */
+  .product__accordion .details__summary > div > span {
+    font-size: 13px !important;
+  }
+  .product__accordion .details__summary {
+    padding-block: 17px !important;
+  }
+
+  /* Sleek Size Swatches */
+  .label-swatch {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 10px 18px !important;
+    color: #444 !important;
+    border: 1px solid #e5e5e5 !important;
+    background: #fff !important;
+    font-size: 14px !important;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.4, 1) !important;
+  }
+  .label-swatch::after { display: none !important; }
+  input:checked + .label-swatch {
+    border-color: #111 !important;
+    background: #111 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+    transform: scale(1.03) !important;
+  }
+
+  /* Compact single-line size swatches — every option fits on one row.
+     Scoped to the PDP variant picker so product-card swatches are unaffected.
+     Pills share the row equally and shrink to fit, so it stays a single line
+     regardless of how many sizes a product has. */
+  /* Chips size to their content instead of splitting the row into equal
+     thirds — one letter in a 115px box read heavy and looked nothing like
+     a considered garment page. 52px minimum keeps a six-size run (XS-XXL)
+     on one line at 390px; wrap is the safety net beyond that. Height goes
+     40px -> 44px, which is also the tap-target standard the old chips
+     missed. */
+  .variant-picker .swatches:has(.label-swatch) {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .variant-picker .swatches:has(.label-swatch) > li {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .variant-picker .swatches:has(.label-swatch) > li > magnet-element {
+    display: block;
+  }
+  .variant-picker .label-swatch {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    text-align: center;
+    white-space: nowrap;
+    letter-spacing: 0.02em !important;
+  }
+  /* Hover hint on unselected pills (pointer devices only). */
+  @media (hover: hover) {
+    .variant-picker input:not(:checked) + .label-swatch:hover {
+      border-color: #111 !important;
+      color: #111 !important;
+    }
+  }
+  /* Don't scale the selected pill up in the tight row (would overlap neighbours);
+     give a crisp tactile press instead. */
+  .variant-picker input:checked + .label-swatch {
+    transform: none !important;
+  }
+  .variant-picker .label-swatch:active {
+    transform: scale(0.95) !important;
+  }
+  /* Sold-out / unavailable sizes stay VISIBLE but read clearly as unbuyable:
+     muted, struck through in brand maroon, not selectable. */
+  .variant-picker .swatches input.disabled + .label-swatch,
+  .variant-picker .swatches input:disabled + .label-swatch {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    color: #9a9a9a !important;
+    background: #fafafa !important;
+    border-color: #ececec !important;
+    text-decoration: line-through;
+    text-decoration-color: rgba(92, 16, 17, 0.6);
+    text-decoration-thickness: 1.5px;
+  }
+  .variant-picker .swatches input.disabled + .label-swatch::before,
+  .variant-picker .swatches input:disabled + .label-swatch::before {
+    display: none !important;
+  }
+  .variant-picker .swatches input.disabled + .label-swatch:hover {
+    border-color: #ececec !important;
+    color: #9a9a9a !important;
+  }
+
+  /* Stage 2: the in-page Add to Cart / Buy It Now are removed — purchasing now
+     happens via the permanent sticky bar + the size slide-in. The product <form>
+     stays (the variant picker binds to it via form=...); only its visible
+     buttons are hidden. The buy bar's buttons (onrepeat-buy-bar) and the
+     sheet's button (.sleek-qa__add-btn) are unaffected. */
+  form.product-form .product-form__submit,
+  form.product-form .shopify-payment-button {
+    display: none !important;
+  }
+
+  /* Sleek Action Buttons & Quantity */
+  .quantity {
+    border-radius: 10px !important;
+    border: 1px solid #e5e5e5 !important;
+    background: #fff !important;
+  }
+  .quantity__input {
+    font-weight: 600 !important;
+  }
+  .product-form__submit {
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    text-transform: uppercase !important;
+    transition: all 0.3s ease !important;
+  }
+  .shopify-payment-button__button {
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    text-transform: uppercase !important;
+    background: #fff !important;
+    color: #5c1011 !important;
+    border: 1px solid #ddd !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
+  }
+  .shopify-payment-button__button:hover {
+    background: #f8f8f8 !important;
+    border-color: #111 !important;
+    color: #111 !important;
+  }
+
+  /* (Money Back card is now self-contained in snippets/onrepeat-money-back.liquid) */
+
+  /* ── Compact mobile thumbnail strip ──────────────────────────────
+     Smaller, tighter thumbnails so a typical gallery fits on one row.
+     When every thumbnail fits there is no horizontal overflow, so the
+     gallery's active-thumbnail auto-centering (SliderDots.transitionTo
+     scrolls the active one to centre) has nothing to scroll — which was
+     what clipped the first images. `safe center` keeps the row balanced
+     when there are few images and falls back to a clean left start when
+     many images DO overflow, so the first thumbnails are never hidden. */
+  @media screen and (max-width: 1023px) {
+    .product__thumbnails:not(.with-dots) .product__thumbnail {
+      width: 3rem; /* 48px (was --sp-15 = 62px) */
+    }
+    .product__thumbnails:not(.with-dots) .product__thumbnails-list {
+      gap: 0.5rem; /* 8px (was --sp-4 = 16px) */
+      justify-content: safe center;
+      padding-block: 2px; /* room for the active ring so it isn't clipped */
+    }
+  }
+</style>
+
+<script>
+  if (!customElements.get('onrepeat-review-link')) {
+    customElements.define('onrepeat-review-link', class extends HTMLElement {
+      connectedCallback() {
+        if (this._bound) return;
+        this._bound = true;
+        // Delegate on the wrapper so the click works even when this element is
+        // upgraded mid-parse (before .product__rating has been parsed in).
+        this.addEventListener('click', (e) => {
+          if (e.target.closest('.product__rating, .onrepeat-rating-pill')) this.scrollToReviews();
+        });
+        this.addEventListener('keydown', (e) => {
+          if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.product__rating, .onrepeat-rating-pill')) {
+            e.preventDefault();
+            this.scrollToReviews();
+          }
+        });
+        this.enhanceBadge(0);
+      }
+
+      enhanceBadge(tries) {
+        const badge = this.querySelector('.product__rating, .onrepeat-rating-pill');
+        if (badge) {
+          badge.setAttribute('role', 'link');
+          badge.setAttribute('tabindex', '0');
+          if (!badge.getAttribute('aria-label')) badge.setAttribute('aria-label', 'Read customer reviews');
+        } else if (tries < 20) {
+          requestAnimationFrame(() => this.enhanceBadge(tries + 1));
+        }
+      }
+
+      findReviews() {
+        const key = this.dataset.reviewsSection;
+        if (key) {
+          // Static/theme-level section id.
+          const exact = document.getElementById('shopify-section-' + key);
+          if (exact) return exact;
+          // Sections inside JSON templates get a dynamically generated id like
+          // "shopify-section-template--<n>__<key>", so match the key as a substring.
+          const bySub = document.querySelector('[id*="' + key + '"]');
+          if (bySub) return bySub.closest('.shopify-section') || bySub;
+        }
+        // Judge.me app block (the app the store runs on) / other common review
+        // widgets. The legacy Air Reviews selectors are kept as a safety net for
+        // any page still carrying that markup — the app itself is uninstalled.
+        const widget = document.querySelector(
+          '.jdgm-rev-widg, [id*="judge_me_reviews"], [class*="jdgm-widget"], [id*="ag_product_reviews"], [id*="product_reviews_app_block"], [id*="air_reviews"], [id*="air-reviews"], [class*="air-reviews"], [class*="airReviews"], [class*="ag-product-reviews"], #shopify-product-reviews, .spr-reviews'
+        );
+        if (widget) return widget.closest('.shopify-section') || widget;
+        // Last resort: a section whose heading text mentions "review".
+        const headings = document.querySelectorAll('.shopify-section h1, .shopify-section h2, .shopify-section h3, .shopify-section h4, .shopify-section h5, .shopify-section [class*="heading"]');
+        for (const h of headings) {
+          if (/review/i.test(h.textContent || '')) {
+            const sec = h.closest('.shopify-section');
+            if (sec) return sec;
+          }
+        }
+        return null;
+      }
+
+      scrollToReviews() {
+        const target = this.findReviews();
+        if (!target) return;
+        const root = getComputedStyle(document.documentElement);
+        let offset = parseInt(root.getPropertyValue('--sticky-header-height')) ||
+                     parseInt(root.getPropertyValue('--header-height')) || 0;
+        if (!offset) {
+          const header = document.querySelector('.header[is="sticky-header"], #shopify-section-header, .section-header');
+          offset = header ? header.offsetHeight : 0;
+        }
+        const top = target.getBoundingClientRect().top + window.pageYOffset - offset - 16;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      }
+    });
+  }
+</script>
+
+{%- liquid
+  assign product_form_id = 'ProductForm-' | append: section.id | append: '-' | append: product.id
+  assign media_count = product.media.size
+  assign first_3d_model = product.media | where: 'media_type', 'model' | first
+-%}
+
+{%- comment -%}
+  No size is pre-selected on this PDP. If a shopper taps ADD TO CART without
+  choosing one, onrepeat-pdp-size-gate.js opens the existing Sleek Quick Add bottom
+  sheet via this hidden trigger so they pick a size there (reusing the proven
+  sheet flow). Only needed for products that actually have variants to choose.
+{%- endcomment -%}
+{%- unless product.has_only_default_variant -%}
+  {%- capture pdp_sleek_variants -%}[{%- for v in product.variants -%}{"id":{{ v.id }},"title":{{ v.title | json }},"available":{{ v.available }}}{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%}]{%- endcapture -%}
+  {%- capture pdp_sleek_price -%}{%- render 'product-price', product: product -%}{%- endcapture -%}
+  <button type="button" hidden aria-hidden="true" tabindex="-1"
+    data-sleek-open data-pdp-sleek-trigger
+    data-product-title="{{ product.title | escape }}"
+    data-product-price="{{ pdp_sleek_price | strip_newlines | escape }}"
+    data-product-url="{{ product.url }}"
+    data-product-handle="{{ product.handle }}"
+    data-sc-chart="{%- render 'size-chart-key', product: product -%}"
+    data-product-image="{{ product.featured_image | image_url: width: 120 }}"
+    data-variants='{{ pdp_sleek_variants }}'
+    data-selected=""></button>
+  <script src="{{ 'onrepeat-pdp-size-gate.js' | asset_url }}" defer="defer"></script>
+{%- endunless -%}
+
+{%- if first_3d_model -%}
+  {{ 'model-viewer.css' | asset_url | stylesheet_tag }}
+  <link
+    id="ModelViewerStyle"
+    rel="stylesheet"
+    href="https://cdn.shopify.com/shopifycloud/model-viewer-ui/assets/v1.0/model-viewer-ui.css"
+    media="print"
+    onload="this.media='all'"
+  />
+  <link
+    id="ModelViewerOverride"
+    rel="stylesheet"
+    href="{{ 'model-viewer-ui.css' | asset_url }}"
+    media="print"
+    onload="this.media='all'"
+  />
+{%- endif -%}
+
+{%- if product.quantity_price_breaks_configured? -%}
+  {{ 'volume-pricing.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'volume-pricing.js' | asset_url }}" defer="defer"></script>
+{%- endif -%}
+
+{%- comment -%} Compact + on-brand restyle for the Air Reviews widget (scoped, additive). {%- endcomment -%}
+{{ 'onrepeat-reviews.css' | asset_url | stylesheet_tag }}
+
+<div class="section section--padding{% if section.settings.divider %} section--divider{% endif %}{% if section.settings.rounded %} section--rounded relative{% endif %}">
+  <div class="page-width{% if media_count > 0 %}{% if section.settings.full_width %} page-width--full{% endif %}{% else %} page-width--narrow{% endif %} relative">
+    <div class="featured-product product product--{{ section.settings.gallery_layout }}{% if media_count == 0 %} no-media{% endif %} flex flex-col items-start lg:grid gap-5 w-full relative">
+      {%- if media_count > 0 -%}
+        {%- render 'product-media-gallery',
+          product: product,
+          product_id: product.id,
+          section_id: section.id,
+          gallery_layout: section.settings.gallery_layout,
+          thumbnail_position: section.settings.thumbnail_position,
+          image_ratio: section.settings.image_ratio,
+          image_ratio_mobile: section.settings.image_ratio_mobile,
+          image_zoom: section.settings.image_zoom,
+          image_fill: settings.product_image_fill,
+          mobile_layout: section.settings.mobile_layout,
+          mobile_thumbnail: section.settings.mobile_thumbnail,
+          hide_variants: section.settings.hide_variants,
+          enable_video_autoplay: section.settings.enable_video_autoplay,
+          enable_video_looping: section.settings.enable_video_looping,
+          first_3d_model: first_3d_model,
+          product_form_id: product_form_id,
+          show_vto: true
+        -%}
+      {%- endif -%}
+
+      <product-info
+        id="ProductInfo-{{ section.id }}-{{ product.id }}"
+        class="product__info block{% if section.settings.enable_sticky_info %} sticky{% endif %} w-full"
+        data-animate="fade-up"
+        data-immediate
+        data-section-id="{{ section.id }}"
+        data-product-id="{{ product.id }}"
+        data-product-url="{{ product.url }}"
+        data-update-url="true"
+      >
+        {%- for block in section.blocks -%}
+          {%- case block.type -%}
+            {%- when '@app' -%}
+              {%- render block -%}
+
+            {%- when 'breadcrumb' -%}
+              {%- render 'product-breadcrumb', block: block -%}
+
+            {%- when 'text' -%}
+              {%- if block.settings.text != blank -%}
+                <p class="{% if block.settings.text != product.vendor %}product__text rte{% else %}product__vendor{% endif %} {{ block.settings.text_size }}" {{ block.shopify_attributes }}>
+                  {%- liquid
+                    if block.settings.text != product.vendor
+                      render 'icon-accordion', icon: block.settings.icon
+                      echo block.settings.text
+                    else
+                      echo product.vendor | link_to_vendor : class: "reversed-link"
+                    endif
+                  -%}
+                </p>
+              {%- endif -%}
+
+            {%- when 'sku' -%}
+              <p class="product__sku" id="Sku-{{ section.id }}-{{ product.id }}" {{ block.shopify_attributes }}>
+                {{- product.selected_or_first_available_variant.sku -}}
+              </p>
+
+            {%- when 'description' -%}
+              <div class="product__text rte {{ block.settings.text_size }}" {{ block.shopify_attributes }}>
+                {{- product.description -}}
+              </div>
+            
+            {%- when 'title' -%}
+              {%- liquid
+                assign price_block = section.blocks | where: "type", "price" | first
+                assign rating_block = section.blocks | where: "type", "rating" | first
+              -%}
+              {%- liquid
+                comment
+                  Display title per the approved final mockup: "HIVE — Olive",
+                  not "HIVE Knit Polo — Olive" — the eyebrow line above already
+                  names the garment. Display only: the page <title>, og: tags
+                  and JSON-LD all keep the full product.title. Titles without
+                  an em-dash separator (Petra, Velmoré) pass through whole,
+                  and if stripping the garment noun would empty the name the
+                  full title is kept.
+                endcomment
+                assign st_display = product.title
+                assign st_sep = ' — '
+                if product.title contains st_sep
+                  assign st_parts = product.title | split: st_sep
+                  assign st_first = st_parts[0]
+                  assign st_rest = product.title | remove_first: st_first | remove_first: st_sep
+                  assign st_name = st_first | replace: 'Oversized T-Shirt', '' | replace: 'Knit Polo', '' | replace: 'Sweatshirt', '' | replace: 'T-Shirt', '' | replace: 'Hoodie', '' | replace: 'Shirt', '' | replace: 'Polo', '' | replace: 'Tee', '' | strip
+                  if st_name != '' and st_rest != ''
+                    assign st_display = st_name | append: st_sep | append: st_rest
+                  endif
+                endif
+              -%}
+              <div class="product__title{% if price_block == blank and block.settings.show_price %} with-price{% endif %}" {{ block.shopify_attributes }}>
+                {%- render 'onrepeat-eyebrow', product: product -%}
+                <h1 class="heading leading-none {{ block.settings.title_size }} mobile:{{ block.settings.title_size_mobile }} col-span-full">
+                  <split-words class="split-words block" data-animate="fade-up">{{ st_display }}</split-words>
+                </h1>
+
+                {%- if price_block == blank and block.settings.show_price -%}
+                  <div id="Price-{{ section.id }}-{{ product.id }}" class="product__price">
+                    {%- render 'product-price', product: product, use_variant: true, whole: true, class: 'flex flex-wrap items-baseline gap-2' -%}
+                    {%- liquid
+                      assign onrepeat_variant = product.selected_or_first_available_variant
+                      assign onrepeat_compare = onrepeat_variant.compare_at_price
+                      assign onrepeat_price = onrepeat_variant.price
+                    -%}
+                    {%- if onrepeat_compare > onrepeat_price -%}
+                      {%- assign onrepeat_save_pct = onrepeat_compare | minus: onrepeat_price | times: 100.0 | divided_by: onrepeat_compare | round -%}
+                      <span class="onrepeat-save-badge">{{ onrepeat_save_pct }}% OFF</span>
+                    {%- endif -%}
+                    <span class="onrepeat-tax-inline">MRP incl. of all taxes</span>
+                    {%- assign usdh_rate = settings.usd_inr_rate | default: 0 | round -%}
+                    {%- if settings.usd_display_enabled and usdh_rate > 0 and localization.country.iso_code == 'US' -%}
+                      <span class="onrepeat-usd-hint">USD for your convenience &middot; billed in INR</span>
+                    {%- endif -%}
+                    {%- if product.quantity_price_breaks_configured? -%}
+                      <div class="text-opacity text-sm font-medium leading-tight" id="VolumeNote-{{ section.id }}-{{ product.id }}">
+                        {{- 'products.volume_pricing.note' | t -}}
+                      </div>
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+
+                {%- if rating_block == blank and block.settings.show_rating -%}
+                  <onrepeat-review-link class="onrepeat-review-link" data-reviews-section="17404810416fe99476">
+                    {%- render 'product-rating', product: product -%}
+                  </onrepeat-review-link>
+                {%- endif -%}
+              </div>
+
+
+              {%- if price_block == blank and block.settings.show_price -%}
+                {%- assign product_form_installment_id = 'ProductFormInstallment-' | append: section.id | append: '-' | append: product.id -%}
+                {%- form 'product', product, id: product_form_installment_id, class: 'installment text-sm leading-tight' -%}
+                  <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}" />
+                  {{ form | payment_terms }}
+                {%- endform -%}
+              {%- endif -%}
+
+              {%- comment -%}
+                Colourway swatches, rendered from custom.colour_siblings. Sits inside the
+                title block so it lands directly beneath the title and above the variant
+                (size) picker on every product template, without needing a block added to
+                each product.*.json. Renders nothing when the metafield is empty.
+              {%- endcomment -%}
+              {%- render 'colour-swatches', product: product, size: 'large', show_label: true -%}
+
+            {%- when 'price' -%}
+              <div class="product__price grid gap-3" {{ block.shopify_attributes }}>
+                <div class="no-js-hidden" id="Price-{{ section.id }}-{{ product.id }}">
+                  {%- render 'product-price', product: product, use_variant: true, class: 'flex flex-wrap items-baseline gap-2 lg:gap-1d5' -%}
+                  
+                  {%- if product.quantity_price_breaks_configured? -%}
+                    <div class="text-opacity text-sm font-medium leading-tight" id="VolumeNote-{{ section.id }}-{{ product.id }}">
+                      {{- 'products.volume_pricing.note' | t -}}
+                    </div>
+                  {%- endif -%}
+                </div>
+
+                {%- assign product_form_installment_id = 'ProductFormInstallment-' | append: section.id | append: '-' | append: product.id -%}
+                {%- form 'product', product, id: product_form_installment_id, class: 'installment text-sm leading-tight' -%}
+                  <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}" />
+                  {{ form | payment_terms }}
+                {%- endform -%}
+
+                {%- if block.settings.show_taxes_notice -%}
+                  <p class="onrepeat-tax-notice">Taxes Included &middot; Free Shipping</p>
+                {%- endif -%}
+                {%- assign usdh_rate = settings.usd_inr_rate | default: 0 | round -%}
+                {%- if settings.usd_display_enabled and usdh_rate > 0 and localization.country.iso_code == 'US' -%}
+                  <span class="onrepeat-usd-hint">USD for your convenience &middot; billed in INR</span>
+                {%- endif -%}
+
+                {%- if block.settings.show_offer_strip and block.settings.offer_strip_text != blank -%}
+                  <div class="onrepeat-offer-strip">
+                    {{- block.settings.offer_strip_text -}}
+                    <span class="onrepeat-offer-info" title="Limited period offer">i</span>
+                  </div>
+                {%- endif -%}
+              </div>
+
+            {%- when 'quantity_selector' -%}
+              {%- if product.available -%}
+                <div id="QuantityForm-{{ section.id }}-{{ product.id }}" class="field" {{ block.shopify_attributes }}>
+                  {%- assign cart_qty = cart | item_count_for_variant: product.selected_or_first_available_variant.id -%}
+                  <label for="Quantity-{{ section.id }}-{{ product.id }}" class="quantity__label label" is="quantity-label">
+                    {{ 'products.quantity.label' | t }}
+                    <span id="QuantityRulesCart-{{ section.id }}-{{ product.id }}" class="quantity__rules-cart{% if cart_qty == 0 %} hidden{% endif %} relative">
+                      <span class="quantity-cart font-medium">({{ 'products.quantity.in_cart_html' | t: quantity: cart_qty }})</span>
+                    </span>
+                  </label>
+                  <div class="flex items-center gap-4">
+                    <quantity-input class="quantity inline-flex relative" data-section-id="{{ section.id }}" data-product-id="{{ product.id }}">
+                      <button type="button" name="minus" class="quantity__button" aria-label="{{ 'products.quantity.decrease' | t: product: product.title | escape }}">
+                        {%- render 'icon', icon: 'chevron-left', size: 'sm', class: 'stroke-2 transform' -%}
+                      </button>
+                      <input
+                        id="Quantity-{{ section.id }}-{{ product.id }}"
+                        class="quantity__input text-sm sm:text-base font-medium text-center"
+                        type="number"
+                        name="quantity"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        data-quantity-variant-id="{{ product.selected_or_first_available_variant.id }}"
+                        data-cart-quantity="{{ cart_qty }}"
+                        data-min="{{ product.selected_or_first_available_variant.quantity_rule.min }}"
+                        min="{{ product.selected_or_first_available_variant.quantity_rule.min }}"
+                        {% if product.selected_or_first_available_variant.quantity_rule.max != null %}
+                          data-max="{{ product.selected_or_first_available_variant.quantity_rule.max }}"
+                          max="{{ product.selected_or_first_available_variant.quantity_rule.max }}"
+                        {% endif %}
+                        step="{{ product.selected_or_first_available_variant.quantity_rule.increment }}"
+                        value="{{ product.selected_or_first_available_variant.quantity_rule.min }}"
+                        form="{{ product_form_id }}"
+                      />
+                      <button type="button" name="plus" class="quantity__button" aria-label="{{ 'products.quantity.increase' | t: product: product.title | escape }}">
+                        {%- render 'icon', icon: 'chevron-right', size: 'sm', class: 'stroke-2 transform' -%}
+                      </button>
+                    </quantity-input>
+
+                    {%- if product.quantity_price_breaks_configured? -%}
+                      {%- liquid
+                        assign volume_pricing_array = product.selected_or_first_available_variant.quantity_price_breaks | sort: 'quantity' | reverse
+                        assign current_qty_for_volume_pricing = cart_qty | plus: product.selected_or_first_available_variant.quantity_rule.min
+                        if cart_qty > 0
+                          assign current_qty_for_volume_pricing = cart_qty | plus: product.selected_or_first_available_variant.quantity_rule.increment
+                        endif
+                        assign variant_price_compare = product.selected_or_first_available_variant.compare_at_price
+                      -%}
+                      <price-per-item
+                        id="PricePerItem-{{ section.id }}-{{ product.id }}"
+                        class="price flex flex-wrap items-center gap-2 lg:gap-1d5"
+                        data-section-id="{{ section.id }}"
+                        data-product-id="{{ product.id }}"
+                        data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+                      >
+                        {%- if variant_price_compare -%}
+                          <span class="sr-only">{{ 'products.price.regular_price' | t }}</span>
+                          <span class="price__sale inline-flex items-center h-auto relative">
+                            {%- liquid
+                              if settings.currency_code_enabled
+                                echo variant_price_compare | money_with_currency
+                              else
+                                echo variant_price_compare | money
+                              endif
+                            -%}
+                          </span>
+                          <span class="sr-only">{{ 'products.price.sale_price' | t }}</span>
+                        {%- endif -%}
+                        
+                        {%- if product.selected_or_first_available_variant.quantity_price_breaks.size > 0 -%}
+                          {%- if current_qty_for_volume_pricing < volume_pricing_array.last.minimum_quantity -%}
+                            {%- liquid
+                              if settings.currency_code_enabled
+                                assign variant_price = product.selected_or_first_available_variant.price | money_with_currency
+                              else
+                                assign variant_price = product.selected_or_first_available_variant.price | money
+                              endif
+                            -%}
+                            <span class="price-per-item--current price__regular whitespace-nowrap">
+                              {{- 'products.volume_pricing.price_at_each' | t: price: variant_price -}}
+                            </span>
+                          {%- else -%}
+                            {%- for price_break in volume_pricing_array -%}
+                              {%- if current_qty_for_volume_pricing >= price_break.minimum_quantity -%}
+                                {%- liquid
+                                  if settings.currency_code_enabled
+                                    assign price_break_price = price_break.price | money_with_currency
+                                  else
+                                    assign price_break_price = price_break.price | money
+                                  endif
+                                -%}
+                                <span class="price-per-item--current price__regular whitespace-nowrap">
+                                  {{- 'products.volume_pricing.price_at_each' | t: price: price_break_price -}}
+                                </span>
+                                {%- break -%}
+                              {%- endif -%}
+                            {%- endfor -%}
+                          {%- endif -%}
+                        {%- else -%}
+                          <span class="price-per-item--current price__regular whitespace-nowrap">
+                            {%- liquid
+                              if settings.currency_code_enabled
+                                assign variant_price = product.selected_or_first_available_variant.price | money_with_currency
+                              else
+                                assign variant_price = product.selected_or_first_available_variant.price | money
+                              endif
+                            -%}
+                            {{- 'products.volume_pricing.price_at_each' | t: price: variant_price -}}
+                          </span>
+                        {%- endif -%}
+                      </price-per-item>
+                    {%- endif -%}
+                  </div>
+
+                  {%- if product.selected_or_first_available_variant.quantity_rule.increment > 1 or product.selected_or_first_available_variant.quantity_rule.min > 1 or product.selected_or_first_available_variant.quantity_rule.max != null -%}
+                    <div class="quantity__rules text-sm font-medium leading-tight" id="QuantityRules-{{ section.id }}-{{ product.id }}">
+                      {%- if product.selected_or_first_available_variant.quantity_rule.increment > 1 -%}
+                        <span class="divider">
+                          {{- 'products.quantity.multiples_of' | t: quantity: product.selected_or_first_available_variant.quantity_rule.increment -}}
+                        </span>
+                      {%- endif -%}
+                      {%- if product.selected_or_first_available_variant.quantity_rule.min > 1 -%}
+                        <span class="divider">
+                          {{- 'products.quantity.minimum_of' | t: quantity: product.selected_or_first_available_variant.quantity_rule.min -}}
+                        </span>
+                      {%- endif -%}
+                      {%- if product.selected_or_first_available_variant.quantity_rule.max != null -%}
+                        <span class="divider">
+                          {{- 'products.quantity.maximum_of' | t: quantity: product.selected_or_first_available_variant.quantity_rule.max -}}
+                        </span>
+                      {%- endif -%}
+                    </div>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+
+            {%- when 'volume_pricing' -%}
+              {%- if product.quantity_price_breaks_configured? -%}
+                <volume-pricing class="volume-pricing grid gap-6" id="Volume-{{ section.id }}-{{ product.id }}">
+                  {%- if product.selected_or_first_available_variant.quantity_price_breaks.size > 0 -%}
+                    <span class="caption-large font-medium">{{ 'products.volume_pricing.title' | t }}</span>
+                    <ul class="list-unstyled">
+                      <li class="text-sm flex gap-2d5 justify-between">
+                        <span class="font-medium">{{ product.selected_or_first_available_variant.quantity_rule.min }}+</span>
+                        {%- liquid
+                          if settings.currency_code_enabled
+                            assign variant_price = product.selected_or_first_available_variant.price | money_with_currency
+                          else
+                            assign variant_price = product.selected_or_first_available_variant.price | money
+                          endif
+                        -%}
+                        <span data-text="{{ 'products.volume_pricing.price_at_each' | t: price: variant_price }}">
+                          {{- 'sections.quick_order_list.each' | t: money: variant_price -}}
+                        </span>
+                      </li>
+                      {%- for price_break in product.selected_or_first_available_variant.quantity_price_breaks -%}
+                        {%- liquid
+                          if settings.currency_code_enabled
+                            assign price_break_price = price_break.price | money_with_currency
+                          else
+                            assign price_break_price = price_break.price | money
+                          endif
+                        -%}
+                        <li class="text-sm flex gap-2d5 justify-between{% if forloop.index >= 3 %} show-more-item hidden{% endif %}">
+                          <span class="font-medium">
+                            {{- price_break.minimum_quantity -}}
+                            <span aria-hidden="true">+</span>
+                          </span>
+                          <span data-text="{{ 'products.volume_pricing.price_at_each' | t: price: price_break_price }}">
+                            {{- 'sections.quick_order_list.each' | t: money: price_break_price -}}
+                          </span>
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                    {%- if product.selected_or_first_available_variant.quantity_price_breaks.size >= 3 -%}
+                      <show-more-button>
+                        <button
+                          class="button-show-more link text-sm leading-tight"
+                          id="ShowMore-{{ section.id }}-{{ product.id }}"
+                          type="button"
+                        >
+                          <span class="label-show-more">{{ 'products.general.show_more' | t }}</span>
+                        </button>
+                      </show-more-button>
+                    {%- endif -%}
+                  {%- endif -%}
+                </volume-pricing>
+              {%- endif -%}
+
+            {%- when 'variant_picker' -%}
+              {%- render 'product-variant-picker',
+                block: block,
+                product: product,
+                product_id: product.id,
+                section_id: section.id,
+                product_form_id: product_form_id,
+                image_ratio: section.settings.image_ratio,
+                image_ratio_mobile: section.settings.image_ratio_mobile,
+                image_fill: settings.product_image_fill
+              -%}
+              
+            {%- when 'product_variations' -%}
+              {%- render 'product-variants',
+                block: block,
+                product: product,
+                product_id: product.id,
+                section_id: section.id
+              -%}
+
+            {%- comment -%}
+              The in-page purchase block. Renders as the picker id
+              onrepeat-buy-bar already points at, so the two controls mirror each
+              other rather than competing. Self-suppressing on products with no
+              single size option.
+            {%- endcomment -%}
+            {%- when 'onrepeat_buy_module' -%}
+              {%- render 'onrepeat-buy-module',
+                product: product,
+                section_id: section.id,
+                block: block
+              -%}
+
+            {%- when 'buy_buttons' -%}
+              {%- render 'buy-buttons',
+                block: block,
+                product: product,
+                product_id: product.id,
+                section_id: section.id,
+                product_form_id: product_form_id
+              -%}
+
+            {%- when 'pickup_availability' -%}
+              {%- render 'pickup-availability',
+                block: block,
+                product: product,
+                product_id: product.id,
+                section_id: section.id,
+                product_form_id: product_form_id
+              -%}
+
+            {%- when 'inventory' -%}
+              {%- render 'product-inventory',
+                block: block,
+                product: product,
+                product_id: product.id,
+                section_id: section.id,
+                product_form_id: product_form_id
+              -%}
+
+            {%- when 'share' -%}
+              <div class="flex justify-between items-center" {{ block.shopify_attributes }}>
+                {%- liquid
+                  assign share_url = product.selected_variant.url | default: product.url | prepend: request.origin
+                  assign share_image = product.selected_variant.featured_image | default: product.featured_image
+                -%}
+                {%- render 'social-sharing',
+                  section_id: section.id,
+                  share_id: product.id,
+                  share_label: block.settings.share_label,
+                  share_title: product.title,
+                  share_link: share_url,
+                  share_image: share_image
+                -%}
+
+                {%- if block.settings.show_help_desk -%}
+                  <div class="flex items-center gap-2">
+                    {%- render 'icon', icon: 'question' -%}
+                    <a class="link text-sm leading-tight cursor-pointer"
+                      {%- if block.settings.help_page != blank %} href="{{ block.settings.help_page.url }}"{% else %} role="link" aria-disabled="true"{% endif -%}
+                      {%- if block.settings.help_type == 'drawer' %} aria-controls="HelpDrawer"{% endif -%}
+                    >
+                      {{- block.settings.help_label | escape -}}
+                    </a>
+                  </div>
+                {%- endif -%}
+              </div>
+
+            {%- when 'help_desk' -%}
+              <div class="flex items-center gap-2" {{ block.shopify_attributes }}>
+                {%- render 'icon', icon: 'question' -%}
+                <a class="link text-sm leading-tight cursor-pointer"
+                  {%- if block.settings.help_page != blank %} href="{{ block.settings.help_page.url }}"{% else %} role="link" aria-disabled="true"{% endif -%}
+                  {%- if block.settings.help_type == 'drawer' %} aria-controls="HelpDrawer"{% endif -%}
+                >
+                  {{- block.settings.help_label | escape -}}
+                </a>
+              </div>
+
+            {%- when 'rating' -%}
+              {%- comment -%}
+                The rating is now shown as a compact pill on the product gallery
+                (snippets/onrepeat-rating-badge.liquid), so this standalone block
+                renders nothing. It is intentionally kept as a block instance so
+                the `rating_block == blank` guard on the title block keeps the
+                title-inline rating suppressed (no duplicate near the title).
+              {%- endcomment -%}
+
+            {%- when 'complementary' -%}
+              {%- render 'product-complementary',
+                section_id: section.id,
+                product_id: product.id,
+                image_ratio: settings.product_image_ratio,
+                image_fill: settings.product_image_fill,
+                limit: block.settings.product_limit,
+                heading: block.settings.heading,
+                show_vendor: block.settings.show_vendor,
+                show_price: block.settings.show_price,
+              -%}
+
+            {%- when 'liquid' -%}
+              {%- if block.settings.liquid != blank -%}
+                <div class="rte" {{ block.shopify_attributes }}>
+                  {{- block.settings.liquid -}}
+                </div>
+              {%- endif -%}
+
+            {%- when 'onrepeat_details' -%}
+              {%- render 'onrepeat-detail-strip', product: product, block: block -%}
+
+            {%- when 'onrepeat_description' -%}
+              {%- render 'onrepeat-description', product: product, block: block -%}
+
+            {%- when 'collapsible_tab' -%}
+              <details class="product__accordion details" is="accordion-details" {{ block.shopify_attributes }}>
+                <summary class="details__summary flex items-center justify-between gap-2 cursor-pointer">
+                  <div class="flex items-center gap-2d5">
+                    {%- render 'icon-accordion', icon: block.settings.icon -%}
+                    <span class="text-sm-base font-medium leading-none">{{ block.settings.heading | default: block.settings.page.title | escape }}</span>
+                  </div>
+                  {%- render 'icon', icon: 'plus-2', size: 'xs', class: 'flex-auto' -%}
+                </summary>
+                <div class="details__content rte text-sm text-opacity">
+                  {{ block.settings.content }}
+                  {{ block.settings.page.content }}
+                  {{ block.settings.liquid }}
+                </div>
+              </details>
+
+            {%- when 'countdown' -%}
+              {%- if product.metafields.theme.countdown.value != blank -%}
+                {%- liquid
+                  assign now_time = 'now' | date: '%s' | times: 1
+                  assign countdown_time = product.metafields.theme.countdown.value | date: '%s' | times: 1
+                -%}
+                {%- if countdown_time > now_time -%}
+                  <div class="product-countdown grid sm:flex items-center justify-between gap-2d5" id="shopify-block-{{ block.id }}" {{ block.shopify_attributes }}>
+                    <div class="flex items-center gap-3">
+                      {%- render 'icon', icon: 'countdown', size: 'xl', class: 'flex-auto block lg:hidden xl:block' -%}
+                      <div class="grid">
+                        {%- if block.settings.heading != blank -%}
+                          <p class="heading text-base lg:text-lg xl:text-xl leading-tight">{{ block.settings.heading | escape }}</p>
+                        {%- endif -%}
+                        {%- if block.settings.subheading != blank -%}
+                          <p class="uppercase text-3xs font-medium leading-none tracking-widest">{{ block.settings.subheading | escape }}</p>
+                        {%- endif -%}
+                      </div>
+                    </div>
+                    <countdown-timer
+                      class="countdown__timer flex text-center"
+                      data-expires="{{ product.metafields.theme.countdown.value | date: '%FT%T%:z' | escape }}"
+                    >
+                      <div class="countdown__item">
+                        <p>--</p><span>{{ 'general.date.days' | t }}</span>
+                      </div>
+                      <div class="countdown__item">
+                        <p>--</p><span>{{ 'general.date.hours' | t }}</span>
+                      </div>
+                      <div class="countdown__item">
+                        <p>--</p><span>{{ 'general.date.minutes' | t }}</span>
+                      </div>
+                      <div class="countdown__item">
+                        <p>--</p><span>{{ 'general.date.seconds' | t }}</span>
+                      </div>
+                    </countdown-timer>
+                    <style>
+                      #shopify-block-{{ block.id }} {
+                        {%- render 'section-variables', section: block -%}
+                      }
+                    </style>
+                  </div>
+                {%- endif -%}
+              {%- endif -%}
+
+            {%- when 'back_in_stock' -%}
+              <div id="BackInStock-{{ section.id }}-{{ product.id }}" class="back-in-stock" {{ block.shopify_attributes }}>
+                {%- liquid
+                  assign check_against_inventory = true
+                  if product.selected_or_first_available_variant.inventory_management != 'shopify' or  product.selected_or_first_available_variant.inventory_policy == 'continue'
+                    assign check_against_inventory = false
+                  endif
+                  if product.selected_or_first_available_variant.quantity_rule.min > product.selected_or_first_available_variant.inventory_quantity and check_against_inventory
+                    assign quantity_rule_soldout = true
+                  endif
+
+                  if product.selected_or_first_available_variant.available == false or quantity_rule_soldout
+                    render 'back-in-stock', product: product, product_id: product.id, section_id: section.id, heading: block.settings.heading, description: block.settings.description, compact: true
+                  endif
+                -%}
+              </div>
+
+            {%- when 'shipping_info_bar' -%}
+              {%- comment -%}
+                Shipping & returns — static slim strip (no carousel).
+
+                Suppressed when onrepeat-buy-module renders, because that module
+                carries this same strip underneath its buttons — the position
+                the strip was asked to move to. This block sits immediately
+                above the size picker with nothing in between, so leaving both
+                would put two identical gold hairline rows a few lines apart,
+                sharing two of their three labels.
+
+                Both halves of the test matter. The block has to be present
+                (a merchant can remove it in the editor) AND the module has to
+                actually be going to render (it declines on gift cards and
+                anything without a single size option) — otherwise a product
+                would end up with no strip at all. The module's own condition
+                is asked for by name rather than restated, so the two cannot
+                disagree.
+              {%- endcomment -%}
+              {%- liquid
+                assign strip_moved = false
+                capture sbm_active
+                  render 'onrepeat-buy-module-active', product: product
+                endcapture
+                if sbm_active != blank
+                  for sib in section.blocks
+                    if sib.type == 'onrepeat_buy_module'
+                      assign strip_moved = true
+                      break
+                    endif
+                  endfor
+                endif
+              -%}
+              {%- unless strip_moved -%}
+              <div class="onrepeat-ship-strip" {{ block.shopify_attributes }}>
+                <div class="onrepeat-ship-strip__col">
+                  <span class="onrepeat-ship-strip__chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+                  <span class="onrepeat-ship-strip__lab">Ships In</span>
+                  <span class="onrepeat-ship-strip__val">Ships in {{ block.settings.ships_in_label | default: '24 hours' }}</span>
+                </div>
+                <div class="onrepeat-ship-strip__col">
+                  <span class="onrepeat-ship-strip__chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+                  <span class="onrepeat-ship-strip__lab">Returns</span>
+                  <span class="onrepeat-ship-strip__val">{{ block.settings.return_label | default: '7-day exchange' }}</span>
+                </div>
+                <div class="onrepeat-ship-strip__col">
+                  <span class="onrepeat-ship-strip__chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                  <span class="onrepeat-ship-strip__lab">Delivery</span>
+                  <span class="onrepeat-ship-strip__val">Delivery in {%- if block.settings.show_delivery_column and block.settings.delivery_label != blank %} {{ block.settings.delivery_label }}{%- else %} 3–7 days{%- endif -%}</span>
+                </div>
+              </div>
+              {%- endunless -%}
+
+
+            {%- when 'line_item_property' -%}
+              {%- assign custom_name = block.settings.title | escape -%}
+              <div class="field" {{ block.shopify_attributes }}>
+                {%- if block.settings.type == 'checkbox' -%}
+                  <label for="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}" class="flex items-center gap-3">
+                    <input
+                      type="hidden"
+                      name="properties[{{ custom_name }}]"
+                      form="{{ product_form_id }}"
+                      value="{{ block.settings.unchecked_value | escape }}"
+                    />
+                    <input
+                      type="checkbox"
+                      id="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}"
+                      name="properties[{{ custom_name }}]"
+                      form="{{ product_form_id }}"
+                      value="{{ block.settings.checked_value | escape }}"
+                      {%- if block.settings.required %} required{% endif -%}
+                    />
+                    {{- block.settings.title | escape -}}
+                  </label>
+
+                  {%- elsif block.settings.type == 'radio' -%}
+                  <div class="grid gap-4">
+                    <p>{{ block.settings.title | escape }}</p>
+                    {%- assign options = block.settings.radio_options | split: ',' -%}
+                    {%- if options.size > 0 -%}
+                      <ul class="grid gap-2 leading-none" role="list">
+                        {%- for option in options -%}
+                          {%- assign option_2 = option | strip | escape -%}
+                          <li>
+                            <label for="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}-{{ forloop.index0 }}" class="inline-flex items-center gap-3">
+                              <input
+                                type="radio"
+                                id="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}-{{ forloop.index0 }}"
+                                name="properties[{{ custom_name }}]"
+                                form="{{ product_form_id }}"
+                                value="{{ option_2 }}"
+                                {%- if block.settings.required %} required{% endif -%}
+                              />
+                              {{- option_2 -}}
+                            </label>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    {%- endif -%}
+                  </div>
+  
+                {%- else -%}
+                  {%- case block.settings.type -%}
+                    {%- when 'text' -%}
+                      <input
+                        class="input is-floating"
+                        type="text"
+                        id="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}"
+                        name="properties[{{ custom_name }}]"
+                        form="{{ product_form_id }}"
+                        placeholder="{{ block.settings.title | escape }}"
+                        {%- if block.settings.required %} required{% endif -%}
+                      />
+                      <label class="label is-floating" for="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}">{{ block.settings.title | escape }}</label>
+  
+                    {%- when 'textarea' -%}
+                      <textarea
+                        class="textarea is-floating"
+                        rows="5"
+                        id="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}"
+                        name="properties[{{ custom_name }}]"
+                        form="{{ product_form_id }}"
+                        placeholder=" "
+                        {%- if block.settings.required %} required{% endif -%}
+                      ></textarea>
+                      <label class="label is-floating" for="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}">{{ block.settings.title | escape }}</label>
+  
+                    {%- when 'select' -%}
+                      {%- assign options = block.settings.select_options | split: ',' -%}
+                      {%- if options.size > 0 -%}
+                        <select
+                          class="select is-floating"
+                          id="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}"
+                          name="properties[{{ custom_name }}]"
+                          form="{{ product_form_id }}"
+                          {%- if block.settings.required %} required{% else %} is="custom-select"{% endif -%}
+                        >
+                          <option value="" disabled selected></option>
+                          {%- for option in options -%}
+                            {%- assign option_2 = option | strip | escape -%}
+                            <option value="{{ option_2 }}">{{ option_2 }}</option>
+                          {%- endfor -%}
+                        </select>
+                        {%- render 'icon', icon: 'chevron-up', size: 'sm', class: 'absolute' -%}
+                      {%- endif -%}
+                      <label class="label{% if options.size > 0 %} is-floating{% endif %}" for="LineItemInput-{{ section.id }}-{{ product.id }}-{{ block.id }}">{{ block.settings.title | escape }}</label>
+                  {%- endcase -%}
+                {%- endif -%}
+              </div>
+            {%- when 'vto_button' -%}
+              {%- comment -%}
+                Dormant: no product template ships this block any more (the
+                trigger lives in the sticky buy bar). Kept so the block can be
+                dropped back into a template without rebuilding its data
+                attributes — hence the explicit 'block' placement, which the
+                snippet needs to emit its wrapper instead of the sticky styling.
+              {%- endcomment -%}
+              {%- if settings.vto_enabled -%}
+                {%- render 'vto-button', product: product, block: block, placement: 'block' -%}
+              {%- endif -%}
+
+          {%- endcase -%}
+        {%- endfor -%}
+      </product-info>
+    </div>
+
+    {%- comment -%}
+      Gated on the block alone, not on `product.available`. The bar now also
+      carries the Virtual Try-On trigger, and half the catalogue is sold out at
+      any time — gating the whole bar on availability would take try-on off
+      those pages entirely. The purchase controls inside are gated individually.
+    {%- endcomment -%}
+    {%- assign sticky_buy_button = section.blocks | where: "type", "sticky_buy_button" | first -%}
+    {%- if sticky_buy_button -%}
+      {%- render 'onrepeat-buy-bar', product: product, product_form_id: product_form_id, section_id: section.id -%}
+    {%- endif -%}
+  </div>
+
+  {%- if first_3d_model -%}
+    <script type="application/json" id="ProductJSON-{{ product.id }}">
+      {{ product.media | where: 'media_type', 'model' | json }}
+    </script>
+  {%- endif -%}
+  
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": "{{ shop.url }}{{ product.url }}#product",
+    "name": {{ product.title | json }},
+    "description": {{ product.description | strip_html | json }},
+    "url": "{{ shop.url }}{{ product.url }}",
+    "sku": {{ product.selected_or_first_available_variant.sku | default: product.id | json }},
+    "brand": {
+      "@type": "Brand",
+      "name": "THE ONREPEAT"
+    },
+    "category": "Premium Apparel",
+    "audience": {
+      "@type": "PeopleAudience",
+      "suggestedMinAge": 16,
+      "suggestedMaxAge": 45,
+      "suggestedGender": "unisex"
+    },
+    "image": [
+      {%- assign first_image = true -%}
+      {%- for media in product.media limit: 5 -%}
+        {%- if media.media_type == 'image' -%}
+          {%- unless first_image -%},{%- endunless -%}
+          "https:{{ media | image_url: width: 1000 }}"
+          {%- assign first_image = false -%}
+        {%- endif -%}
+      {%- endfor -%}
+    ],
+    "countryOfOrigin": {
+      "@type": "Country",
+      "name": "India"
+    },
+    "material": "{{ product.metafields.custom.material | default: 'Premium Cotton' }}",
+    "pattern": "{{ product.metafields.custom.pattern | default: 'Graphic' }}",
+    {%- comment -%}
+      dateModified removed: product.updated_at is not exposed on the Liquid product object, so this
+      shipped as an empty string on every PDP. It is also a CreativeWork property, not a Product one.
+    {%- endcomment -%}
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": [".product__title", ".product__description", ".product__price"]
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": "{{ shop.url }}{{ product.url }}",
+      "priceCurrency": "INR",
+      "price": "{{ product.price | money_without_currency | remove: ',' }}",
+      "priceValidUntil": "{{ 'now' | date: '%Y' | plus: 1 }}-12-31",
+      "availability": "{% if product.available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+      "seller": {
+        "@type": "Organization",
+        "name": "THE ONREPEAT",
+        "url": "{{ shop.url }}"
+      },
+      "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 7
+      },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingRate": {
+          "@type": "MonetaryAmount",
+          "value": "0",
+          "currency": "INR"
+        },
+        "shippingDestination": {
+          "@type": "DefinedRegion",
+          "addressCountry": "IN"
+        },
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "handlingTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 1,
+            "maxValue": 2,
+            "unitCode": "DAY"
+          },
+          "transitTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 3,
+            "maxValue": 7,
+            "unitCode": "DAY"
+          }
+        }
+      },
+      "acceptedPaymentMethod": [
+        "http://purl.org/goodrelations/v1#PaymentMethodCreditCard",
+        "http://purl.org/goodrelations/v1#ByBankTransferInAdvance"
+      ]
+    }
+    {%- if product.metafields.reviews.rating.value != blank -%}
+    ,
+    {%- comment -%}
+      reviews.rating is a rating-type metafield, so .value is an object (rating / scale_min /
+      scale_max), not a number. Piping it straight through `json` emitted
+      {"error":"json not allowed for this object"} into production structured data on every PDP,
+      leaving the ratings unparseable. Read the scalar off it the way the rest of the theme does
+      (see product-rating.liquid and product-card-bundle.liquid).
+    {%- endcomment -%}
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": {{ product.metafields.reviews.rating.value.rating | json }},
+      "reviewCount": {{ product.metafields.reviews.rating_count.value | default: 1 | json }},
+      "bestRating": {{ product.metafields.reviews.rating.value.scale_max | default: 5 | json }},
+      "worstRating": {{ product.metafields.reviews.rating.value.scale_min | default: 1 | json }}
+    }
+    {%- endif -%}
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "{{ shop.url }}"
+      },
+      {%- comment -%}
+        Same resolver the visible breadcrumb uses, so the trail Google indexes
+        matches the one the shopper sees. Without it this emitted the literal
+        "Collections" pointing at /collections whenever the product was opened
+        outside a collection URL — which is most of the time.
+      {%- endcomment -%}
+      {%- liquid
+        assign ld_collection = collection
+        if ld_collection == blank or ld_collection.handle == blank
+          capture ld_handle
+            render 'breadcrumb-collection', product: product
+          endcapture
+          assign ld_handle = ld_handle | strip
+          assign ld_collection = null
+          if ld_handle != blank
+            assign ld_collection = collections[ld_handle]
+          endif
+        endif
+      -%}
+      {%- liquid
+        assign ld_last = 2
+        if ld_collection != blank
+          assign ld_last = 3
+        endif
+      -%}
+      {%- if ld_collection != blank -%}
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": {{ ld_collection.title | json }},
+        "item": "{{ shop.url }}{{ ld_collection.url }}"
+      },
+      {%- endif -%}
+      {
+        "@type": "ListItem",
+        {%- comment -%}
+          Positions have to stay contiguous. The three products in no garment
+          collection drop the middle crumb, and a list numbered 1 then 3 is
+          invalid — Google discards the whole BreadcrumbList.
+        {%- endcomment -%}
+        "position": {{ ld_last }},
+        "name": {{ product.title | json }},
+        "item": "{{ shop.url }}{{ product.url }}"
+      }
+    ]
+  }
+  </script>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main-product.name",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_sticky_info",
+      "default": true,
+      "label": "t:sections.main-product.settings.enable_sticky_info.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main-product.settings.header__media.content",
+      "info": "t:sections.main-product.settings.header__media.info"
+    },
+    {
+      "type": "range",
+      "id": "media_size",
+      "min": 35,
+      "max": 70,
+      "step": 1,
+      "unit": "%",
+      "default": 66,
+      "label": "t:sections.main-product.settings.media_size.label",
+      "info": "t:sections.main-product.settings.media_size.info"
+    },
+    {
+      "type": "select",
+      "id": "gallery_layout",
+      "options": [
+        {
+          "value": "scroll",
+          "label": "t:sections.main-product.settings.gallery_layout.options__1.label"
+        },
+        {
+          "value": "columns",
+          "label": "t:sections.main-product.settings.gallery_layout.options__2.label"
+        },
+        {
+          "value": "thumbnail",
+          "label": "t:sections.main-product.settings.gallery_layout.options__3.label"
+        }
+      ],
+      "default": "thumbnail",
+      "label": "t:sections.main-product.settings.gallery_layout.label"
+    },
+    {
+      "type": "select",
+      "id": "thumbnail_position",
+      "options": [
+        {
+          "value": "beside",
+          "label": "t:sections.main-product.settings.thumbnail_position.options__1.label"
+        },
+        {
+          "value": "below",
+          "label": "t:sections.main-product.settings.thumbnail_position.options__2.label"
+        }
+      ],
+      "default": "beside",
+      "label": "t:sections.main-product.settings.thumbnail_position.label",
+      "info": "t:sections.main-product.settings.thumbnail_position.info"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "t:sections.global.settings.image_ratio.options__1.label"
+        },
+        {
+          "value": "square",
+          "label": "t:sections.global.settings.image_ratio.options__2.label"
+        },
+        {
+          "value": "portrait",
+          "label": "t:sections.global.settings.image_ratio.options__3.label"
+        },
+        {
+          "value": "landscape",
+          "label": "t:sections.global.settings.image_ratio.options__4.label"
+        },
+        {
+          "value": "wide",
+          "label": "t:sections.global.settings.image_ratio.options__5.label"
+        },
+        {
+          "value": "adapt_first",
+          "label": "t:sections.global.settings.image_ratio.options__7.label"
+        }
+      ],
+      "default": "adapt_first",
+      "label": "t:sections.global.settings.image_ratio.label",
+      "info": "t:sections.main-product.settings.image_ratio.info"
+    },
+    {
+      "type": "select",
+      "id": "image_zoom",
+      "options": [
+        {
+          "value": "lightbox",
+          "label": "t:sections.main-product.settings.image_zoom.options__1.label"
+        },
+        {
+          "value": "hover",
+          "label": "t:sections.main-product.settings.image_zoom.options__2.label"
+        },
+        {
+          "value": "none",
+          "label": "t:sections.main-product.settings.image_zoom.options__3.label"
+        }
+      ],
+      "default": "lightbox",
+      "label": "t:sections.main-product.settings.image_zoom.label",
+      "info": "t:sections.main-product.settings.image_zoom.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_variants",
+      "default": false,
+      "label": "t:sections.main-product.settings.hide_variants.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_video_autoplay",
+      "default": false,
+      "label": "t:sections.main-product.settings.enable_video_autoplay.label",
+      "info": "t:sections.main-product.settings.enable_video_autoplay.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_video_looping",
+      "default": false,
+      "label": "t:sections.main-product.settings.enable_video_looping.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__mobile.content"
+    },
+    {
+      "type": "select",
+      "id": "mobile_layout",
+      "options": [
+        {
+          "value": "partial",
+          "label": "t:sections.main-product.settings.mobile_layout.options__1.label"
+        },
+        {
+          "value": "full_width",
+          "label": "t:sections.main-product.settings.mobile_layout.options__2.label"
+        }
+      ],
+      "default": "partial",
+      "label": "t:sections.main-product.settings.mobile_layout.label"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio_mobile",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "t:sections.global.settings.image_ratio.options__1.label"
+        },
+        {
+          "value": "square",
+          "label": "t:sections.global.settings.image_ratio.options__2.label"
+        },
+        {
+          "value": "portrait",
+          "label": "t:sections.global.settings.image_ratio.options__3.label"
+        },
+        {
+          "value": "landscape",
+          "label": "t:sections.global.settings.image_ratio.options__4.label"
+        },
+        {
+          "value": "wide",
+          "label": "t:sections.global.settings.image_ratio.options__5.label"
+        },
+        {
+          "value": "adapt_first",
+          "label": "t:sections.global.settings.image_ratio.options__7.label"
+        }
+      ],
+      "default": "adapt_first",
+      "label": "t:sections.global.settings.image_ratio_mobile.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobile_thumbnail",
+      "default": false,
+      "label": "t:sections.main-product.settings.mobile_thumbnail.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__section.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.global.settings.padding_top.label",
+      "default": 72
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.global.settings.padding_bottom.label",
+      "default": 72
+    },
+    {
+      "type": "checkbox",
+      "id": "divider",
+      "label": "t:sections.global.settings.divider.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "t:sections.global.settings.full_width.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "rounded",
+      "default": false,
+      "label": "t:sections.global.settings.rounded.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "breadcrumb",
+      "name": "t:sections.global.blocks.breadcrumb.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Shows Home › collection › product, with previous \/ back-to-grid \/ next. The collection is taken from the URL you arrived through, or resolved from the product's own garment collection."
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "t:sections.main-product.blocks.text.name",
+      "settings": [
+        {
+          "type": "inline_richtext",
+          "id": "text",
+          "default": "Text block",
+          "label": "t:sections.global.settings.text.label"
+        },
+        {
+          "type": "select",
+          "id": "text_size",
+          "options": [
+            {
+              "value": "text-sm",
+              "label": "t:sections.global.settings.text_size.options__1.label"
+            },
+            {
+              "value": "text-base",
+              "label": "t:sections.global.settings.text_size.options__2.label"
+            },
+            {
+              "value": "text-base lg:text-lg",
+              "label": "t:sections.global.settings.text_size.options__3.label"
+            },
+            {
+              "value": "text-base lg:text-xl",
+              "label": "t:sections.global.settings.text_size.options__4.label"
+            }
+          ],
+          "default": "text-base",
+          "label": "t:sections.global.settings.text_size.label"
+        }
+      ]
+    },
+    {
+      "type": "title",
+      "name": "t:sections.main-product.blocks.title.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "title_size",
+          "options": [
+            {
+              "value": "product-title-sm",
+              "label": "t:sections.global.settings.title_size.options__1.label"
+            },
+            {
+              "value": "product-title-md",
+              "label": "t:sections.global.settings.title_size.options__2.label"
+            },
+            {
+              "value": "product-title-lg",
+              "label": "t:sections.global.settings.title_size.options__3.label"
+            }
+          ],
+          "default": "product-title-md",
+          "label": "t:sections.global.settings.title_size.label"
+        },
+        {
+          "type": "select",
+          "id": "title_size_mobile",
+          "options": [
+            {
+              "value": "product-title-sm",
+              "label": "t:sections.global.settings.title_size.options__1.label"
+            },
+            {
+              "value": "product-title-md",
+              "label": "t:sections.global.settings.title_size.options__2.label"
+            },
+            {
+              "value": "product-title-lg",
+              "label": "t:sections.global.settings.title_size.options__3.label"
+            }
+          ],
+          "default": "product-title-md",
+          "label": "t:sections.global.settings.title_size_mobile.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_price",
+          "default": true,
+          "label": "t:sections.main-product.blocks.title.settings.show_price.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_rating",
+          "default": true,
+          "label": "t:sections.main-product.blocks.title.settings.show_rating.label",
+          "info": "t:sections.main-product.blocks.title.settings.show_rating.info"
+        }
+      ]
+    },
+    {
+      "type": "price",
+      "name": "t:sections.main-product.blocks.price.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_taxes_notice",
+          "default": true,
+          "label": "t:sections.main-product.blocks.price.settings.show_taxes_notice.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_offer_strip",
+          "default": true,
+          "label": "Show offer strip"
+        },
+        {
+          "type": "text",
+          "id": "offer_strip_text",
+          "default": "BUY ANY 2 SAVE \u20b9350 + \u20b9100 OFF On Prepaid",
+          "label": "Offer strip text",
+          "info": "Leave blank to hide the strip. Use plain text — no HTML."
+        }
+      ]
+    },
+    {
+      "type": "sku",
+      "name": "t:sections.main-product.blocks.sku.name",
+      "limit": 1
+    },
+    {
+      "type": "inventory",
+      "name": "t:sections.main-product.blocks.inventory.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "range",
+          "id": "inventory_threshold",
+          "label": "t:sections.main-product.blocks.inventory.settings.inventory_threshold.label",
+          "info": "t:sections.main-product.blocks.inventory.settings.inventory_threshold.info",
+          "default": 10,
+          "min": 0,
+          "max": 20,
+          "step": 1
+        },
+        {
+          "type": "checkbox",
+          "id": "show_inventory_transfer",
+          "default": true,
+          "label": "t:sections.main-product.blocks.inventory.settings.show_inventory_transfer.label",
+          "info": "t:sections.main-product.blocks.inventory.settings.show_inventory_transfer.info"
+        },
+        {
+          "type": "select",
+          "id": "show_inventory_quantity",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:sections.main-product.blocks.inventory.settings.show_inventory_quantity.options__1.label"
+            },
+            {
+              "value": "low",
+              "label": "t:sections.main-product.blocks.inventory.settings.show_inventory_quantity.options__2.label"
+            },
+            {
+              "value": "always",
+              "label": "t:sections.main-product.blocks.inventory.settings.show_inventory_quantity.options__3.label"
+            }
+          ],
+          "default": "low",
+          "label": "t:sections.main-product.blocks.inventory.settings.show_inventory_quantity.label"
+        },
+        {
+          "type": "select",
+          "id": "color_scheme",
+          "options": [
+            {
+              "value": "accent-1",
+              "label": "t:sections.main-product.blocks.inventory.settings.color_scheme.options__1.label"
+            },
+            {
+              "value": "accent-2",
+              "label": "t:sections.main-product.blocks.inventory.settings.color_scheme.options__2.label"
+            },
+            {
+              "value": "accent-3",
+              "label": "t:sections.main-product.blocks.inventory.settings.color_scheme.options__3.label"
+            },
+            {
+              "value": "accent-4",
+              "label": "t:sections.main-product.blocks.inventory.settings.color_scheme.options__4.label"
+            },
+            {
+              "value": "accent-5",
+              "label": "t:sections.main-product.blocks.inventory.settings.color_scheme.options__5.label"
+            },
+            {
+              "value": "accent-6",
+              "label": "t:sections.main-product.blocks.inventory.settings.color_scheme.options__6.label"
+            }
+          ],
+          "default": "accent-1",
+          "label": "t:sections.main-product.blocks.inventory.settings.color_scheme.label"
+        }
+      ]
+    },
+    {
+      "type": "quantity_selector",
+      "name": "t:sections.main-product.blocks.quantity_selector.name",
+      "limit": 1
+    },
+    {
+      "type": "volume_pricing",
+      "name": "t:sections.main-product.blocks.volume_pricing.name",
+      "limit": 1
+    },
+    {
+      "type": "variant_picker",
+      "name": "t:sections.main-product.blocks.variant_picker.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_variant_labels",
+          "default": true,
+          "label": "t:sections.main-product.blocks.variant_picker.settings.show_variant_labels.label"
+        },
+        {
+          "type": "select",
+          "id": "picker_type",
+          "options": [
+            {
+              "value": "dropdown",
+              "label": "t:sections.main-product.blocks.variant_picker.settings.picker_type.options__1.label"
+            },
+            {
+              "value": "button",
+              "label": "t:sections.main-product.blocks.variant_picker.settings.picker_type.options__2.label"
+            }
+          ],
+          "default": "button",
+          "label": "t:sections.main-product.blocks.variant_picker.settings.picker_type.label"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.variant_picker.settings.header__color.content"
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_color_swatches",
+          "default": true,
+          "label": "t:sections.main-product.blocks.variant_picker.settings.enable_color_swatches.label",
+          "info": "t:sections.main-product.blocks.variant_picker.settings.enable_color_swatches.info"
+        },
+        {
+          "type": "select",
+          "id": "color_swatch_type",
+          "options": [
+            {
+              "value": "color",
+              "label": "t:sections.main-product.blocks.variant_picker.settings.color_swatch_type.options__1.label"
+            },
+            {
+              "value": "variant",
+              "label": "t:sections.main-product.blocks.variant_picker.settings.color_swatch_type.options__2.label"
+            }
+          ],
+          "default": "color",
+          "label": "t:sections.main-product.blocks.variant_picker.settings.color_swatch_type.label",
+          "info": "t:sections.main-product.blocks.variant_picker.settings.color_swatch_type.info"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.variant_picker.settings.header__size.content"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.variant_picker.settings.paragraph__size.content"
+        },
+        {
+          "type": "page",
+          "id": "size_chart",
+          "label": "t:sections.main-product.blocks.variant_picker.settings.size_chart.label"
+        }
+      ]
+    },
+    {
+      "type": "product_variations",
+      "name": "t:sections.main-product.blocks.product_variations.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.product_variations.settings.paragraph.content"
+        },
+        {
+          "type": "text",
+          "id": "option_name",
+          "label": "t:sections.main-product.blocks.product_variations.settings.option_name.label",
+          "info": "t:sections.main-product.blocks.product_variations.settings.option_name.info"
+        },
+        {
+          "type": "text",
+          "id": "option_value_metafield",
+          "label": "t:sections.main-product.blocks.product_variations.settings.option_value_metafield.label",
+          "info": "t:sections.main-product.blocks.product_variations.settings.option_value_metafield.info"
+        },
+        {
+          "type": "product_list",
+          "id": "products",
+          "label": "t:sections.main-product.blocks.product_variations.settings.products.label",
+          "info": "t:sections.main-product.blocks.product_variations.settings.products.info"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.variant_picker.settings.header__color.content"
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_color_swatches",
+          "default": true,
+          "label": "t:sections.main-product.blocks.variant_picker.settings.enable_color_swatches.label"
+        },
+        {
+          "type": "select",
+          "id": "color_swatch_type",
+          "options": [
+            {
+              "value": "color",
+              "label": "t:sections.main-product.blocks.product_variations.settings.color_swatch_type.options__1.label"
+            },
+            {
+              "value": "variant",
+              "label": "t:sections.main-product.blocks.product_variations.settings.color_swatch_type.options__2.label"
+            }
+          ],
+          "default": "color",
+          "label": "t:sections.main-product.blocks.product_variations.settings.color_swatch_type.label",
+          "info": "t:sections.main-product.blocks.product_variations.settings.color_swatch_type.info"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.variant_picker.settings.header__size.content"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.variant_picker.settings.paragraph__size.content"
+        },
+        {
+          "type": "page",
+          "id": "size_chart",
+          "label": "t:sections.main-product.blocks.variant_picker.settings.size_chart.label"
+        }
+      ]
+    },
+    {
+      "type": "onrepeat_buy_module",
+      "name": "Buy module (size + cart)",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Size picker, availability, Add to cart and Buy now. Mirrors the sticky bar's size selection. Hides itself on products without a single size option."
+        }
+      ]
+    },
+    {
+      "type": "buy_buttons",
+      "name": "t:sections.main-product.blocks.buy_buttons.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_quantity_selector",
+          "default": true,
+          "label": "t:sections.main-product.blocks.buy_buttons.settings.show_quantity_selector.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_dynamic_checkout",
+          "default": true,
+          "label": "t:sections.main-product.blocks.buy_buttons.settings.show_dynamic_checkout.label",
+          "info": "t:sections.main-product.blocks.buy_buttons.settings.show_dynamic_checkout.info"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_gift_card_recipient",
+          "default": true,
+          "label": "t:sections.main-product.blocks.buy_buttons.settings.show_gift_card_recipient.label",
+          "info": "t:sections.main-product.blocks.buy_buttons.settings.show_gift_card_recipient.info"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.back_in_stock.settings.header.content",
+          "info": "t:sections.main-product.blocks.back_in_stock.settings.header.info"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.back_in_stock.settings.paragraph.content"
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_back_in_stock",
+          "default": false,
+          "label": "t:sections.main-product.blocks.back_in_stock.settings.enabled.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_back_in_stock_name",
+          "default": false,
+          "label": "t:sections.main-product.blocks.back_in_stock.settings.show_name.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_back_in_stock_phone",
+          "default": false,
+          "label": "t:sections.main-product.blocks.back_in_stock.settings.show_phone.label"
+        }
+      ]
+    },
+    {
+      "type": "pickup_availability",
+      "name": "t:sections.main-product.blocks.pickup_availability.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.pickup_availability.settings.paragraph.content"
+        }
+      ]
+    },
+    {
+      "type": "description",
+      "name": "t:sections.main-product.blocks.description.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "text_size",
+          "options": [
+            {
+              "value": "text-sm",
+              "label": "t:sections.global.settings.text_size.options__1.label"
+            },
+            {
+              "value": "text-base",
+              "label": "t:sections.global.settings.text_size.options__2.label"
+            },
+            {
+              "value": "text-base lg:text-lg",
+              "label": "t:sections.global.settings.text_size.options__3.label"
+            },
+            {
+              "value": "text-base lg:text-xl",
+              "label": "t:sections.global.settings.text_size.options__4.label"
+            }
+          ],
+          "default": "text-base",
+          "label": "t:sections.global.settings.text_size.label"
+        }
+      ]
+    },
+    {
+      "type": "share",
+      "name": "t:sections.main-product.blocks.share.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "share_label",
+          "label": "t:sections.global.settings.text.label",
+          "default": "Share"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.share.settings.featured_image_info.content"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.share.settings.title_info.content"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.share.settings.header__help.content"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_help_desk",
+          "label": "t:sections.main-product.blocks.share.settings.show_help_desk.label",
+          "default": true
+        },
+        {
+          "type": "text",
+          "id": "help_label",
+          "label": "t:sections.main-product.blocks.help_desk.settings.help_label.label",
+          "default": "Need help?"
+        },
+        {
+          "type": "select",
+          "id": "help_type",
+          "options": [
+            {
+              "value": "drawer",
+              "label": "t:sections.main-product.blocks.help_desk.settings.help_type.options__1.label"
+            },
+            {
+              "value": "page",
+              "label": "t:sections.main-product.blocks.help_desk.settings.help_type.options__2.label"
+            }
+          ],
+          "default": "drawer",
+          "label": "t:sections.main-product.blocks.help_desk.settings.help_type.label"
+        },
+        {
+          "type": "page",
+          "id": "help_page",
+          "label": "t:sections.main-product.blocks.help_desk.settings.help_page.label"
+        }
+      ]
+    },
+    {
+      "type": "help_desk",
+      "name": "t:sections.main-product.blocks.help_desk.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "help_label",
+          "label": "t:sections.main-product.blocks.help_desk.settings.help_label.label",
+          "default": "Need help?"
+        },
+        {
+          "type": "select",
+          "id": "help_type",
+          "options": [
+            {
+              "value": "drawer",
+              "label": "t:sections.main-product.blocks.help_desk.settings.help_type.options__1.label"
+            },
+            {
+              "value": "page",
+              "label": "t:sections.main-product.blocks.help_desk.settings.help_type.options__2.label"
+            }
+          ],
+          "default": "drawer",
+          "label": "t:sections.main-product.blocks.help_desk.settings.help_type.label"
+        },
+        {
+          "type": "page",
+          "id": "help_page",
+          "label": "t:sections.main-product.blocks.help_desk.settings.help_page.label"
+        }
+      ]
+    },
+    {
+      "type": "liquid",
+      "name": "t:sections.custom-liquid.name",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "liquid",
+          "label": "t:sections.custom-liquid.settings.liquid.label",
+          "info": "t:sections.custom-liquid.settings.liquid.info"
+        }
+      ]
+    },
+    {
+      "type": "rating",
+      "name": "t:sections.main-product.blocks.rating.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.rating.settings.paragraph.content"
+        }
+      ]
+    },
+    {
+      "type": "complementary",
+      "name": "t:sections.main-product.blocks.complementary_products.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.complementary_products.settings.paragraph.content"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "default": "Pairs well with",
+          "label": "t:sections.global.settings.heading.label"
+        },
+        {
+          "type": "range",
+          "id": "product_limit",
+          "min": 1,
+          "max": 10,
+          "step": 1,
+          "default": 10,
+          "label": "t:sections.main-product.blocks.complementary_products.settings.product_limit.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_vendor",
+          "default": true,
+          "label": "t:sections.main-product.blocks.complementary_products.settings.show_vendor.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_price",
+          "default": true,
+          "label": "t:sections.main-product.blocks.complementary_products.settings.show_price.label"
+        }
+      ]
+    },
+    {
+      "type": "onrepeat_details",
+      "name": "Care & fabric strip",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Renders the product's custom.product_details metafield as a row of tappable icon tokens. Long values open inline when tapped."
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "default": "Care & fabric",
+          "label": "t:sections.global.settings.heading.label"
+        }
+      ]
+    },
+    {
+      "type": "onrepeat_description",
+      "name": "Description (expandable)",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "default": "Description",
+          "label": "t:sections.global.settings.heading.label"
+        },
+        {
+          "type": "range",
+          "id": "lines",
+          "min": 2,
+          "max": 8,
+          "step": 1,
+          "default": 3,
+          "unit": "ln",
+          "label": "Lines before Read more"
+        }
+      ]
+    },
+    {
+      "type": "collapsible_tab",
+      "name": "t:sections.main-product.blocks.collapsible_tab.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.global.settings.icon.label",
+          "default": "none",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:sections.global.settings.icon.options__1.label"
+            },
+            {
+              "value": "alert",
+              "label": "t:sections.global.settings.icon.options__2.label"
+            },
+            {
+              "value": "award",
+              "label": "t:sections.global.settings.icon.options__3.label"
+            },
+            {
+              "value": "bag",
+              "label": "t:sections.global.settings.icon.options__4.label"
+            },
+            {
+              "value": "box",
+              "label": "t:sections.global.settings.icon.options__5.label"
+            },
+            {
+              "value": "briefcase",
+              "label": "t:sections.global.settings.icon.options__6.label"
+            },
+            {
+              "value": "calendar",
+              "label": "t:sections.global.settings.icon.options__7.label"
+            },
+            {
+              "value": "chat_bubble",
+              "label": "t:sections.global.settings.icon.options__8.label"
+            },
+            {
+              "value": "check_mark",
+              "label": "t:sections.global.settings.icon.options__9.label"
+            },
+            {
+              "value": "clipboard",
+              "label": "t:sections.global.settings.icon.options__10.label"
+            },
+            {
+              "value": "cosmetics",
+              "label": "t:sections.global.settings.icon.options__11.label"
+            },
+            {
+              "value": "creadit_card",
+              "label": "t:sections.global.settings.icon.options__12.label"
+            },
+            {
+              "value": "dairy",
+              "label": "t:sections.global.settings.icon.options__13.label"
+            },
+            {
+              "value": "dairy_free",
+              "label": "t:sections.global.settings.icon.options__14.label"
+            },
+            {
+              "value": "devices",
+              "label": "t:sections.global.settings.icon.options__15.label"
+            },
+            {
+              "value": "email",
+              "label": "t:sections.global.settings.icon.options__16.label"
+            },
+            {
+              "value": "eye",
+              "label": "t:sections.global.settings.icon.options__17.label"
+            },
+            {
+              "value": "file_text",
+              "label": "t:sections.global.settings.icon.options__18.label"
+            },
+            {
+              "value": "gift",
+              "label": "t:sections.global.settings.icon.options__19.label"
+            },
+            {
+              "value": "gluten",
+              "label": "t:sections.global.settings.icon.options__20.label"
+            },
+            {
+              "value": "gluten_free",
+              "label": "t:sections.global.settings.icon.options__21.label"
+            },
+            {
+              "value": "headphone",
+              "label": "t:sections.global.settings.icon.options__22.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:sections.global.settings.icon.options__23.label"
+            },
+            {
+              "value": "iron",
+              "label": "t:sections.global.settings.icon.options__24.label"
+            },
+            {
+              "value": "lightning",
+              "label": "t:sections.global.settings.icon.options__25.label"
+            },
+            {
+              "value": "lock",
+              "label": "t:sections.global.settings.icon.options__26.label"
+            },
+            {
+              "value": "map_pin",
+              "label": "t:sections.global.settings.icon.options__27.label"
+            },
+            {
+              "value": "newspaper",
+              "label": "t:sections.global.settings.icon.options__28.label"
+            },
+            {
+              "value": "organic",
+              "label": "t:sections.global.settings.icon.options__29.label"
+            },
+            {
+              "value": "perfume",
+              "label": "t:sections.global.settings.icon.options__30.label"
+            },
+            {
+              "value": "phone",
+              "label": "t:sections.global.settings.icon.options__31.label"
+            },
+            {
+              "value": "plane",
+              "label": "t:sections.global.settings.icon.options__32.label"
+            },
+            {
+              "value": "planet",
+              "label": "t:sections.global.settings.icon.options__33.label"
+            },
+            {
+              "value": "planet_2",
+              "label": "t:sections.global.settings.icon.options__34.label"
+            },
+            {
+              "value": "recycling",
+              "label": "t:sections.global.settings.icon.options__35.label"
+            },
+            {
+              "value": "return",
+              "label": "t:sections.global.settings.icon.options__36.label"
+            },
+            {
+              "value": "rocket",
+              "label": "t:sections.global.settings.icon.options__37.label"
+            },
+            {
+              "value": "ruler",
+              "label": "t:sections.global.settings.icon.options__38.label"
+            },
+            {
+              "value": "ruler_2",
+              "label": "t:sections.global.settings.icon.options__39.label"
+            },
+            {
+              "value": "ruler_3",
+              "label": "t:sections.global.settings.icon.options__40.label"
+            },
+            {
+              "value": "sale",
+              "label": "t:sections.global.settings.icon.options__41.label"
+            },
+            {
+              "value": "shield",
+              "label": "t:sections.global.settings.icon.options__42.label"
+            },
+            {
+              "value": "shirt",
+              "label": "t:sections.global.settings.icon.options__43.label"
+            },
+            {
+              "value": "shoe",
+              "label": "t:sections.global.settings.icon.options__44.label"
+            },
+            {
+              "value": "star",
+              "label": "t:sections.global.settings.icon.options__45.label"
+            },
+            {
+              "value": "support",
+              "label": "t:sections.global.settings.icon.options__46.label"
+            },
+            {
+              "value": "swatchbook",
+              "label": "t:sections.global.settings.icon.options__47.label"
+            },
+            {
+              "value": "tag",
+              "label": "t:sections.global.settings.icon.options__48.label"
+            },
+            {
+              "value": "tags",
+              "label": "t:sections.global.settings.icon.options__49.label"
+            },
+            {
+              "value": "time",
+              "label": "t:sections.global.settings.icon.options__50.label"
+            },
+            {
+              "value": "trophy",
+              "label": "t:sections.global.settings.icon.options__51.label"
+            },
+            {
+              "value": "truck",
+              "label": "t:sections.global.settings.icon.options__52.label"
+            },
+            {
+              "value": "users",
+              "label": "t:sections.global.settings.icon.options__53.label"
+            },
+            {
+              "value": "wallet",
+              "label": "t:sections.global.settings.icon.options__54.label"
+            },
+            {
+              "value": "wash",
+              "label": "t:sections.global.settings.icon.options__55.label"
+            },
+            {
+              "value": "watch",
+              "label": "t:sections.global.settings.icon.options__56.label"
+            },
+            {
+              "value": "wrench",
+              "label": "t:sections.global.settings.icon.options__57.label"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "default": "Collapsible row",
+          "label": "t:sections.global.settings.heading.label",
+          "info": "t:sections.main-product.blocks.collapsible_tab.settings.heading.info"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "t:sections.main-product.blocks.collapsible_tab.settings.content.label",
+          "default": "<p>Use collapsible tabs for more detailed information that will help customers make a purchasing decision.</p><p>Ex: Shipping and return policies, size guides, and other common questions.</p>"
+        },
+        {
+          "type": "page",
+          "id": "page",
+          "label": "t:sections.main-product.blocks.collapsible_tab.settings.page.label"
+        },
+        {
+          "type": "liquid",
+          "id": "liquid",
+          "label": "t:sections.custom-liquid.settings.liquid.label",
+          "info": "t:sections.custom-liquid.settings.liquid.info"
+        }
+      ]
+    },
+    {
+      "type": "countdown",
+      "name": "t:sections.main-product.blocks.countdown.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.countdown.settings.paragraph.content"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "default": "Hurry up!",
+          "label": "t:sections.global.settings.heading.label"
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "default": "Sale end in:",
+          "label": "t:sections.global.settings.subheading.label"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.global.settings.header__colors.content",
+          "info": "t:sections.global.settings.header__colors.info"
+        },
+        {
+          "type": "color",
+          "id": "color_text",
+          "label": "t:sections.global.settings.color_text.label",
+          "default": "#e11d48"
+        },
+        {
+          "type": "color",
+          "id": "color_background",
+          "label": "t:sections.global.settings.color_background.label",
+          "default": "#fff1f2"
+        },
+        {
+          "type": "color_background",
+          "id": "gradient_background",
+          "label": "t:sections.global.settings.gradient_background.label"
+        }
+      ]
+    },
+    {
+      "type": "back_in_stock",
+      "name": "t:sections.main-product.blocks.back_in_stock.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.back_in_stock.settings.header.info"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.back_in_stock.settings.paragraph.content"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:sections.global.settings.heading.label"
+        },
+        {
+          "type": "richtext",
+          "id": "description",
+          "default": "<p>Sign up to be the first to know when it's here</p>",
+          "label": "t:sections.global.settings.description.label"
+        }
+      ]
+    },
+    {
+      "type": "line_item_property",
+      "name": "t:sections.main-product.blocks.line_item_property.name",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.line_item_property.settings.paragraph.content"
+        },
+        {
+          "type": "select",
+          "id": "type",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:sections.main-product.blocks.line_item_property.settings.type.options__1.label"
+            },
+            {
+              "value": "textarea",
+              "label": "t:sections.main-product.blocks.line_item_property.settings.type.options__2.label"
+            },
+            {
+              "value": "checkbox",
+              "label": "t:sections.main-product.blocks.line_item_property.settings.type.options__3.label"
+            },
+            {
+              "value": "radio",
+              "label": "t:sections.main-product.blocks.line_item_property.settings.type.options__4.label"
+            },
+            {
+              "value": "select",
+              "label": "t:sections.main-product.blocks.line_item_property.settings.type.options__5.label"
+            }
+          ],
+          "default": "text",
+          "label": "t:sections.main-product.blocks.line_item_property.settings.type.label"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.main-product.blocks.line_item_property.settings.label.label",
+          "default": "Your label"
+        },
+        {
+          "type": "checkbox",
+          "id": "required",
+          "label": "t:sections.main-product.blocks.line_item_property.settings.required.label",
+          "info": "t:sections.main-product.blocks.line_item_property.settings.required.info",
+          "default": false
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.line_item_property.settings.header__checkbox.content",
+          "info": "t:sections.main-product.blocks.line_item_property.settings.header__checkbox.info"
+        },
+        {
+          "type": "text",
+          "id": "checked_value",
+          "label": "t:sections.main-product.blocks.line_item_property.settings.checked_value.label",
+          "default": "Yes"
+        },
+        {
+          "type": "text",
+          "id": "unchecked_value",
+          "label": "t:sections.main-product.blocks.line_item_property.settings.unchecked_value.label",
+          "default": "No"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.line_item_property.settings.header__radio.content",
+          "info": "t:sections.main-product.blocks.line_item_property.settings.header__radio.info"
+        },
+        {
+          "type": "text",
+          "id": "radio_options",
+          "label": "t:sections.main-product.blocks.line_item_property.settings.options.label",
+          "info": "t:sections.main-product.blocks.line_item_property.settings.options.info"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.main-product.blocks.line_item_property.settings.header__dropdown.content",
+          "info": "t:sections.main-product.blocks.line_item_property.settings.header__dropdown.info"
+        },
+        {
+          "type": "text",
+          "id": "select_options",
+          "label": "t:sections.main-product.blocks.line_item_property.settings.options.label",
+          "info": "t:sections.main-product.blocks.line_item_property.settings.options.info"
+        }
+      ]
+    },
+    {
+      "type": "sticky_buy_button",
+      "name": "t:sections.main-product.blocks.sticky_buy_button.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-product.blocks.sticky_buy_button.settings.paragraph.content"
+        }
+      ]
+    },
+    {
+      "type": "shipping_info_bar",
+      "name": "Shipping Info Bar",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "ships_in_label",
+          "label": "Ships In — value",
+          "default": "24 Hours"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_delivery_column",
+          "label": "Show Delivery By column with custom date",
+          "default": false
+        },
+        {
+          "type": "text",
+          "id": "delivery_label",
+          "label": "Delivery By — date/value",
+          "info": "E.g. '20th–21st Apr'. Only shown when checkbox above is enabled."
+        },
+        {
+          "type": "text",
+          "id": "return_label",
+          "label": "Returns — policy text",
+          "default": "Easy 7-Day Return & Exchange"
+        }
+      ]
+    },
+    {
+      "type": "vto_button",
+      "name": "Virtual Try-On",
+      "limit": 1,
+      "settings": []
+    }
+  ]
+}
+{% endschema %}

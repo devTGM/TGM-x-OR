@@ -1,0 +1,106 @@
+{%- comment -%}
+  Renders one row per applied discount, covering BOTH cart-level applications and
+  line-level allocations.
+
+  Why both: an order-class discount (the 5% spend tier) lands in
+  cart.cart_level_discount_applications, but a product-class one only ever appears
+  inside each line's line_level_discount_allocations. The ₹300 / ₹700 spend tiers are
+  deliberately product-class — that is what lets them stack with the 5% while still
+  never stacking with each other — so a summary that loops only the cart-level list
+  silently drops them, and a shopper at ₹3,000 sees the 5% but no sign of the ₹300.
+
+  Line-level allocations arrive one per line, so they are summed by discount title to
+  give a single row per discount rather than one per product.
+
+  Accepts:
+  - style: {String} 'badge' (default) draws the crimson chip used on the cart page;
+      'ledger' draws a plain hairline row for the drawer's summary card. The
+      grouping logic is identical either way — only the wrapper markup differs.
+
+  Usage:
+  {% render 'cart-savings-rows' %}
+  {% render 'cart-savings-rows', style: 'ledger' %}
+{%- endcomment -%}
+
+{%- liquid
+  # Collect the distinct line-level discount titles. Liquid has no map, so the
+  # delimiters make `contains` an exact-token test rather than a substring one.
+  #
+  # The delimiter is the three-character sentinel below, not a bare '|'. A merchant
+  # is perfectly free to name a discount "Diwali | 10% Off", and a pipe delimiter
+  # would split that title into two bogus tokens and corrupt the seen-list, giving
+  # duplicated or merged savings rows.
+  assign cs_sep = '|~|'
+  assign cs_seen = cs_sep
+  for cs_item in cart.items
+    for cs_alloc in cs_item.line_level_discount_allocations
+      assign cs_title = cs_alloc.discount_application.title
+      assign cs_probe = cs_sep | append: cs_title | append: cs_sep
+      unless cs_seen contains cs_probe
+        assign cs_seen = cs_seen | append: cs_title | append: cs_sep
+      endunless
+    endfor
+  endfor
+  assign cs_titles = cs_seen | split: cs_sep
+
+  assign cs_style = style | default: 'badge'
+  comment
+    Admin names these for the merchant — "₹300 Off — Spend ₹3000". In the drawer
+    the qualifying half is noise twice over: the shopper has by definition already
+    met it, and the ladder directly above states what is still to come. The cart
+    PAGE keeps the full title, where the column is wide and the ladder is further
+    away. Same shortening rule as line-discounts.liquid, so the two never disagree.
+  endcomment
+  if cs_style == 'ledger'
+    assign cs_li = 'cart-summary__row cart-summary__row--off'
+    assign cs_k = 'cart-summary__rk'
+    assign cs_v = 'cart-summary__rv'
+  else
+    assign cs_li = 'cart-totals__savings-item'
+    assign cs_k = 'cart-totals__label'
+    assign cs_v = 'badge badge--onsale flex items-center gap-1d5 font-medium leading-none rounded-full'
+  endif
+-%}
+
+{%- for discount in cart.cart_level_discount_applications -%}
+  {%- if discount.total_allocated_amount > 0 -%}
+    {%- liquid
+      assign cs_label = discount.title
+      if cs_style == 'ledger'
+        assign cs_label = cs_label | split: '—' | first | split: '–' | first | split: ' - ' | first | strip
+      endif
+    -%}
+    <li class="{{ cs_li }}">
+      <span class="{{ cs_k }}">{%- render 'usd-inr-text', text: cs_label -%}</span>
+      <span class="{{ cs_v }}">−{% render 'money-display', amount: discount.total_allocated_amount %}</span>
+    </li>
+  {%- endif -%}
+{%- endfor -%}
+
+{%- for cs_title in cs_titles -%}
+  {%- liquid
+    assign cs_title_size = cs_title | size
+    assign cs_total = 0
+    if cs_title_size > 0
+      for cs_item in cart.items
+        for cs_alloc in cs_item.line_level_discount_allocations
+          if cs_alloc.discount_application.title == cs_title
+            assign cs_total = cs_total | plus: cs_alloc.amount
+          endif
+        endfor
+      endfor
+    endif
+  -%}
+  {%- if cs_total > 0 -%}
+    {%- liquid
+      assign cs_label = cs_title
+      if cs_style == 'ledger'
+        assign cs_label = cs_label | split: '—' | first | split: '–' | first | split: ' - ' | first | strip
+      endif
+    -%}
+    <li class="{{ cs_li }}">
+      <span class="{{ cs_k }}">{%- render 'usd-inr-text', text: cs_label -%}</span>
+      <span class="{{ cs_v }}">−{% render 'money-display', amount: cs_total %}</span>
+    </li>
+  {%- endif -%}
+{%- endfor -%}

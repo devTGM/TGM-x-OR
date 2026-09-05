@@ -1,0 +1,112 @@
+{%- comment -%}
+  OnRepeat rotating product tag.
+
+  A single top-left pill that cycles through marketing entries with a vertical
+  slide-up loop (pure CSS — see assets/onrepeat-rotating-tag.css).
+
+  Entry sources, in order:
+    1. product.metafields.custom.tag_1 … custom.tag_4 (single_line_text_field
+       each — "Tag 1"–"Tag 4" in admin), blanks skipped. Entries that are
+       exactly "NNN GSM" (e.g. "240 GSM" / "240GSM") render with the
+       fabric-weight chip typography (big number, small unit).
+    2. An auto-appended "SAVE NN%" while compare_at_price > price and the
+       product is available (same rounding as snippets/product-badges.liquid).
+
+  Max 5 entries total (4 tags + SAVE) — covered by the precomputed
+  [data-count="2"–"6"] keyframes in assets/onrepeat-rotating-tag.css. 1 entry
+  renders a static pill (no data-count, no animation). 0 entries renders
+  nothing.
+
+  Params:
+    product (required)
+    context (optional) 'card' (default) | 'pdp' — pdp scales the pill up
+    class   (optional) extra classes
+
+  Usage:
+    {%- render 'onrepeat-rotating-tag', product: product, context: 'card' -%}
+{%- endcomment -%}
+
+{%- liquid
+  assign rt_sep = '|||'
+  assign rt_entries = ''
+
+  assign rt_text = product.metafields.custom.tag_1.value | strip
+  if rt_text != blank
+    assign rt_entries = rt_entries | append: rt_text | append: rt_sep
+  endif
+  assign rt_text = product.metafields.custom.tag_2.value | strip
+  if rt_text != blank
+    assign rt_entries = rt_entries | append: rt_text | append: rt_sep
+  endif
+  assign rt_text = product.metafields.custom.tag_3.value | strip
+  if rt_text != blank
+    assign rt_entries = rt_entries | append: rt_text | append: rt_sep
+  endif
+  assign rt_text = product.metafields.custom.tag_4.value | strip
+  if rt_text != blank
+    assign rt_entries = rt_entries | append: rt_text | append: rt_sep
+  endif
+
+  if product.compare_at_price > product.price and product.available
+    assign rt_pct = product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round
+    if rt_pct > 0
+      assign rt_entries = rt_entries | append: 'SAVE ' | append: rt_pct | append: '%' | append: rt_sep
+    endif
+  endif
+
+  assign rt_list = rt_entries | split: rt_sep
+  assign rt_count = rt_list.size
+-%}
+
+{%- if rt_count > 0 -%}
+  {{ 'onrepeat-rotating-tag.css' | asset_url | stylesheet_tag }}
+  {%- capture rt_label -%}{{ rt_list | join: ' · ' }}{%- endcapture -%}
+  <span
+    class="onrepeat-rtag onrepeat-rtag--{{ context | default: 'card' }}{% if class != blank %} {{ class }}{% endif %}"
+    {%- if rt_count > 1 %} data-count="{{ rt_count }}"{% endif %}
+    style="--rt-interval: {{ settings.rotating_tag_interval | default: 2.5 }}s;"
+    role="img"
+    aria-label="{{ rt_label | escape }}"
+  >
+    {%- for rt_entry in rt_list -%}
+      {%- liquid
+        assign rt_norm = rt_entry | downcase | strip
+        assign rt_num = rt_norm | remove: 'gsm' | strip
+        assign rt_int = rt_num | plus: 0
+        assign rt_spaced = rt_int | append: ' gsm'
+        assign rt_joined = rt_int | append: 'gsm'
+        assign rt_is_gsm = false
+        if rt_int > 0
+          if rt_norm == rt_spaced or rt_norm == rt_joined
+            assign rt_is_gsm = true
+          endif
+        endif
+        assign rt_is_save = false
+        if rt_norm contains 'save ' and rt_norm contains '%'
+          assign rt_is_save = true
+        endif
+
+        comment
+          "NEW IN" is the one neutral tag that is a claim rather than a spec —
+          it earns the crimson pill, while 100% COTTON / FLAT KNIT / POLO COLLAR
+          read as quiet chips over the photography. See onrepeat-product-card.css.
+        endcomment
+        assign rt_is_new = false
+        if rt_norm == 'new in' or rt_norm == 'new'
+          assign rt_is_new = true
+        endif
+      -%}
+      <span class="onrepeat-rtag__item" style="--rt-i: {{ forloop.index0 }};" aria-hidden="true">
+        {%- if rt_is_gsm -%}
+          <span class="onrepeat-rtag__pill onrepeat-rtag__pill--gsm"><span class="onrepeat-rtag__num">{{ rt_int }}</span><span class="onrepeat-rtag__unit">GSM</span></span>
+        {%- elsif rt_is_save -%}
+          <span class="onrepeat-rtag__pill onrepeat-rtag__pill--save">{{ rt_entry | escape }}</span>
+        {%- elsif rt_is_new -%}
+          <span class="onrepeat-rtag__pill onrepeat-rtag__pill--new">{{ rt_entry | escape }}</span>
+        {%- else -%}
+          <span class="onrepeat-rtag__pill">{{ rt_entry | escape }}</span>
+        {%- endif -%}
+      </span>
+    {%- endfor -%}
+  </span>
+{%- endif -%}
