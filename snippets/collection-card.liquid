@@ -1,99 +1,208 @@
-{%- comment -%}
-  Renders a collection card
+{%- doc -%}
+  This snippet is used to render a collection card.
+  To be used inside a block to inherit the block object settings.
 
-  Accepts:
-  - collection: {Object} Collection Liquid object
-  - image_type: {String} Type of the collection image card
-  - image_ratio: {String} Size of the collection image card
-  - block: {Object} Block object
+  @param {string} card_image - The image to display in the collection card
+  @param {string} children - The content to render inside the collection card
+  @param {object} collection - The collection to render the card for
+  @param {object} block - The block object
+  @param {object} section - The section object
 
-  Usage:
-  {% render 'collection-card' %}
-{%- endcomment -%}
+  @example
+  {% render 'collection-card',
+    card_image: card_image,
+    children: children,
+    block: block,
+    collection: collection,
+    section: section
+  %}
+{%- enddoc -%}
 
-{%- liquid
-  if image_type == 'collection' and collection.image
-    assign collection_image = collection.image
-  else
-    assign collection_image = collection.products.first.featured_media.preview_image
+{% style %}
+  {% if request.visual_preview_mode %}
+    .collection-card {
+      min-width: 250px;
+    }
+  {% endif %}
+{% endstyle %}
+
+{% liquid
+  assign onboarding = false
+  assign block_settings = block.settings
+
+  if collection == blank
+    assign onboarding = true
   endif
 
-  assign collection_title = collection.title
-
-  if block != blank
-    if block.settings.image != blank
-      assign collection_image = block.settings.image
-    endif
-
-    if block.settings.title != blank
-      assign collection_title = block.settings.title
-    endif
-
-    if block.settings.description != blank
-      assign collection_description = block.settings.description
-    endif
-
-    assign overlay_content = block.settings.overlay_content
+  if block_settings.background_color != blank
+    render 'contrast-override', background_color: block_settings.background_color, section_id: block.id
   endif
+%}
 
-  if image_ratio == 'adapt' and collection_image == blank
-    assign image_ratio = 'wide'
-  endif
--%}
-
-<div class="card media-card media-card--{{ settings.card_style }}{% if overlay_content %} media-card--overlap{% endif %} overflow-hidden" id="shopify-block-{{ block.id }}">
-  {%- if overlay_content and block != blank -%}
-    <style>
-      #shopify-block-{{ block.id }} {
-        {%- render 'section-variables', section: block -%}
-      }
-    </style>
-  {%- endif -%}
-  {%- if collection != blank -%}
-    <a href="{{ collection.url }}" class="media-card__link flex flex-col w-full h-full relative" aria-label="{{ collection_title | escape }}">
-      <div class="media media--{{ image_ratio }} relative overflow-hidden">
-        {%- if collection_image != blank -%}
-          {{- collection_image | image_url: width: collection_image.width | image_tag: loading: 'lazy', sizes: 'auto', decoding: 'async', widths: '180,360,540,720,900,1080', is: 'lazy-image' -}}
-        {%- else -%}
-          <span class="block aspect-{{ image_ratio }}"></span>
-        {%- endif -%}
-      </div>
-      <div class="media-card__content flex justify-between items-center gap-4 w-full text-{{ settings.card_text_alignment }}">
-        <div class="media-card__text shrink-1 grid gap-0d5">
-          <p class="flex">
-            <span class="heading reversed-link text-xl-3xl tracking-tighter leading-tight relative">
-              {{- collection_title | escape -}}
-              {%- if show_products_count and collection.all_products_count > 0 -%}
-                <small class="count font-medium absolute text-xs tracking-none whitespace-nowrap">{{ collection.all_products_count }}</small>
-              {%- endif -%}
-            </span>
-          </p>
-          {%- if collection_description != blank -%}
-            <p class="leading-none text-xs xl:text-sm">{{ collection_description }}</p>
-          {%- endif -%}
-        </div>
-        {%- render 'icon', icon: 'arrow-right', size: 'xs', class: 'transform shrink-0' -%}
-      </div>
-    </a>
-  {%- else -%}
-    <a href="#" class="media-card__link flex flex-col w-full h-full relative" aria-label="{{ 'onboarding.collection_title' | t | escape }}">
-      <div class="media media--{{ image_ratio }} relative overflow-hidden">
-        {%- liquid
-          assign modulo = position | modulo: 5 | plus: 1
-          assign placeholder = 'collection-' | append: modulo
-          echo placeholder | placeholder_svg_tag: 'placeholder'
-        -%}
-      </div>
-      <div class="media-card__content flex justify-between items-center gap-4 w-full text-{{ settings.card_text_alignment }}">
-        <div class="media-card__text shrink-1 grid gap-0d5">
-          <p class="flex">
-            <span class="heading reversed-link text-xl-3xl tracking-tighter leading-tight relative">
-              {{- 'onboarding.collection_title' | t | escape -}}
-            </span>
-          </p>
-        </div>
-        {%- render 'icon', icon: 'arrow-right', size: 'xs', class: 'transform shrink-0' -%}
-      </div>
-    </a>
-  {%- endif -%}
+<div
+  class="
+    collection-card
+    border-style
+    {% if block_settings.placement == 'on_image' %}collection-card--image-bg{% endif %}
+    {% if section.settings.layout_type == 'bento' %}collection-card--image-height-fixed{% endif %}
+    {% if section.settings.layout_type == 'editorial' %}collection-card--flexible-aspect-ratio{% endif %}
+    {% if block_settings.background_color != blank %} color-custom-{{ block.id }}{% endif %}
+  "
+  data-block-id="{{ block.id }}"
+  {% if onboarding %}
+    data-placeholder="true"
+  {% endif %}
+  style="
+    {% render 'border-override', settings: block_settings %}
+    --horizontal-alignment: {{ block_settings.horizontal_alignment }};
+    --vertical-alignment: {{ block_settings.vertical_alignment }};
+    --gap: {{ block_settings.collection_card_gap }}px;
+  "
+  {{- block.shopify_attributes -}}
+>
+  <a
+    class="collection-card__link"
+    {% unless onboarding %}
+      href="{{ collection.url }}"
+    {% endunless %}
+  >
+    <span class="visually-hidden">{{ collection.title }}</span>
+  </a>
+  <div class="collection-card__inner">
+    {{ card_image }}
+    <div class="collection-card__content layout-panel-flex--column">
+      {{ children }}
+    </div>
+  </div>
 </div>
+
+{% stylesheet %}
+  .collection-card {
+    --fixed-card-height: var(--height-small);
+
+    width: 100%;
+    position: relative;
+    height: 100%;
+    flex: 1 1 var(--card-width-small);
+  }
+
+  .collection-card > svg {
+    height: 100%;
+    width: 100%;
+    aspect-ratio: var(--ratio);
+  }
+
+  .collection-card--image-bg .collection-card__inner {
+    height: 100%;
+  }
+
+  .collection-card__link {
+    position: absolute;
+    inset: 0;
+
+    /* allows focus outline to have radius in supported browsers */
+    border-radius: var(--border-radius);
+  }
+
+  .collection-card__inner {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    z-index: var(--layer-flat);
+    pointer-events: none;
+    gap: var(--gap);
+
+    a,
+    button {
+      pointer-events: auto;
+    }
+  }
+
+  /* allow all blocks to be selectable in editor preview */
+  .shopify-design-mode .collection-card__content * {
+    pointer-events: auto;
+  }
+
+  .collection-card__content {
+    --flex-wrap: wrap;
+
+    display: flex;
+    position: relative;
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    gap: var(--gap);
+  }
+
+  /* Nested image block rules */
+
+  .collection-card.collection-card--image-bg {
+    aspect-ratio: var(--ratio);
+  }
+
+  .collection-card.collection-card--image-bg .collection-card__content {
+    padding: var(--padding-lg);
+  }
+
+  .collection-card--image-height-fixed {
+    height: 100%;
+  }
+
+  /* Bento layout rules */
+  .collection-card--image-height-fixed .collection-card__image {
+    height: var(--fixed-card-height);
+    width: 100%;
+  }
+
+  .collection-card--image-height-fixed.collection-card--image-bg {
+    height: var(--fixed-card-height);
+    aspect-ratio: unset;
+  }
+
+  .collection-card__image .resource-image__image {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+  }
+
+  .collection-card--image-bg .collection-card__image {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+
+  .collection-card__image svg {
+    height: 100%;
+    width: 100%;
+  }
+
+  /* Editorial layout */
+  .resource-list:not(.hidden--desktop) .collection-card--flexible-aspect-ratio {
+    .collection-card__image {
+      aspect-ratio: 99;
+      height: 100%;
+    }
+
+    .collection-card__inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .collection-card__content {
+      flex-shrink: 0;
+    }
+
+    &:not(.collection-card--image-bg) .collection-card__content {
+      height: auto;
+    }
+
+    &.collection-card.collection-card--image-bg,
+    &.collection-card .placeholder-svg {
+      aspect-ratio: 99;
+    }
+  }
+{% endstylesheet %}

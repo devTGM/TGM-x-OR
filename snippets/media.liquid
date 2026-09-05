@@ -1,87 +1,128 @@
-{%- comment -%}
-  Renders product media
+{%- doc -%}
+  Renders media block contents (used in _media and _media-without-appearance blocks)
 
-  Accepts:
-  - media: {Object} Product Media object
-  - sizes: {String} Used for the image generation
-  - preload: {Boolean} The image is preloaded and its fetch priority is higher
-  - loop: {Boolean} Enable video looping (optional)
-  - autoplay: {Boolean} Enable video autoplay (optional)
-  - product_id: {String} The ID of the current product.
-  - section_id: {String} The ID of section to which this snippet belongs.
+  @param {object} [block] - The block object
+  @param {boolean} [unset_image_tag] - if true, ignores the image focal point in the image
+{%- enddoc -%}
 
-  Usage:
-  {% render 'media',
-    media: media,
-    loop: false,
-    autoplay: false
-  %}
-{%- endcomment -%}
+{% liquid
+  assign block_settings = block.settings
+  assign show_image = false
+  assign show_video = false
 
-{%- liquid
-  if preload
-    assign loading = 'eager'
-    assign fetchpriority = 'high'
-  else
-    assign loading = 'lazy'
-    assign fetchpriority = 'auto'
+  if block_settings.background_color != blank
+    render 'contrast-override', background_color: block_settings.background_color, section_id: block.id
   endif
--%}
 
-{%- case media.media_type -%}
-  {%- when 'image' -%}
-    {{- media | image_url: width: media.preview_image.width | image_tag: loading: loading, fetchpriority: fetchpriority, sizes: sizes, widths: '200,300,400,500,600,700,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200', class: 'w-full', alt: media_alt, is: 'lazy-image' -}}
+  if block_settings.media_type == 'image'
+    assign show_image = true
+  endif
 
-  {%- when 'video', 'external_video' -%}
-    {%- comment -%}
-      no-controls: native video controls are off by design (see the
-      controls:false below). The attribute also tells the deferred-media JS
-      not to re-enable them when autoplay is blocked — it falls back to the
-      poster instead, and onrepeat-video-tap turns the frame into a play target.
-    {%- endcomment -%}
-    <video-media class="deferred-media block relative w-full" style="--aspect-ratio: {{ media.aspect_ratio }}" data-aspect-ratio="{{ media.aspect_ratio }}" aria-controls="SliderGallery-{{ section_id }}-{{ product_id }}"
-      {%- if media.host %} host="{{ media.host }}"{% endif -%}
-      {%- if autoplay %} autoplay no-controls{% endif -%}
-    >
-      {{- media | image_url: width: media.preview_image.width | image_tag: loading: loading, fetchpriority: fetchpriority, sizes: sizes, widths: '200,300,400,500,600,700,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200', class: 'w-full', alt: media_alt, is: 'lazy-image' -}}
+  if block_settings.media_type == 'video'
+    assign show_video = true
+  endif
+%}
 
-      <template>
-        {%- liquid
-          if media.media_type == 'video'
-            echo media | video_tag: controls: false, playsinline: true, muted: autoplay, autoplay: autoplay, loop: loop, preload: 'none'
-          else
-            if media.host == 'youtube'
-              echo media | external_video_url: enablejsapi: true, loop: loop, mute: autoplay, autoplay: autoplay, playlist: media.external_id | external_video_tag: class: video_class, loading: 'lazy'
-            elsif media.host == 'vimeo'
-              echo media | external_video_url: autopause: true, loop: loop, muted: autoplay, autoplay: autoplay | external_video_tag: class: video_class, loading: 'lazy'
-            else
-              echo media | external_video_tag: image_size: '2048x'
-            endif
-          endif
-        -%}
-      </template>
+<div
+  class="
+    media-block
+    spacing-style
+    {% if block_settings.background_color != blank %} color-custom-{{ block.id }}{% endif %}
+    {% if show_image and block_settings.image_position == 'contain' or show_video and block_settings.video_position == 'contain' %}
+      media-block--contain
+    {% endif %}
+  "
+  style="
+    {% render 'border-override', settings: block_settings %}
+    {% render 'spacing-style', settings: block_settings %}
+    --image-position: {{ block_settings.image_position }};
+    --video-position: {{ block_settings.video_position }};
+  "
+  {{ block.shopify_attributes }}
+>
+  {%- if show_image -%}
+    {% capture image_tag %}
+      {% if block_settings.image != blank %}
+        {% render 'image',
+          image: block_settings.image,
+          class: 'media-block__media border-style',
+          unset_image_tag: unset_image_tag
+        %}
+      {% else %}
+        <div class="media-block__media border-style">
+          {{ 'detailed-apparel-1' | placeholder_svg_tag: 'media-block__placeholder' }}
+        </div>
+      {% endif %}
+    {% endcapture %}
 
-      {%- unless autoplay -%}
-        <button type="button" id="DeferredPoster-{{ media.id }}" class="play-button absolute flex items-center justify-center rounded-full" aria-label="{{ 'products.media.play_video' | t | escape }}">
-          {%- render 'icon', icon: 'play' -%}
-        </button>
-      {%- endunless -%}
-    </video-media>
+    {% if block_settings.link != blank %}
+      <a
+        href="{{ block_settings.link }}"
+        class="media-block__media-link"
+      >
+        {{ image_tag }}
+      </a>
+    {% else %}
+      {{ image_tag }}
+    {% endif %}
+  {%- elsif show_video -%}
+    {% render 'video',
+      video: block_settings.video,
+      video_autoplay: block_settings.video_autoplay,
+      video_loop: block_settings.video_loop,
+      video_class: 'media-block__media media-block__media--video border-style'
+    %}
+  {%- else -%}
+    <div class="media-block__media border-style">
+      {{ 'hero-apparel-3' | placeholder_svg_tag }}
+    </div>
+  {%- endif -%}
+</div>
 
-  {%- when 'model' -%}
-    <model-media class="deferred-media block relative w-full" style="--aspect-ratio: {{ media.preview_image.aspect_ratio }}" data-aspect-ratio="{{ media.preview_image.aspect_ratio }}" aria-controls="SliderGallery-{{ section_id }}-{{ product_id }}">
-      {{- media | image_url: width: media.preview_image.width | image_tag: loading: loading, fetchpriority: fetchpriority, sizes: sizes, widths: '200,300,400,500,600,700,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200', class: 'w-full', alt: media_alt, is: 'lazy-image' -}}
-      {{- media | model_viewer_tag: image_size: '2048x', reveal: 'interaction', toggleable: true -}}
+{% stylesheet %}
+  .media-block {
+    overflow: hidden;
+    position: relative;
 
-      <template>
-        {{- media | media_tag: image_size: '2048x', toggleable: true -}}
-      </template>
-      <button type="button" id="DeferredPoster-{{ media.id }}" class="play-button absolute flex items-center justify-center rounded-full" aria-label="{{ 'products.media.play_model' | t | escape }}">
-        {%- render 'icon', icon: '3d-model' -%}
-      </button>
-      <button type="button" id="DeferredPosterClose-{{ media.id }}" class="button button--secondary button--close play-button absolute flex items-center justify-center rounded-full z-10" aria-label="{{ 'general.accessibility.close' | t | escape }}" hidden is="hover-button">
-        <span class="btn-fill" data-fill></span>
-        <span class="btn-text">{% render 'icon', icon: 'close' %}</span>
-      </button>
-    </model-media>
-{%- endcase -%}
+    @media screen and (min-width: 750px) {
+      min-height: var(--media-height);
+    }
+  }
+
+  .media-block__media {
+    height: var(--media-height-mobile, auto);
+    object-fit: var(--image-position, 'cover');
+    object-position: center center;
+    width: 100%;
+
+    @media screen and (min-width: 750px) {
+      height: 100%;
+      position: absolute;
+    }
+  }
+
+  deferred-media[class].media-block__media
+    :is(.deferred-media__poster-button img, .deferred-media__poster-button ~ video) {
+    object-fit: var(--video-position, 'cover');
+  }
+
+  /* This is to support corner radius on video and align the video to the center of the block */
+  .media-block__placeholder {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: center center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .media-block__media--video {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media screen and (max-width: 749px) {
+      --media-height-mobile: auto;
+    }
+  }
+{% endstylesheet %}

@@ -1,494 +1,176 @@
-{%- capture direction -%}{% render 'direction' %}{%- endcapture -%}
-{%- comment -%}
-  Display currency, resolved once per request and reused below to decide which
-  checkout the shopper gets. `strip` guards against a stray newline in the
-  snippet turning every comparison false — see snippets/onrepeat-usd-mode.liquid.
-{%- endcomment -%}
-{%- capture onrepeat_usd_mode_raw -%}{%- render 'onrepeat-usd-mode' -%}{%- endcapture -%}
-{%- assign onrepeat_usd_mode = onrepeat_usd_mode_raw | strip -%}
 <!doctype html>
-<html class="no-js" lang="{{ request.locale.iso_code }}" dir="{{ direction }}">
-<head>
-  <!-- Script Interceptor to Optimize Third-Party Performance -->
-  <script>
-    (function() {
-      var originalCreateElement = document.createElement;
-      var delayedScripts = [];
-      var userInteracted = false;
+<html
+  {% if request.design_mode %}
+    class="shopify-design-mode"
+  {% endif %}
+  lang="{{ request.locale.iso_code }}"
+>
+  <head>
+    {%- if settings.favicon != blank -%}
+      <link
+        rel="icon"
+        type="image/png"
+        href="{{ settings.favicon | image_url: width: 32, height: 32 }}"
+      >
+    {%- endif -%}
 
-      var trackerDomains = [
-        'googletagmanager.com',
-        'google-analytics.com',
-        'analytics.google.com',
-        'clarity.ms',
-        'adnabu-shopify',
-        'fbevents',
-        'connect.facebook.net'
-      ];
+    {%- render 'view-transition-opt-in' -%}
 
-      // Dropped outright rather than deferred. Wigzo (a Shiprocket property) is not an app on
-      // this store and is referenced nowhere in this theme — it arrives via a legacy Shopify
-      // ScriptTag that outlived whatever installed it. It pulls 372 KB with its own jQuery for
-      // web push, exit-intent popups and behavioural tracking, and ships a global
-      // `em { font-style: italic !important }` that overrides this theme's highlight styling.
-      // Blocking has to happen here: this interceptor puts an OWN src accessor on every script
-      // element, and an own property outranks any guard defined on HTMLScriptElement.prototype,
-      // so nothing outside this function can intervene while it is installed.
-      var blockedDomains = [
-        'wigzo.com',
-        'wigzopush.com'
-      ];
+    {%- render 'meta-tags' -%}
+    {%- render 'stylesheets' -%}
+    {%- render 'card-hover-effect-styles' -%}
+    {%- render 'fonts' -%}
+    {%- render 'scripts' -%}
+    {%- render 'theme-styles-variables' -%}
+    {%- render 'color-palette' -%}
 
-      document.createElement = function(tagName) {
-        var element = originalCreateElement.apply(document, arguments);
-        if (tagName.toLowerCase() === 'script') {
-          var originalSetAttribute = element.setAttribute;
-          element.setAttribute = function(name, value) {
-            if (name === 'src' && shouldBlock(value)) return;
-            if (name === 'src' && shouldDelay(value)) {
-              element.dataset.delayedSrc = value;
-              delayedScripts.push(element);
-              return;
+    {% if request.design_mode %}
+      {%- render 'theme-editor' -%}
+    {% endif %}
+
+    {{ content_for_header }}
+  </head>
+
+  <body class="page-width-{{ settings.page_width }} card-hover-effect-{{ settings.card_hover_effect }}">
+    {% render 'skip-to-content-link', href: '#MainContent', text: 'accessibility.skip_to_text' %}
+
+    {% render 'chat-drawer' %}
+
+    <div class="page-wrapper">
+      <div id="header-group">
+        {% sections 'header-group' %}
+      </div>
+
+      <script>
+        /**
+         * Sets `--header-height` and `--header-group-height` to measured values before first paint.
+         *
+         * A few CSS rules position content relative to the header at first paint — a hero sized to
+         * the remaining viewport, a transparent header's negative margin. Without a measured value
+         * those rules use the `60px` fallback from `sections/header.liquid`, and the content visibly
+         * jumps once `header.js` corrects the values after load.
+         *
+         * Measuring forces layout mid-parse, so it only runs where a consuming rule exists.
+         * Callers opt in: the transparent-header branch below, or `snippets/measure-header-heights.liquid`,
+         * which any new first-paint consumer must render too.
+         *
+         * Measures once per page; after load, header.js's ResizeObservers keep the values fresh.
+         * The group-height walk mimics calculateHeaderGroupHeight() in utilities.js — keep them
+         * in sync.
+         */
+        window.measureHeaderHeights = (function () {
+          let measured = false;
+
+          return function measureHeaderHeights() {
+            if (measured) return;
+
+            const header = document.querySelector('#header-component');
+            const headerGroup = document.querySelector('#header-group');
+
+            if (!header || !headerGroup) return;
+            measured = true;
+
+            const headerHeight = header.offsetHeight;
+
+            let headerGroupHeight = 0;
+            for (const element of headerGroup.children) {
+              if (element instanceof HTMLElement) headerGroupHeight += element.offsetHeight;
             }
-            originalSetAttribute.apply(element, arguments);
+
+            /**
+             * A transparent header is absolutely positioned, so the loop above counts its section
+             * wrapper as 0px. When a section follows it in the group, header.liquid pushes that
+             * section down by the header's height using a margin, which offsetHeight also
+             * excludes — so the header's height has to be added back manually.
+             */
+            if (header.hasAttribute('transparent') && header.parentElement?.nextElementSibling) {
+              headerGroupHeight += headerHeight;
+            }
+
+            document.body.style.setProperty('--header-height', `${headerHeight}px`);
+            document.body.style.setProperty('--header-group-height', `${headerGroupHeight}px`);
           };
-          Object.defineProperty(element, 'src', {
-            get: function() {
-              return element.getAttribute('src') || element.dataset.delayedSrc;
-            },
-            set: function(value) {
-              if (shouldBlock(value)) return;
-              if (shouldDelay(value)) {
-                element.dataset.delayedSrc = value;
-                delayedScripts.push(element);
-              } else {
-                element.setAttribute('src', value);
-              }
-            }
-          });
+        })();
+
+        /**
+         * Transparent-header rules consume the measured heights at first paint on every
+         * template, so the transparent case opts in globally here instead of per-section.
+         */
+        if (document.querySelector('#header-component')?.hasAttribute('transparent')) {
+          measureHeaderHeights();
         }
-        return element;
-      };
 
-      function shouldBlock(src) {
-        if (!src) return false;
-        var s = String(src);
-        return blockedDomains.some(function(domain) {
-          return s.indexOf(domain) > -1;
-        });
-      }
+        /**
+         * Sets `--top-row-height`, consumed by the header underlays and submenus. Deferred to a
+         * rAF so the height read doesn't force layout mid-parse, and scoped to the
+         * header, where all consumers live, so the write only invalidates the header subtree.
+         * Mimics the `--top-row-height` write in updateHeaderHeights() in utilities.js
+         */
+        (function setTopRowHeight() {
+          const header = document.querySelector('#header-component');
+          const headerTopRow = header?.querySelector('.header__row--top');
+          if (!headerTopRow) return;
 
-      function shouldDelay(src) {
-        if (!src || userInteracted) return false;
-        return trackerDomains.some(function(domain) {
-          return src.indexOf(domain) > -1;
-        });
-      }
-
-      // Once createElement stops wrapping, script elements no longer carry an own src accessor,
-      // so a guard on the prototype finally takes effect. Installed at handover so the block
-      // outlives this interceptor: the ScriptTag loader fires on window load, which on a heavy
-      // page routinely lands after the 4s timeout or the first scroll has already restored
-      // createElement — the window Wigzo was slipping through.
-      function installPersistentBlock() {
-        try {
-          var native = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
-          if (!native || !native.get || !native.set) return;
-          Object.defineProperty(HTMLScriptElement.prototype, 'src', {
-            configurable: true,
-            enumerable: native.enumerable,
-            get: function() { return native.get.call(this); },
-            set: function(value) { if (shouldBlock(value)) return; native.set.call(this, value); }
+          window.requestAnimationFrame(function () {
+            header.style.setProperty('--top-row-height', `${headerTopRow.getBoundingClientRect().height}px`);
           });
-        } catch (e) {}
-      }
+        })();
 
-      function triggerDelayedScripts() {
-        if (userInteracted) return;
-        userInteracted = true;
+        /**
+         * Sets `--transparent-header-offset-boolean` when the first section must offset itself
+         * under a transparent header. The non-offset case relies on the `0` default declared in
+         * sections/header.liquid — unlike updateTransparentHeaderOffset() in utilities.js, which
+         * re-runs on editor changes and must write '0' to reset a previously written '1'.
+         */
+        (function updateTransparentHeaderOffset() {
+          const header = document.querySelector('#header-component');
+          const headerSection = document.querySelector('#header-group .header-section');
+          if (!headerSection || !header?.hasAttribute('transparent')) return;
 
-        // Restore original createElement
-        document.createElement = originalCreateElement;
-        installPersistentBlock();
-
-        // Load all delayed scripts
-        delayedScripts.forEach(function(element) {
-          if (element.dataset.delayedSrc) {
-            element.setAttribute('src', element.dataset.delayedSrc);
-            delete element.dataset.delayedSrc;
+          const hasImmediateSection = headerSection.nextElementSibling?.classList.contains('shopify-section');
+          if (!hasImmediateSection) {
+            document.body.style.setProperty('--transparent-header-offset-boolean', '1');
           }
-        });
-        delayedScripts = [];
-        removeListeners();
-      }
+        })();
 
-      var events = ['mouseover', 'keydown', 'touchstart', 'touchmove', 'click', 'scroll'];
-      function removeListeners() {
-        events.forEach(function(e) {
-          window.removeEventListener(e, triggerDelayedScripts, { passive: true });
-        });
-      }
-
-      events.forEach(function(e) {
-        window.addEventListener(e, triggerDelayedScripts, { passive: true });
-      });
-
-      // Fallback load after 4 seconds of idle time
-      setTimeout(triggerDelayedScripts, 4000);
-    })();
-  </script>
-  <meta name="facebook-domain-verification" content="501tutgxbtfrt9imvl5c9g5rdi7qf9" />
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-N64W8GSH');</script>
-  <!-- End Google Tag Manager -->
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-
-  {%- if request.page_type == '404' -%}
-    {%- comment -%} Recover malformed product links (e.g. a full URL appended after the handle by campaign tools) and send them to the correct PDP. {%- endcomment -%}
-    <script>
-      (function () {
-        try {
-          var path = window.location.pathname;
-          var m = path.match(/\/products\/([^\/?#]+)/i);
-          if (!m) return;
-          var target = '/products/' + m[1];
-          if (path.replace(/\/+$/, '') !== target) {
-            window.location.replace(target + window.location.search + window.location.hash);
+        /**
+         * Sets the initial menu style (inline menu vs. drawer) on the header component.
+         * Mimics setHeaderMenuStyle() in utilities.js
+         */
+        (function setHeaderMenuStyle() {
+          const headerComponent = document.querySelector('#header-component');
+          if (headerComponent) {
+            const isTouchDevice = 'ontouchstart' in window && navigator.maxTouchPoints > 0;
+            const overflowList = headerComponent.querySelector('overflow-list');
+            const hasReachedMinimum = overflowList && overflowList.hasAttribute('minimum-reached');
+            headerComponent.dataset.menuStyle = isTouchDevice || hasReachedMinimum ? 'drawer' : 'menu';
           }
-        } catch (e) {}
-      })();
-    </script>
-  {%- endif -%}
-  <meta name="theme-color" content="{{ settings.color_button_background }}">
-  <link rel="canonical" href="{{ canonical_url }}">
-  <link rel="alternate" hreflang="en-IN" href="{{ canonical_url }}">
-  <link rel="alternate" hreflang="hi-IN" href="{{ canonical_url }}">
-  <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
-  <meta name="geo.region" content="IN">
-  <meta name="geo.country" content="India">
-  <meta name="geo.placename" content="India">
-  <meta name="content-language" content="en-IN">
-  <meta name="ICBM" content="20.5937, 78.9629">
-  <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  {% # theme-check-disable RemoteAsset %}
-  {%- comment -%}
-    Warmed only for the shoppers who will actually reach Razorpay. A USD
-    shopper goes to Shopify's native checkout, so opening three connections to
-    Razorpay for them is wasted handshake on a mobile connection.
-  {%- endcomment -%}
-  {%- unless onrepeat_usd_mode == 'true' -%}
-    <link rel="preconnect" href="https://magic-plugins.razorpay.com" crossorigin>
-    <link rel="preconnect" href="https://checkout.razorpay.com" crossorigin>
-    <link rel="preconnect" href="https://api.razorpay.com" crossorigin>
-    <link rel="dns-prefetch" href="https://magic-plugins.razorpay.com">
-    <link rel="dns-prefetch" href="https://checkout.razorpay.com">
-    <link rel="dns-prefetch" href="https://api.razorpay.com">
-  {%- endunless -%}
-  <link rel="dns-prefetch" href="https://ajax.googleapis.com">
-  <link rel="dns-prefetch" href="https://maps.googleapis.com">
-  <link rel="dns-prefetch" href="https://maps.gstatic.com">
-  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-  {% # theme-check-enable RemoteAsset %}
+        })();
+      </script>
 
-  {%- if settings.favicon != blank -%}
-    <link rel="shortcut icon" href="{{ settings.favicon | image_url: width: 32, height: 32 }}" type="image/png" />
-  {%- endif -%}
+      <main
+        id="MainContent"
+        class="content-for-layout"
+        role="main"
+        data-page-transition-enabled="{{ settings.page_transition_enabled }}"
+        data-product-transition="{{ settings.transition_to_main_product }}"
+        data-template="{{ template }}"
+      >
+        {{ content_for_layout }}
+      </main>
 
-  <title>
-    {{- page_title -}}
-    {%- if current_tags -%}
-      {%- assign meta_tags = current_tags | join: ', ' %} &ndash; {{ 'general.meta.tags' | t: tags: meta_tags -}}
-    {%- endif -%}
-    {%- if current_page != 1 %} &ndash; {{ 'general.meta.page' | t: page: current_page }}{% endif -%}
-    {%- if request.page_type == 'password' -%}
-      {{- shop.name -}}
-    {%- else -%}
-      {%- unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless -%}
-    {%- endif -%}
-  </title>
+      <footer>
+        {% sections 'footer-group' %}
+      </footer>
+    </div>
 
-  {%- if page_description != blank -%}
-    <meta name="description" content="{{ page_description | escape }}">
-  {%- elsif request.page_type == 'product' -%}
-    <meta name="description" content="{{ product.title | escape }} — {{ product.description | strip_html | truncate: 130 | escape }} Premium apparel by THE ONREPEAT.">
-  {%- elsif request.page_type == 'collection' -%}
-    {%- if collection.description != blank -%}
-      <meta name="description" content="Shop {{ collection.title }} by THE ONREPEAT — premium apparel from India. {{ collection.description | strip_html | truncate: 115 | escape }} Free shipping in India.">
-    {%- else -%}
-      <meta name="description" content="Shop {{ collection.title }} by THE ONREPEAT — premium apparel from India inspired by Sanskrit heritage. Free shipping, 7-day returns.">
-    {%- endif -%}
-  {%- elsif request.page_type == 'article' -%}
-    <meta name="description" content="{{ article.excerpt_or_content | strip_html | truncate: 155 | escape }}">
-  {%- elsif request.page_type == 'blog' -%}
-    <meta name="description" content="Zero Point Chronicles by THE ONREPEAT — minimalist fashion stories, style guides, and apparel culture from India.">
-  {%- else -%}
-    <meta name="description" content="{{ shop.description | default: 'THE ONREPEAT (OnRepeat · Shunya) — premium apparel from India inspired by Sanskrit heritage. Hoodies, t-shirts, shirts and sweatshirts. Free shipping in India.' | escape }}">
-  {%- endif -%}
+    {% render 'cart-drawer', render_wrapper: true %}
+    {% render 'theme-drawer' %}
 
-  {%- comment -%} Keywords meta — read by Bing/Yandex, ignored by Google but supports brand-name SEO defense {%- endcomment -%}
-  {%- if request.page_type == 'index' -%}
-    <meta name="keywords" content="onrepeat, shunya, the onrepeat, onrepeat brand, premium apparel india, premium hoodies india, premium t-shirts india, premium shirts india, sanskrit apparel, indian apparel brand">
-  {%- elsif request.page_type == 'collection' -%}
-    <meta name="keywords" content="premium {{ collection.title | downcase | escape }} india, onrepeat {{ collection.title | downcase | escape }}, indian apparel {{ collection.title | downcase | escape }}, oversized {{ collection.title | downcase | escape }}">
-  {%- endif -%}
+    {% render 'search-modal' %}
 
-  {%- liquid
-    render 'social-meta-tags'
-    
-    render 'css-variables'
-    echo 'theme.css' | asset_url | stylesheet_tag: preload: true
-    echo 'onrepeat-sold-out.css' | asset_url | stylesheet_tag
-    echo 'motion-speed.css' | asset_url | stylesheet_tag
-    echo 'colour-swatches.css' | asset_url | stylesheet_tag
-    echo 'pdp-refine.css' | asset_url | stylesheet_tag
-    echo 'facets-enhance.css' | asset_url | stylesheet_tag
-    echo 'size-guide.css' | asset_url | stylesheet_tag
-    echo 'breadcrumb.css' | asset_url | stylesheet_tag
-    echo 'line-discounts.css' | asset_url | stylesheet_tag
-
-    if direction == 'rtl'
-      echo 'rtl.css' | asset_url | stylesheet_tag: preload: true
-    endif
-  -%}
-
-  {%- comment -%}
-    Guard against third-party stylesheets that reset <em> globally.
-
-    This theme repurposes italic as its highlight control: authors mark a word italic in the
-    rich text editor and snippets/highlighted-text.liquid rewrites <em> into
-    <em class="highlighted-text ... not-italic"> so it renders upright in the highlight colour,
-    never in italic letterforms.
-
-    The Wigzo exit-intent app injects app.wigzo.com/assets/plugins/exitintent/exitintent.css at
-    runtime, and that file carries a single unscoped declaration:
-
-        em { font-style: italic !important }
-
-    Being !important it outranks the theme's .not-italic utility — and inline styles too — so
-    every highlighted word on the storefront rendered italic. It is absent from the theme editor
-    because app scripts do not run there, which is why the two previews disagreed.
-
-    .highlighted-text is (0,1,0) against that rule's (0,0,1), so among !important declarations
-    this wins on specificity and load order is irrelevant — it holds even though the app injects
-    its stylesheet after ours. Kept inline and render-blocking so highlighted words never flash
-    italic before an external file arrives, and scoped to the highlight element alone so genuine
-    italics elsewhere are untouched.
-  {%- endcomment -%}
-  <style>.highlighted-text{font-style:normal!important}</style>
-
-  <link rel="stylesheet" href="{{ 'apps.css' | asset_url }}" media="print" fetchpriority="low" onload="this.media='all'">
-  <link rel="stylesheet" href="{{ 'skeleton.css' | asset_url }}" media="print" fetchpriority="low" onload="this.media='all'">
-
-  <!-- Remove mobile tap highlight -->
-  <style>
-    * {
-      -webkit-tap-highlight-color: transparent !important;
-      -webkit-touch-callout: none;
-    }
-    
-    /* Keep text selectable where needed */
-    p, span, h1, h2, h3, h4, h5, h6, .text-selectable {
-      -webkit-touch-callout: default;
-      -webkit-user-select: text;
-      -moz-user-select: text;
-      user-select: text;
-    }
-  </style>
-
-  {{ content_for_header }}
-
-  <script src="{{ 'vendor.js' | asset_url }}" defer="defer"></script>
-  <script src="{{ 'theme.js' | asset_url }}" defer="defer"></script>
-  {%- comment -%} Swiper powers the product-card image gallery (assets/card-swipe.js). Must load before it. {%- endcomment -%}
-  <script src="{{ 'swiper-bundle.min.js' | asset_url }}" defer="defer"></script>
-  <script src="{{ 'card-swipe.js' | asset_url }}" defer="defer"></script>
-  <script src="{{ 'toast.js' | asset_url }}" defer="defer"></script>
-  <link rel="stylesheet" href="{{ 'toast.css' | asset_url }}" media="print" fetchpriority="low" onload="this.media='all'">
-  <link rel="stylesheet" href="{{ 'swiper-bundle.min.css' | asset_url }}" media="print" fetchpriority="low" onload="this.media='all'">
-  <link rel="stylesheet" href="{{ 'card-swipe.css' | asset_url }}" media="print" fetchpriority="low" onload="this.media='all'">
-
-  {%- comment -%} Pause looping animations while they are scrolled off-screen (purely additive, visually identical) {%- endcomment -%}
-  <script src="{{ 'onrepeat-perf.js' | asset_url }}" defer="defer"></script>
-  <link rel="stylesheet" href="{{ 'onrepeat-perf.css' | asset_url }}" media="print" fetchpriority="low" onload="this.media='all'">
-
-  {%- comment -%} Mobile drawer close button + bullet-proof background scroll lock (swipe-to-close) {%- endcomment -%}
-  <script src="{{ 'onrepeat-scroll-lock.js' | asset_url }}" defer="defer"></script>
-  <link rel="stylesheet" href="{{ 'onrepeat-drawers.css' | asset_url }}" media="print" fetchpriority="low" onload="this.media='all'">
-  <noscript><link rel="stylesheet" href="{{ 'onrepeat-drawers.css' | asset_url }}"></noscript>
-
-  {%- if settings.enable_tab_attention -%}
-    <script src="{{ 'tab-attention.js' | asset_url }}" defer="defer"></script>
-  {%- endif -%}
-
-  {%- if request.page_type contains 'customers/' -%}
-    <script src="{{ 'shopify_common.js' | shopify_asset_url }}" defer="defer"></script>
-  {%- endif -%}
-
-  {%- render 'js-variables' -%}
-
-  {%- comment -%}
-    Geo auto-switch + the USD arrival toast. Only shipped while the feature is
-    on, and it reads theme.currencyDisplay from js-variables above (deferred, so
-    it always runs after that inline script). It changes market context only —
-    never any amount.
-  {%- endcomment -%}
-  {%- if settings.usd_display_enabled -%}
-    <script src="{{ 'usd-display.js' | asset_url }}" defer="defer"></script>
-  {%- endif -%}
-
-
-
-  {%- render 'schema-sitewide' -%}
-</head>
-
-<body class="template-{{ template | replace: '.', ' ' | truncatewords: 1, '' | handle }}{% if request.path == '/challenge' %} template-challange{% endif %}{% if request.design_mode %} shopify-design-mode{% endif %}" data-rounded-button="{{ settings.rounded_button }}" data-rounded-input="{{ settings.rounded_input }}" data-rounded-block="{{ settings.rounded_block }}" data-rounded-card="{{ settings.rounded_card }}" data-button-hover="{{ settings.buttons_hover }}"{% if settings.enable_lazy_image %} data-lazy-image{% endif %} data-title-animation data-page-rendering>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N64W8GSH"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
-  {%- comment -%}
-    CHECKOUT ROUTING — the whole of it.
-
-    Magic Checkout is a purely client-side interceptor: magic-shopify.js adds
-    one delegated click listener on `document`, matches [name="checkout"], and
-    calls stopImmediatePropagation(). It never rewrites the cart form. So not
-    rendering it is a complete, clean opt-out — the theme's two checkout
-    buttons (sections/main-cart.liquid:595 and sections/cart-drawer.liquid:698)
-    then submit POST /cart normally and Shopify serves native checkout. The
-    sticky buy bar inherits this for free, because it works by clicking the
-    real [name="checkout"] button rather than navigating to /checkout
-    (snippets/sleek-quick-add-modal.liquid:935-948).
-
-    Gated on the display currency, not on the country, so the merchant's rule
-    holds exactly: native checkout only while USD prices are on screen. If the
-    USD toggle is switched off, or the rate is set to 0, a US shopper is shown
-    INR and correctly falls back to Magic Checkout — a country test would have
-    sent them to native checkout with INR prices and no COD.
-
-    Gated here in theme.liquid rather than inside the snippet: Razorpay's app
-    owns snippets/razorpay-magic-checkout.liquid and can overwrite it on an app
-    update or a theme republish. This file is ours. Re-check after any Razorpay
-    app update.
-  {%- endcomment -%}
-  {%- unless onrepeat_usd_mode == 'true' -%}
-    {% render 'razorpay-magic-checkout' %}
-  {%- endunless -%}
-  <a class="sr-only skip-link" href="#MainContent">{{ 'general.accessibility.skip_to_content' | t }}</a>
-
-  {%- liquid
-    if settings.enable_page_transition
-      render 'loading-bar'
-    endif
-    
-    render 'mouse-cursor'
-
-    comment
-      The Buy 2 Get 1 strip lives HERE, before the header group, and not
-      inside sections/header.liquid — that was tried and it broke: the
-      theme's sticky machinery puts position: sticky on the whole
-      .header-section wrapper, so anything rendered inside it is carried
-      down the page with the header, painting over whatever sits at
-      --sticky-header-height (the collection page's docked rail, most
-      visibly), and the transparent homepage header absolutely-positions
-      .header and leaves a stray in-flow child behind. Out here the strip
-      is plain flow: it shows at the top, scrolls away, and every sticky
-      offset stays exactly as measured. The snippet gates itself through
-      onrepeat-b2g1-on and renders nothing on the live theme until go-live.
-    endcomment
-    render 'onrepeat-b2g1-banner'
-
-    sections 'header-group'
-    sections 'overlay-group'
-  -%}
-
-  <div class="page-container" id="PageContainer">
-    <main class="main-content relative" id="MainContent" role="main">
-      {{ content_for_layout }}
-    </main>
-     {% unless page.handle == 'kp-account' %}
-       
-     
-    <footer-group class="footer-group block w-full">
-      {%- sections 'footer-group' -%}
-    </footer-group>
-    {% endunless %}
-  </div>
-
-  <ul hidden>
-    <li id="a11y-refresh-page-message">{{ 'general.accessibility.refresh_page' | t }}</li>
-    <li id="a11y-new-window-message">{{ 'general.accessibility.link_messages.new_window' | t }}</li>
-  </ul>
-
-  {%- if request.design_mode == false and settings.preload_links -%}
-    <script src="{{ 'instant-page.js' | asset_url }}" type="module" fetchpriority="low" defer="defer"></script>
-  {%- endif -%}
-
-{%- comment -%}
-  Load VTO assets globally so that the minimized floating circle progress FAB
-  and modal can be loaded, restored, and navigated across all pages.
-
-  Gated on settings.vto_enabled — Theme settings > Advanced > "Virtual Try-On".
-  This is the master switch: it is the loader all four surfaces depend on, so
-  with it off no VTO asset is requested on any page and the modal never exists.
-  The four triggers carry the same gate so none of them can render a control
-  that opens nothing. Off by default; turn it on per theme.
-{%- endcomment -%}
-{%- if settings.vto_enabled -%}
-  <link rel="preconnect" href="https://asia-south1-gen-lang-client-0263205017.cloudfunctions.net" crossorigin>
-  <link rel="stylesheet" href="{{ 'vto.css' | asset_url }}" media="print" onload="this.media='all'">
-  <script src="{{ 'vto-state.js' | asset_url }}" defer="defer"></script>
-  <script src="{{ 'vto.js' | asset_url }}" defer="defer"></script>
-  {%- render 'vto-modal' -%}
-{%- endif -%}
-
-{% comment %}
-{% render 'razorpay-magic-sso' %}
-{% endcomment %}
-
-{% render 'sleek-quick-add-modal' %}
-
-{%- comment -%} Per-product size-chart registry (consumed by window.OnRepeatSizeChart) {%- endcomment -%}
-{% render 'size-chart-data' %}
-
-{%- comment -%}
-  Checkout routing is decided at render time, so a page restored from the
-  back-forward cache carries whichever checkout was correct when it was built.
-  Switch market, press Back, and the browser can hand you an INR page with
-  Magic already bound while you are now in the US context — or a USD page with
-  no Magic while you are back on INR. The second of those is the one the
-  merchant's rule forbids outright.
-
-  `pageshow` with `persisted` is the only event that fires for a bfcache
-  restore. The `localization` cookie is the country Shopify will render next;
-  if it no longer matches what this page was built for, the page is stale for
-  routing purposes and is reloaded. Normal loads (`persisted === false`) do
-  nothing, so this costs nothing on the hot path.
-
-  The cookie is SameSite=Lax and not HttpOnly, so it is readable here. If it
-  cannot be read the guard stays silent rather than reloading blindly — a
-  reload loop would be worse than the stale page it is trying to fix.
-{%- endcomment -%}
-<script>
-  (function () {
-    var rendered = {{ localization.country.iso_code | json }};
-    addEventListener('pageshow', function (event) {
-      if (!event.persisted) return;
-      var match = document.cookie.match(/(?:^|;\s*)localization=([^;]+)/);
-      if (!match) return;
-      var current;
-      try { current = decodeURIComponent(match[1]).toUpperCase(); } catch (e) { return; }
-      if (current && rendered && current !== rendered) location.reload();
-    });
-  })();
-</script>
-</body>
+    {% if settings.quick_add or settings.mobile_quick_add %}
+      {% render 'quick-add-modal' %}
+    {% endif %}
+  </body>
 </html>

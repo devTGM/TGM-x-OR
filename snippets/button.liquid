@@ -1,39 +1,34 @@
-{%- comment -%}
-  Renders a button (or link styled as a button)
+{%- doc -%}
+  Intended for use in a block similar to the button block.
 
-  Accepts:
-  - label: {String} the label of the button.
-  - link: {String} an optional link to set.
-  - size: {String} can be "small", "large". If none is set, the default size is used.
-  - style: {String} "primary", "secondary" or "link". If none is set "primary" is assumed.
-  - external: {String} if set to true and that a href is passed, it opens into a new window.
-  - show_icon: {Boolean} if set to true, render a icon along the button.
-  - classes: {String} the extra classes.
-  - shopify_attributes: {String} the shopify attributes.
+  @param {string} link - link to render
+  @param {object} [block] - The block
 
-  Usage:
-  {% render 'button', label: 'Button label', link: '#' %}
-{%- endcomment -%}
+  @example
+  {% render 'button', link: '/collections/all' %}
+{%- enddoc -%}
 
-{%- if style == 'link' -%}
-  <a class="link inline-block{% if classes != blank %} {{ classes }}{% endif %}{% if show_icon %} icon-with-text{% endif %}"{% if link != blank %} href="{{ link }}"{% if external %} target="_blank" rel="noopener"{% endif %}{% else %} role="link" aria-disabled="true"{% endif %} is="hover-link" {{ shopify_attributes }}>
-    <span class="link-text">{{ label | escape }}</span>
-    {%- liquid
-      if show_icon
-        render 'icon', icon: 'arrow-right', size: 'sm', class: 'transform'
-      endif
-    -%}
-  </a>
-{%- else -%}
-  <a class="button button--{{ style | default: 'primary' }} button--{{ size | default: 'md' }}{% if classes != blank %} {{ classes }}{% endif %}{% if show_icon %} icon-with-text{% endif %}"{% if link != blank %} href="{{ link }}"{% if external %} target="_blank" rel="noopener"{% endif %}{% else %} role="link" aria-disabled="true"{% endif %} is="hover-link" {{ shopify_attributes }}>
-    <span class="btn-fill" data-fill></span>
-    <span class="btn-text">
-      {%- liquid
-        echo label | escape
-        if show_icon
-          render 'icon', icon: 'arrow-right', size: 'sm', class: 'transform'
-        endif
-      -%}
-    </span>
-  </a>
-{%- endif -%}
+{% assign block_settings = block.settings %}
+{% render 'button-custom-styles', block_settings: block_settings, block_id: block.id %}
+
+<a
+  {% if link == blank %}
+    role="link"
+    aria-disabled="true"
+  {% else %}
+    href="{{ link }}"
+  {% endif %}
+  class="
+    size-style
+    {{ block_settings.style_class }}
+    {{ block_settings.style_class }}--{{ block.id }}
+  "
+  style="{% render 'size-style', settings: block_settings %}"
+  {%- if block_settings.open_in_new_tab -%}
+    target="_blank"
+    rel="noopener noreferrer"
+  {%- endif -%}
+  {{ block.shopify_attributes }}
+>
+  {{ block_settings.label }}
+</a>

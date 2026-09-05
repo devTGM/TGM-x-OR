@@ -9,467 +9,100 @@
  */
 {
   "type": "header",
-  "name": "t:sections.header-group.name",
+  "name": "t:names.header",
   "sections": {
-    "sale-marquee": {
-      "type": "sale-marquee",
+    "header_announcements_9jGBFp": {
+      "type": "header-announcements",
       "blocks": {
-        "msg_1": {
-          "type": "announcement",
+        "announcement_BxgCk9": {
+          "type": "_announcement",
           "settings": {
-            "icon": "truck",
-            "text": "<em>FREE </em>PAN <em>INDIA</em> SHIPPING",
-            "highlighted_text": "text",
-            "highlighted_scribble": "circle"
-          }
-        },
-        "msg_2": {
-          "type": "announcement",
-          "disabled": true,
-          "settings": {
-            "icon": "tag",
-            "text": "BLACKOUT Sale Is Live",
-            "highlighted_text": "none",
-            "highlighted_scribble": "circle"
-          }
-        },
-        "msg_4": {
-          "type": "announcement",
-          "disabled": true,
-          "settings": {
-            "icon": "star",
-            "text": "UPTO<em> 60% OFF</em>",
-            "highlighted_text": "text",
-            "highlighted_scribble": "circle"
-          }
-        },
-        "msg_3": {
-          "type": "announcement",
-          "disabled": true,
-          "settings": {
-            "icon": "tags",
-            "text": "BLACKOUT Sale Is Live",
-            "highlighted_text": "text",
-            "highlighted_scribble": "circle"
-          }
+            "text": "Welcome to our store",
+            "font": "var(--font-subheading--family)",
+            "font_size": "0.75rem",
+            "letter_spacing": "normal",
+            "case": "none"
+          },
+          "blocks": {}
         }
       },
       "block_order": [
-        "msg_1",
-        "msg_2",
-        "msg_4",
-        "msg_3"
+        "announcement_BxgCk9"
       ],
-      "disabled": true,
+      "name": "t:names.announcement_bar",
       "settings": {
-        "direction": "left",
-        "speed": 14,
-        "grid_horizontal": 64,
-        "separator": true,
-        "text_font": "heading",
-        "text_size": 13,
-        "text_size_desktop": 14,
-        "uppercase": true,
-        "letter_spacing": 80,
-        "font_weight": "600",
-        "height": 44,
-        "height_mobile": 40,
-        "color_text": "#ffffff",
-        "color_background": "#5c1011",
-        "gradient_background": "linear-gradient(90deg, rgba(0, 0, 0, 1), rgba(36, 2, 3, 1) 50%, rgba(25, 24, 24, 1) 100%)",
-        "color_highlight": "#ead362",
-        "gradient_highlight": "",
-        "link": "shopify://collections/bestseller",
-        "link_label": "Shop the sale - 60% off everything",
-        "divider_bottom": true
+        "speed": 5,
+        "section_width": "page-width",
+        "background_color": "{{ settings.color_palette.background }}",
+        "divider_width": 1,
+        "divider_color": "{{ settings.color_palette.color2 }}",
+        "padding-block-start": 15,
+        "padding-block-end": 15
       }
     },
-    "17558811845e7ba245": {
-      "type": "_blocks",
-      "settings": {}
-    },
-    "announcement-bar": {
-      "type": "announcement-bar",
-      "blocks": {
-        "announcement_ynewED": {
-          "type": "announcement",
-          "settings": {
-            "icon": "planet",
-            "text": "Welcome To <em><strong>SUन्य</strong></em><strong>  | </strong>ESTD. <strong>5th</strong> Century Brand",
-            "text_us": "",
-            "link": "shopify://pages/about-us",
-            "hide_icon_mobile": false,
-            "text_mobile": "",
-            "highlighted_text": "half_text",
-            "highlighted_scribble": "sketch-underline"
-          }
-        },
-        "announcement-1": {
-          "type": "announcement",
-          "settings": {
-            "icon": "heart",
-            "text": "<strong>For ONREPEAT Brand Lovers — Flat discount of ₹700/- </strong>",
-            "text_us": "",
-            "link": "shopify://collections/hoodie",
-            "hide_icon_mobile": false,
-            "text_mobile": "<strong>Flat discount of ₹700/-ONREPEAT Lovers</strong>",
-            "highlighted_text": "underline",
-            "highlighted_scribble": "basic-underline"
-          }
-        },
-        "announcement-2": {
-          "type": "announcement",
-          "settings": {
-            "icon": "gift",
-            "text": "<strong>Enjoy 5% OFF your every purchase </strong>",
-            "text_us": "",
-            "link": "",
-            "hide_icon_mobile": false,
-            "text_mobile": "<strong>Enjoy 5% OFF your first purchase </strong>",
-            "highlighted_text": "text",
-            "highlighted_scribble": "circle"
-          }
-        }
-      },
-      "block_order": [
-        "announcement_ynewED",
-        "announcement-1",
-        "announcement-2"
-      ],
-      "disabled": true,
-      "custom_css": [],
-      "settings": {
-        "show_social": true,
-        "enable_language_selector": false,
-        "enable_country_selector": false,
-        "invert_icons_selectors": true,
-        "announcement_position": "center",
-        "autoplay": true,
-        "autoplay_speed": 3,
-        "show_navigation": false,
-        "color_text": "#fafafa",
-        "color_background": "#5c1011",
-        "gradient_background": "",
-        "color_highlight": "#b6150e",
-        "gradient_highlight": "",
-        "hide_homepage": false,
-        "full_width": true,
-        "rounded": true
-      }
-    },
-    "countdown_condensed_Tb6aEQ": {
-      "type": "countdown-condensed",
-      "blocks": {
-        "text_Nqz46N": {
-          "type": "text",
-          "settings": {
-            "text": "<p><em>ZERO HOUR: 5% OFF |</em><a href=\"/collections/polo\" title=\"Polo\"><em>POLOS</em></a><em>| ENDS SOON</em></p>",
-            "text_font": "body",
-            "text_alignment": "left",
-            "highlighted_text": "text",
-            "highlighted_scribble": "circle"
-          }
-        },
-        "timer_3t9jf8": {
-          "type": "timer",
-          "settings": {
-            "year": "2026",
-            "month": "08",
-            "day": "27",
-            "hour": "00",
-            "minute": "00",
-            "text_font": "heading",
-            "text_alignment": "right",
-            "message": "",
-            "compact": true
-          }
-        }
-      },
-      "block_order": [
-        "text_Nqz46N",
-        "timer_3t9jf8"
-      ],
-      "disabled": true,
-      "name": "t:sections.countdown-timer.presets.name",
-      "settings": {
-        "color_text": "#fafafa",
-        "color_background": "#1f1f1f",
-        "gradient_background": "",
-        "color_highlight": "#e6b575",
-        "gradient_highlight": "",
-        "padding_top": 16,
-        "padding_bottom": 16,
-        "full_width": true,
-        "rounded": false
-      }
-    },
-    "header": {
+    "header_section": {
       "type": "header",
       "blocks": {
-        "mega_menu_PtmH9C": {
-          "type": "mega_menu",
+        "header-logo": {
+          "type": "_header-logo",
+          "static": true,
           "settings": {
-            "menu_title": "Catalog",
-            "menu_width": "medium",
-            "show_menu_image": false,
-            "button_label": "Explore Now",
-            "button_link": "shopify://collections/all",
-            "promo_image_1": "shopify://shop_images/polo.jpg",
-            "promo_image_ratio_1": "square",
-            "promo_heading_1": "Polos",
-            "promo_subtext_1": "<strong>SUन्य</strong> | Pro <strong>Essentials</strong>",
-            "promo_overlay_content_1": true,
-            "promo_link_1": "shopify://collections/polo",
-            "promo_tag_1": "100% Cotton",
-            "promo_color_text_1": "#ffffff",
-            "promo_color_overlay_1": "#000000",
-            "promo_overlay_opacity_1": 10,
-            "promo_image_2": "shopify://shop_images/sandage_front_1.png",
-            "promo_image_ratio_2": "square",
-            "promo_heading_2": "T-Shirts",
-            "promo_subtext_2": "<strong>SUन्य</strong> | Daily <strong>Essentials</strong>",
-            "promo_overlay_content_2": true,
-            "promo_link_2": "shopify://collections/t-shirts",
-            "promo_tag_2": "French Terry",
-            "promo_color_text_2": "#ffffff",
-            "promo_color_overlay_2": "#000000",
-            "promo_overlay_opacity_2": 10,
-            "promo_image_3": "shopify://shop_images/Moksha_front_1.png",
-            "promo_image_ratio_3": "square",
-            "promo_heading_3": "Shirts",
-            "promo_subtext_3": "<strong>SUन्य</strong> | Modern <strong>Essentials</strong>",
-            "promo_overlay_content_3": true,
-            "promo_link_3": "shopify://collections/shirts",
-            "promo_tag_3": "Banana Fabric",
-            "promo_color_text_3": "#ffffff",
-            "promo_color_overlay_3": "#000000",
-            "promo_overlay_opacity_3": 10,
-            "promo_image_4": "shopify://shop_images/maun_front_4.png",
-            "promo_image_ratio_4": "square",
-            "promo_heading_4": "Sweatshirts",
-            "promo_subtext_4": "<strong>SUन्य</strong> | Refined <strong>Essentials</strong>",
-            "promo_overlay_content_4": true,
-            "promo_link_4": "shopify://collections/sweatshirt",
-            "promo_tag_4": "350 GSM",
-            "promo_color_text_4": "#ffffff",
-            "promo_color_overlay_4": "#000000",
-            "promo_overlay_opacity_4": 10,
-            "promo_image_5": "shopify://shop_images/arambh_front_2.png",
-            "promo_image_ratio_5": "square",
-            "promo_heading_5": "Hoodies",
-            "promo_subtext_5": "<strong>SUन्य</strong> | Winter <strong>Essentials</strong>",
-            "promo_overlay_content_5": true,
-            "promo_link_5": "shopify://collections/hoodie",
-            "promo_tag_5": "Cotton Fleece",
-            "promo_color_text_5": "#ffffff",
-            "promo_color_overlay_5": "#000000",
-            "promo_overlay_opacity_5": 10,
-            "promo_image_6": "shopify://shop_images/corduroy-jogger-ksheer-2-on-model.png",
-            "promo_image_ratio_6": "square",
-            "promo_heading_6": "Joggers",
-            "promo_subtext_6": "<strong>SUन्य</strong> | Relaxed <strong>Essentials</strong>",
-            "promo_overlay_content_6": true,
-            "promo_link_6": "shopify://collections/joggers",
-            "promo_tag_6": "Fine Wale Cord",
-            "promo_color_text_6": "#ffffff",
-            "promo_color_overlay_6": "#000000",
-            "promo_overlay_opacity_6": 10
-          }
+            "hide_logo_on_home_page": false,
+            "padding-block-start": 0,
+            "padding-block-end": 0
+          },
+          "blocks": {}
         },
-        "mega_menu_shop_mobile": {
-          "type": "mega_menu",
+        "header-menu": {
+          "type": "_header-menu",
+          "static": true,
           "settings": {
-            "menu_title": "Shop",
-            "menu_width": "medium",
-            "show_menu_image": false,
-            "button_label": "Explore Now",
-            "button_link": "/collections/all-products",
-            "promo_image_1": "shopify://shop_images/polo.jpg",
-            "promo_image_ratio_1": "square",
-            "promo_heading_1": "Polos",
-            "promo_subtext_1": "<strong>SUन्य</strong> | Pro <strong>Essentials</strong>",
-            "promo_overlay_content_1": true,
-            "promo_link_1": "shopify://collections/polo",
-            "promo_tag_1": "100% Cotton",
-            "promo_color_text_1": "#ffffff",
-            "promo_color_overlay_1": "#000000",
-            "promo_overlay_opacity_1": 10,
-            "promo_image_2": "shopify://shop_images/sandage_front_1.png",
-            "promo_image_ratio_2": "square",
-            "promo_heading_2": "T-Shirts",
-            "promo_subtext_2": "<strong>SUन्य</strong> | Daily <strong>Essentials</strong>",
-            "promo_overlay_content_2": true,
-            "promo_link_2": "shopify://collections/t-shirts",
-            "promo_tag_2": "French Terry",
-            "promo_color_text_2": "#ffffff",
-            "promo_color_overlay_2": "#000000",
-            "promo_overlay_opacity_2": 10,
-            "promo_image_3": "shopify://shop_images/Moksha_front_1.png",
-            "promo_image_ratio_3": "square",
-            "promo_heading_3": "Shirts",
-            "promo_subtext_3": "<strong>SUन्य</strong> | Modern <strong>Essentials</strong>",
-            "promo_overlay_content_3": true,
-            "promo_link_3": "shopify://collections/shirts",
-            "promo_tag_3": "Banana Fabric",
-            "promo_color_text_3": "#ffffff",
-            "promo_color_overlay_3": "#000000",
-            "promo_overlay_opacity_3": 10,
-            "promo_image_4": "shopify://shop_images/maun_front_4.png",
-            "promo_image_ratio_4": "square",
-            "promo_heading_4": "Sweatshirts",
-            "promo_subtext_4": "<strong>SUन्य</strong> | Refined <strong>Essentials</strong>",
-            "promo_overlay_content_4": true,
-            "promo_link_4": "shopify://collections/sweatshirt",
-            "promo_tag_4": "350 GSM",
-            "promo_color_text_4": "#ffffff",
-            "promo_color_overlay_4": "#000000",
-            "promo_overlay_opacity_4": 10,
-            "promo_image_5": "shopify://shop_images/arambh_front_2.png",
-            "promo_image_ratio_5": "square",
-            "promo_heading_5": "Hoodies",
-            "promo_subtext_5": "<strong>SUन्य</strong> | Winter <strong>Essentials</strong>",
-            "promo_overlay_content_5": true,
-            "promo_link_5": "shopify://collections/hoodie",
-            "promo_tag_5": "Cotton Fleece",
-            "promo_color_text_5": "#ffffff",
-            "promo_color_overlay_5": "#000000",
-            "promo_overlay_opacity_5": 10,
-            "promo_image_6": "shopify://shop_images/corduroy-jogger-ksheer-2-on-model.png",
-            "promo_image_ratio_6": "square",
-            "promo_heading_6": "Joggers",
-            "promo_subtext_6": "<strong>SUन्य</strong> | Relaxed <strong>Essentials</strong>",
-            "promo_overlay_content_6": true,
-            "promo_link_6": "shopify://collections/joggers",
-            "promo_tag_6": "Fine Wale Cord",
-            "promo_color_text_6": "#ffffff",
-            "promo_color_overlay_6": "#000000",
-            "promo_overlay_opacity_6": 10
-          }
+            "menu": "main-menu",
+            "type_font_primary_size": "0.875rem",
+            "menu_font_style": "inverse",
+            "type_font_primary_link": "body",
+            "type_case_primary_link": "none",
+            "menu_style": "featured_products",
+            "featured_products_aspect_ratio": "4 / 5",
+            "featured_collections_aspect_ratio": "16 / 9",
+            "image_border_radius": 0,
+            "navigation_bar": false,
+            "drawer_accordion": false,
+            "drawer_accordion_expand_first": false,
+            "drawer_dividers": false
+          },
+          "blocks": {}
         }
       },
-      "block_order": [
-        "mega_menu_PtmH9C",
-        "mega_menu_shop_mobile"
-      ],
       "settings": {
-        "menu": "main-menu",
-        "menu_mobile": "main-menu-mobile",
-        "menu_mobile_utility": "main-menu-mobile-utility",
-        "menu_active": "block",
-        "hover_menu": true,
-        "header_layout": "left-center",
-        "sticky_header_type": "always",
-        "enable_language_selector_desktop": false,
-        "enable_country_selector_desktop": false,
-        "show_country_name_dekstop": false,
-        "show_country_flag_desktop": false,
-        "logo_position_mobile": "center",
-        "show_social": true,
-        "enable_language_selector": false,
-        "enable_country_selector": false,
-        "transparent_color_text": "#ffffff",
-        "color_text": "#5c1011",
-        "color_background": "#ffffff",
-        "padding_top": 10,
-        "padding_bottom": 10,
-        "full_width": true,
-        "rounded": true
-      }
-    },
-    "slideshow_hero_N3tMgf": {
-      "type": "slideshow-hero",
-      "blocks": {
-        "image_a4WqWa": {
-          "type": "image",
-          "settings": {
-            "image": "shopify://shop_images/banner.png",
-            "image_mobile": "shopify://shop_images/new.png",
-            "heading": "",
-            "heading_size": "title-lg tracking-heading",
-            "heading_tag": "h2",
-            "button_label": "SHOP NOW",
-            "button_link": "shopify://collections/polo",
-            "button_style": "secondary",
-            "button_external": false,
-            "button_icon": false
-          }
-        },
-        "image_JLt6J4": {
-          "type": "image",
-          "settings": {
-            "image": "shopify://shop_images/banner_2.png",
-            "image_mobile": "shopify://shop_images/B2G1.png",
-            "heading": "",
-            "heading_size": "title-lg tracking-heading",
-            "heading_tag": "h2",
-            "button_label": "SHOP NOW",
-            "button_link": "shopify://collections/polo",
-            "button_style": "secondary",
-            "button_external": false,
-            "button_icon": false
-          }
-        },
-        "image_fha8KK": {
-          "type": "image",
-          "settings": {
-            "image": "shopify://shop_images/banner_3.png",
-            "image_mobile": "shopify://shop_images/BANNER_5.png",
-            "heading": "",
-            "heading_size": "title-lg tracking-heading",
-            "heading_tag": "h2",
-            "button_label": "SHOP NOW",
-            "button_link": "shopify://collections/polo",
-            "button_style": "secondary",
-            "button_external": false,
-            "button_icon": false
-          }
-        }
-      },
-      "block_order": [
-        "image_a4WqWa",
-        "image_JLt6J4",
-        "image_fha8KK"
-      ],
-      "name": "t:sections.slideshow.presets.name",
-      "settings": {
-        "logo_width": 2000,
-        "model_url": "",
-        "use_local_3d_logo": true,
-        "model_size": 140,
-        "model_size_mobile": 80,
-        "model_offset_y": 120,
-        "model_auto_rotate": true,
-        "model_rotation_speed": 10,
-        "model_camera_controls": true,
-        "model_float": true,
-        "autoplay": false,
-        "autoplay_speed": 9,
-        "show_navigation": false,
-        "image_height": "adapt",
-        "content_width": "small",
-        "image_height_mobile": "500px",
-        "color_text": "#ffffff",
-        "color_background": "#ffffff",
-        "gradient_background": "",
-        "color_button_text": "#171717",
-        "color_button_background": "#ffffff",
-        "color_button_gradient": "",
-        "color_overlay": "#5f0606",
-        "overlay_opacity": 5,
-        "padding_top": 0,
-        "padding_bottom": 0,
-        "only_homepage": true,
-        "divider": false,
-        "rounded": true
+        "logo_position": "left",
+        "menu_position": "left",
+        "menu_row": "top",
+        "show_search": true,
+        "search_position": "right",
+        "search_row": "top",
+        "show_country": true,
+        "country_selector_style": false,
+        "show_language": true,
+        "localization_font": "heading",
+        "localization_font_size": "0.875rem",
+        "localization_position": "right",
+        "localization_row": "top",
+        "section_width": "page-width",
+        "section_height": "standard",
+        "enable_sticky_header": "always",
+        "divider_width": 0,
+        "divider_size": "page-width",
+        "border_width": 0,
+        "background_color_top": "{{ settings.color_palette.background }}",
+        "enable_transparent_header_home": false,
+        "enable_transparent_header_product": false,
+        "enable_transparent_header_collection": false
       }
     }
   },
   "order": [
-    "sale-marquee",
-    "17558811845e7ba245",
-    "announcement-bar",
-    "countdown_condensed_Tb6aEQ",
-    "header",
-    "slideshow_hero_N3tMgf"
+    "header_announcements_9jGBFp",
+    "header_section"
   ]
 }

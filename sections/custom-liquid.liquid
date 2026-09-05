@@ -1,114 +1,83 @@
-<style>
-  #shopify-section-{{ section.id }} {
-    --section-padding-top: {{ section.settings.padding_top }}px;
-    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
-    {%- render 'section-variables', section: section -%}
-  }
-</style>
 
-<div class="section section--padding{% if section.settings.divider %} section--divider{% endif %}{% if section.settings.rounded %} section--rounded relative{% endif %}">
-  <div class="page-width{% if section.settings.narrow %} page-width--narrow{% endif %} relative">
-    {{ section.settings.liquid }}
-  </div>
+
+{% liquid
+  if section.settings.background_color != blank
+    render 'contrast-override', background_color: section.settings.background_color, section_id: section.id
+  endif
+%}
+
+<div
+  class="section-background{% if section.settings.background_color != blank %} color-custom-{{ section.id }}{% endif %}"
+></div>
+<div
+  class="section section--{{ section.settings.section_width }} spacing-style{% if section.settings.background_color != blank %} color-custom-{{ section.id }}{% endif %}"
+  style="{% render 'spacing-padding', settings: section.settings %}"
+>
+  {{ section.settings.custom_liquid }}
 </div>
 
 {% schema %}
 {
-  "name": "t:sections.custom-liquid.name",
+  "name": "t:names.custom_liquid",
   "settings": [
     {
       "type": "liquid",
-      "id": "liquid",
-      "label": "t:sections.custom-liquid.settings.liquid.label",
-      "info": "t:sections.custom-liquid.settings.liquid.info"
+      "id": "custom_liquid",
+      "label": "t:settings.custom_liquid",
+      "info": "t:info.custom_liquid"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "t:settings.background_color",
+      "placeholder": "t:settings.default"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "t:settings.width",
+      "options": [
+        {
+          "value": "page-width",
+          "label": "t:options.page"
+        },
+        {
+          "value": "full-width",
+          "label": "t:options.full"
+        }
+      ],
+      "default": "page-width"
     },
     {
       "type": "header",
-      "content": "t:sections.global.settings.header__colors.content",
-      "info": "t:sections.global.settings.header__colors.info"
-    },
-    {
-      "type": "color",
-      "id": "color_text",
-      "label": "t:sections.global.settings.color_text.label"
-    },
-    {
-      "type": "color",
-      "id": "color_background",
-      "label": "t:sections.global.settings.color_background.label"
-    },
-    {
-      "type": "color_background",
-      "id": "gradient_background",
-      "label": "t:sections.global.settings.gradient_background.label"
-    },
-    {
-      "type": "color",
-      "id": "color_button_text",
-      "label": "t:sections.global.settings.color_button_text.label"
-    },
-    {
-      "type": "color",
-      "id": "color_button_background",
-      "label": "t:sections.global.settings.color_button_background.label"
-    },
-    {
-      "type": "color_background",
-      "id": "color_button_gradient",
-      "label": "t:sections.global.settings.color_button_gradient.label"
-    },
-    {
-      "type": "header",
-      "content": "t:sections.global.settings.header__section.content"
+      "content": "t:content.padding"
     },
     {
       "type": "range",
-      "id": "padding_top",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
       "min": 0,
-      "max": 120,
-      "step": 4,
+      "max": 100,
+      "step": 1,
       "unit": "px",
-      "label": "t:sections.global.settings.padding_top.label",
-      "default": 72
+      "default": 0
     },
     {
       "type": "range",
-      "id": "padding_bottom",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
       "min": 0,
-      "max": 120,
-      "step": 4,
+      "max": 100,
+      "step": 1,
       "unit": "px",
-      "label": "t:sections.global.settings.padding_bottom.label",
-      "default": 72
-    },
-    {
-      "type": "checkbox",
-      "id": "divider",
-      "label": "t:sections.global.settings.divider.label",
-      "default": false
-    },
-    {
-      "type": "checkbox",
-      "id": "narrow",
-      "label": "t:sections.global.settings.narrow.label",
-      "default": false
-    },
-    {
-      "type": "checkbox",
-      "id": "rounded",
-      "default": false,
-      "label": "t:sections.global.settings.rounded.label"
+      "default": 0
     }
   ],
   "presets": [
     {
-      "name": "t:sections.custom-liquid.presets.name"
+      "name": "t:names.custom_liquid",
+      "category": "t:categories.layout"
     }
-  ],
-  "disabled_on": {
-    "groups": [
-      "custom.overlay"
-    ]
-  }
+  ]
 }
 {% endschema %}
